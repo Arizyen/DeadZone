@@ -1,0 +1,3 @@
+local GameTypes = {}
+
+return GameTypes

@@ -1,0 +1,8 @@
+return {
+	ADMIN_PLAYERS = {
+		1858692567,
+	},
+	ADMIN_PLAYERS_RANK = {
+		["1858692567"] = 255,
+	},
+}

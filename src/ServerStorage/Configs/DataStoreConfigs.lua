@@ -1,0 +1,6 @@
+return {
+	MAX_RETRIES = 3,
+	RETRY_DELAY = 3,
+	VERSION = "DataV1",
+	MAX_WAIT_FOR_DATA_IN_USE = 10,
+}

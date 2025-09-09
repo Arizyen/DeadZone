@@ -1,0 +1,52 @@
+export type LeaderboardKey = "daysSurvivedEasy" | "daysSurvivedMid" | "daysSurvivedHard" | "robux"
+
+local LeaderboardConfigs = {
+	INITIAL_SUNDAY_TIME = 1691884800,
+	PAGE_SIZE = 100,
+	PAGE_AMOUNT = 1,
+	PODIUM_RANKS = 3,
+	TOP_COLORS = { Color3.fromRGB(255, 215, 0), Color3.fromRGB(192, 192, 192), Color3.fromRGB(205, 127, 50) },
+	UPDATE_INTERVAL = 60, -- seconds
+	KEYS = {
+		"rank",
+		-- "xp",
+		"wins",
+		"robux",
+	},
+	DANCE_ANIMATION_IDS = {
+		"rbxassetid://7740530956",
+		"rbxassetid://7740532931",
+		"rbxassetid://7740540441",
+		"rbxassetid://7740554642",
+		"rbxassetid://7740556807",
+		"rbxassetid://7740559931",
+		"rbxassetid://7740564763",
+		"rbxassetid://7740567098",
+		"rbxassetid://7740569848",
+		"rbxassetid://7740571451",
+		"rbxassetid://7740575590",
+		"rbxassetid://7740577597",
+		"rbxassetid://7740581547",
+		"rbxassetid://7740583815",
+		"rbxassetid://7740586077",
+		"rbxassetid://7740588896",
+		"rbxassetid://7740591115",
+		"rbxassetid://7740593232",
+		"rbxassetid://7740595235",
+		"rbxassetid://7740598758",
+		"rbxassetid://7740601890",
+		"rbxassetid://7740603800",
+		"rbxassetid://7740625787",
+		"rbxassetid://7740627879",
+		"rbxassetid://7740630009",
+		"rbxassetid://7740632946",
+		"rbxassetid://7740635025",
+		"rbxassetid://7740637918",
+		"rbxassetid://7740640497",
+		"rbxassetid://7740642645",
+		"rbxassetid://7740645651",
+		"rbxassetid://7740654191",
+	},
+}
+
+return LeaderboardConfigs

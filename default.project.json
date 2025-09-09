@@ -1,0 +1,57 @@
+{
+	"name": "playwoo-game-template",
+	"tree": {
+		"$className": "DataModel",
+
+		"ReplicatedFirst": {
+			"$className": "ReplicatedFirst",
+			"Source": {
+				"$path": "src/ReplicatedFirst"
+			}
+		},
+
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"Source": {
+				"$path": "src/ReplicatedStorage",
+				"PlaywooEngine": {
+					"$path": "PlaywooEngine/src/ReplicatedStorage"
+				}
+			},
+			"Packages": {
+				"$path": "Packages"
+			}
+		},
+
+		"ServerScriptService": {
+			"$className": "ServerScriptService",
+			"$path": "src/ServerScriptService"
+		},
+
+		"ServerStorage": {
+			"$className": "ServerStorage",
+			"Source": {
+				"$path": "src/ServerStorage",
+				"PlaywooEngine": {
+					"$path": "PlaywooEngine/src/ServerStorage"
+				}
+			}
+		},
+
+		"StarterPlayer": {
+			"$className": "StarterPlayer",
+			"StarterPlayerScripts": {
+				"$className": "StarterPlayerScripts",
+				"Source": {
+					"$path": "src/StarterPlayerScripts"
+				}
+			},
+			"StarterCharacterScripts": {
+				"$className": "StarterCharacterScripts",
+				"Source": {
+					"$path": "src/StarterCharacterScripts"
+				}
+			}
+		}
+	}
+}

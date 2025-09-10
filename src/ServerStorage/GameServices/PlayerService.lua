@@ -19,6 +19,7 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modulescripts
 local Knit = require(Packages.Knit)
+local RateLimiter = require(BaseModules.RateLimiter)
 
 -- Handlers
 local PlayerHandler = require(GameHandlers.PlayerHandler)
@@ -65,18 +66,34 @@ function PlayerService:KnitStart() end
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function PlayerService.Client:Freeze(playerFired, state)
+	if not RateLimiter.Use(playerFired, "PlayerService", "Freeze") then
+		return
+	end
+
 	PlayerHandler.Freeze(playerFired, state)
 end
 
 function PlayerService.Client:Spawn(playerFired)
+	if not RateLimiter.Use(playerFired, "PlayerService", "Spawn") then
+		return
+	end
+
 	return PlayerHandler.Spawn(playerFired)
 end
 
 function PlayerService.Client:Reset(playerFired)
+	if not RateLimiter.Use(playerFired, "PlayerService", "Reset") then
+		return
+	end
+
 	PlayerHandler.Reset(playerFired)
 end
 
 function PlayerService.Client:KnitLoaded(playerFired)
+	if not RateLimiter.Use(playerFired, "PlayerService", "KnitLoaded") then
+		return
+	end
+
 	PlayerHandler.KnitLoaded(playerFired)
 end
 

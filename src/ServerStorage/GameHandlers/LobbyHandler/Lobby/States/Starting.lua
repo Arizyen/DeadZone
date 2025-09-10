@@ -1,4 +1,5 @@
-local PlayerConfigs = {}
+local Starting = {}
+Starting.__index = Starting
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -16,21 +17,19 @@ local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
-local BaseServices = PlaywooEngine.BaseServices
-local GameServices = ServerSource.GameServices
+local BaseHandlers = PlaywooEngine.BaseHandlers
+local GameHandlers = ServerSource.GameHandlers
 
--- Modulescripts -------------------------------------------------------------------
+-- Modules -------------------------------------------------------------------
+local Utils = require(ReplicatedPlaywooEngine.Utils)
 
--- KnitServices --------------------------------------------------------------------
+-- Handlers --------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
-PlayerConfigs.AUTO_RESPAWN = true
-PlayerConfigs.AUTO_RESPAWN_DELAY = 3
 
 -- Types ---------------------------------------------------------------------------
 
@@ -43,25 +42,48 @@ PlayerConfigs.AUTO_RESPAWN_DELAY = 3
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
--- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
+-- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerConfigs.GetPlayerMaxHP(player: Player): number
-	if not player or not player:IsA("Player") then
-		return 100
-	end
+function Starting.new(lobby: Model)
+	local self = setmetatable({}, Starting)
 
-	return 100
+	-- Booleans
+	self._destroyed = false
+
+	-- Strings
+	self.type = "Starting"
+
+	-- Instances
+	self.lobby = lobby
+
+	self:_Init()
+
+	return self
 end
 
-function PlayerConfigs.Spawn(player: Player): boolean
-	if not player or not player:IsA("Player") then
-		return false
-	end
-
-	player:LoadCharacter()
-	return true
+function Starting:_Init()
+	self:Update()
 end
+
+function Starting:Destroy()
+	if self._destroyed then
+		return
+	end
+	self._destroyed = true
+
+	Utils.Connections.DisconnectKeyConnections(self)
+end
+
+function Starting:Update() end
+
+------------------------------------------------------------------------------------------------------------------------
+-- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+-- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -71,4 +93,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return PlayerConfigs
+return Starting

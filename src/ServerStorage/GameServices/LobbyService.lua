@@ -1,5 +1,3 @@
-local PlayerConfigs = {}
-
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,29 +10,38 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
+local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
-local BaseServices = PlaywooEngine.BaseServices
-local GameServices = ServerSource.GameServices
+local BaseHandlers = PlaywooEngine.BaseHandlers
+local GameHandlers = ServerSource.GameHandlers
 
--- Modulescripts -------------------------------------------------------------------
+-- Modules -------------------------------------------------------------------
+local Knit = require(Packages.Knit)
+local RateLimiter = require(BaseModules.RateLimiter)
 
--- KnitServices --------------------------------------------------------------------
+-- Handlers -------------------------------------------------------------------
+local LobbyHandler = require(GameHandlers.LobbyHandler)
+
+-- Knit Services --------------------------------------------------------------------
+local LobbyService = Knit.CreateService({
+	Name = "Lobby",
+	Client = {},
+})
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
-PlayerConfigs.AUTO_RESPAWN = true
-PlayerConfigs.AUTO_RESPAWN_DELAY = 3
+local MapConfigs = require(Configs.MapConfigs)
 
 -- Types ---------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
+local isLobby = MapConfigs.MAPS_PLACE_ID.Lobby == game.PlaceId
 
 -- Tables --------------------------------------------------------------------------
 
@@ -45,30 +52,22 @@ PlayerConfigs.AUTO_RESPAWN_DELAY = 3
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+-- KNIT FUNCTIONS ------------------------------------------------------------------------------------------------------
 
-function PlayerConfigs.GetPlayerMaxHP(player: Player): number
-	if not player or not player:IsA("Player") then
-		return 100
-	end
-
-	return 100
+-- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
+function LobbyService:KnitInit()
+	LobbyHandler.Register({})
 end
 
-function PlayerConfigs.Spawn(player: Player): boolean
-	if not player or not player:IsA("Player") then
-		return false
+-- KnitStart() fires after all KnitInit() have been completed.
+function LobbyService:KnitStart()
+	if isLobby then
+		LobbyHandler.Activate()
 	end
-
-	player:LoadCharacter()
-	return true
 end
 
-------------------------------------------------------------------------------------------------------------------------
--- CONNECTIONS ---------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+-- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------
--- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-return PlayerConfigs
+return LobbyService

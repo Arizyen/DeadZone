@@ -22,16 +22,27 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
+local t = require(Packages.t)
 
 -- Handlers --------------------------------------------------------------------
+local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
+local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local LobbyConfigs = require(ReplicatedConfigs.LobbyConfigs)
 
 -- Types ---------------------------------------------------------------------------
+local LobbyTypes = require(ReplicatedTypes.Lobby)
+local ILobbySettings = t.strictInterface({
+	difficulty = t.number,
+	maxPlayers = t.number,
+	friendsOnly = t.boolean,
+	saveId = t.optional(t.string),
+})
 
 -- Variables -----------------------------------------------------------------------
 
@@ -45,7 +56,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Creating.new(lobby: Model)
+function Creating.new(lobby: table)
 	local self = setmetatable({}, Creating)
 
 	-- Booleans
@@ -63,19 +74,7 @@ function Creating.new(lobby: Model)
 end
 
 function Creating:_Init()
-	self:_UpdateUI()
-
-	-- Connections
-	Utils.Connections.Add(
-		self,
-		"PlayersUpdated",
-		self.lobby.playersUpdated:Connect(function(players: { Player })
-			if #players == 0 then
-				self.lobby:ChangeState("Waiting")
-			end
-		end)
-	)
-
+	self.lobby:DestroyTouchConnections()
 	self:Update()
 end
 
@@ -88,15 +87,10 @@ function Creating:Destroy()
 	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function Creating:Update() end
-
-------------------------------------------------------------------------------------------------------------------------
--- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-function Creating:_UpdateUI()
+function Creating:Update()
+	-- Update frame
 	self.lobby:UpdateFrameChildren("Creating", function(frame)
-		local player = self.lobby:GetPlayers()[1]
+		local player = self.lobby.players[1]
 
 		frame.TextLabelPlayer.Text = player and player.Name or "???"
 	end)
@@ -104,8 +98,40 @@ function Creating:_UpdateUI()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
+-- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function Creating:Create(playerFired: Player, lobbySettings: LobbyTypes.LobbySettings): boolean
+	if not ILobbySettings(lobbySettings) then
+		warn("[Lobby][Creating] - Invalid lobby settings provided to Create.")
+		return false
+	end
+
+	-- Review settings
+	lobbySettings.difficulty =
+		math.clamp(lobbySettings.difficulty or 1, LobbyConfigs.MIN_DIFFICULTY, LobbyConfigs.MAX_DIFFICULTY)
+	lobbySettings.maxPlayers = math.clamp(lobbySettings.maxPlayers, LobbyConfigs.MIN_PLAYERS, LobbyConfigs.MAX_PLAYERS)
+
+	-- Get save data if saveId is provided
+	if lobbySettings.saveId then
+		local saveInfo = PlayerDataHandler.GetKeyValue(playerFired.UserId, "SavesInfo", lobbySettings.saveId)
+		if not saveInfo then
+			MessageHandler.SendMessageToPlayer(playerFired, "Error: could not find the save.", "Error")
+			return false
+		end
+
+		lobbySettings.difficulty = saveInfo.difficulty or lobbySettings.difficulty
+	end
+
+	self.lobby:SetSettings(lobbySettings)
+	self.lobby:ChangeState("Starting")
+
+	return true
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

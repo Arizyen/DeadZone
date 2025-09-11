@@ -3,6 +3,6 @@ return {
 	SORT_BY_KEY = "level",
 	LEADERSTATS_KEYS = {
 		"level",
-		"wins",
+		"rebirths",
 	},
 }

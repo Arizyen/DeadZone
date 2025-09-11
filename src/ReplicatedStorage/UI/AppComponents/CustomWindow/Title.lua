@@ -34,6 +34,7 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- BaseComponents ----------------------------------------------------------------
 local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
+local TextLabel = require(BaseComponents:WaitForChild("TextLabel"))
 
 -- GlobalComponents ----------------------------------------------------------------
 
@@ -78,14 +79,14 @@ local function Title(props: Props)
 		BackgroundTransparency = props.title and 0 or 1,
 		Position = UDim2.fromScale(0, 0),
 		Size = UDim2.fromScale(1, 0.25):Lerp(
-			UDim2.fromScale(1, 0.106),
+			UDim2.fromScale(1, 0.14),
 			math.clamp(
 				(((props.Size and props.Size.Y.Scale or theme.maxWindowSizeY) - 0.25) / (theme.maxWindowSizeY - 0.25)),
 				0,
 				1
 			)
 		),
-		ZIndex = 2,
+		ZIndex = 3,
 	}, {
 		UIGradient = e("UIGradient", {
 			Color = props.titleColorSequence or ColorSequence.new({
@@ -106,35 +107,28 @@ local function Title(props: Props)
 						or Color3.fromRGB(0, 125, 235)
 				),
 			}),
-			Offset = Vector2.new(0, 0),
 			Rotation = 90,
 		}),
 
 		UIStroke = e(UIStroke, {
-			Color = Color3.fromRGB(255, 255, 255),
+			Color = Color3.fromRGB(230, 230, 230),
 			LineJoinMode = Enum.LineJoinMode.Round,
-			Thickness = 3,
+			Thickness = 3.5,
 			Enabled = props.title and props.title ~= "",
 		}),
 
-		TextLabelTitle = e("TextLabel", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundTransparency = 1,
-			Position = UDim2.fromScale(0.5, 0.5),
-			-- Size = UDim2.fromScale(0.98, 0.88):Lerp(
-			-- 	UDim2.fromScale(0.98, 0.87),
-			-- 	(((props.Size and props.Size.Y.Scale or 0.5) - 0.25) / (0.57 - 0.25))
-			-- ),
-			Size = UDim2.fromScale(0.5, 0.9),
-			Font = theme.defaultFont,
+		TextLabelTitle = e(TextLabel, {
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.fromScale(0.03, 0.5),
+			Size = UDim2.fromScale(0.75, 1),
 			Text = props.title or "",
-			TextColor3 = Color3.fromRGB(255, 255, 255),
-			TextScaled = true,
-			TextStrokeTransparency = 1,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			bold = true,
+			italic = true,
 		}, {
 			UIStroke = e(UIStroke, {
 				ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
-				Thickness = 3,
+				Thickness = 2.5,
 				textStroke = true,
 			}),
 		}),
@@ -164,10 +158,10 @@ local function Title(props: Props)
 		CloseButton = not props.noCloseButton and e(CloseButton, {
 			windowName = props.windowName,
 			onClose = props.onClose,
-			customOnClose = props.customOnClose,
+			onCloseCustom = props.onCloseCustom,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.98, 0.5),
-			Size = UDim2.fromScale(0.25, 1.235),
+			Position = UDim2.fromScale(0.948, 0.5),
+			Size = UDim2.fromScale(0.1, 0.775),
 		}),
 	})
 end

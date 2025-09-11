@@ -67,7 +67,6 @@ local windowsWithCameraAnimation = {
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
 	window = { "windowShown" },
-	theme = { "defaultFont" },
 	data = { "newPlayer", "savedGameMode" },
 })
 

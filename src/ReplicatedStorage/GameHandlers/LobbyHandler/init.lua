@@ -1,33 +1,25 @@
 local LobbyHandler = {}
 
 -- Services ------------------------------------------------------------------------
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Folders -------------------------------------------------------------------------
-local Packages = ReplicatedStorage.Packages
-local ReplicatedSource = ReplicatedStorage.Source
-local ServerSource = ServerStorage.Source
-local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
-local PlaywooEngine = ServerSource.PlaywooEngine
-local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
-local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
-local ReplicatedInfo = ReplicatedSource.Info
-local ReplicatedTypes = ReplicatedSource.Types
-local BaseModules = PlaywooEngine.BaseModules
-local GameModules = ServerSource.GameModules
-local BaseHandlers = PlaywooEngine.BaseHandlers
-local GameHandlers = ServerSource.GameHandlers
-
-local LobbyMap = ServerStorage.Maps.Lobby
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
+local ReplicatedPlaywooEngine = ReplicatedSource:WaitForChild("PlaywooEngine")
+local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
+local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
+local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
+local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local Lobby = require(script.Lobby)
+local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
+local Ports = require(script:WaitForChild("Ports"))
 
--- Handlers --------------------------------------------------------------------
+-- Handlers ----------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
@@ -36,52 +28,56 @@ local Lobby = require(script.Lobby)
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes.Lobby)
+local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
 
 -- Variables -----------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
-local lobbies = {} :: { [string]: typeof(Lobby) }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+local function GetAllLobbiesState()
+	Ports.GetAllLobbiesState():andThen(function(states: { [string]: LobbyTypes.LobbyState })
+		Utils.Signals.Fire("DispatchAction", {
+			type = "UpdateLobbyStates",
+			value = states,
+		})
+	end)
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function LobbyHandler.Register(ports: Ports.Ports)
+function LobbyHandler.Register(ports)
 	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
 
-function LobbyHandler.Activate()
-	LobbyMap.Parent = game.Workspace
+function LobbyHandler.Activate() end
 
-	for _, lobby in pairs(LobbyMap.Lobbies:GetChildren()) do
-		local newLobby = Lobby.new(lobby)
+function LobbyHandler.UpdateLobbyState(lobbyState: LobbyTypes.LobbyState)
+	Utils.Signals.Fire("DispatchAction", {
+		type = "UpdateLobbyState",
+		value = lobbyState,
+	})
 
-		newLobby.lobbyUpdated:Connect(function(state: LobbyTypes.LobbyState)
-			Ports.FireLobbyStateUpdate(state)
-		end)
-
-		lobbies[lobby.Name] = newLobby
+	-- Show CreateLobby window if player is in a lobby that is in "Creating" state
+	if lobbyState.state == "Creating" and lobbyState.players[1] == game.Players.LocalPlayer then
+		Utils.Signals.Fire("DispatchAction", {
+			type = "ShowWindow",
+			value = "CreateLobby",
+		})
 	end
-end
-
-function LobbyHandler.GetAllLobbiesState(): { [string]: LobbyTypes.LobbyState }
-	local states = {}
-
-	for id, lobby in pairs(lobbies) do
-		states[id] = lobby:GetLobbyState()
-	end
-
-	return states
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+Utils.Signals.Once("ClientStarted", function()
+	GetAllLobbiesState()
+end)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------

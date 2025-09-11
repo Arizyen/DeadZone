@@ -10,16 +10,17 @@ local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
 local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
 local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
 local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
-local BaseControllers = ReplicatedPlaywooEngine:WaitForChild("BaseControllers")
-local GameControllers = ReplicatedSource:WaitForChild("GameControllers")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 local UI = ReplicatedSource:WaitForChild("UI")
 local PlaywooEngineUI = ReplicatedPlaywooEngine:WaitForChild("UI")
+local BaseHooks = PlaywooEngineUI:WaitForChild("BaseHooks")
 local GlobalComponents = PlaywooEngineUI:WaitForChild("GlobalComponents")
 local BaseComponents = PlaywooEngineUI:WaitForChild("BaseComponents")
 local AppComponents = UI:WaitForChild("AppComponents")
 
--- Modulescripts -------------------------------------------------------------------
+-- Modules -------------------------------------------------------------------
 local React = require(Packages:WaitForChild("React"))
 local ReactRedux = require(Packages:WaitForChild("ReactRedux"))
 local Flipper = require(Packages:WaitForChild("Flipper"))
@@ -28,44 +29,28 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
--- Knit Controllers ----------------------------------------------------------------
+-- Handlers ----------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
 -- BaseComponents ----------------------------------------------------------------
-local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
-local UIAspectRatioConstraint = require(BaseComponents:WaitForChild("UIAspectRatioConstraint"))
 
 -- GlobalComponents ----------------------------------------------------------------
-local Window = require(GlobalComponents:WaitForChild("Window"))
 
 -- AppComponents -------------------------------------------------------------------
-local CloseButton = require(AppComponents:WaitForChild("CloseButton"))
+local CustomWindow = require(AppComponents:WaitForChild("CustomWindow"))
 
 -- LocalComponents -----------------------------------------------------------------
-local WindowIcon = require(script:WaitForChild("WindowIcon"))
-local Title = require(script:WaitForChild("Title"))
+
+-- Hooks ---------------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local WINDOW_NAME = "CreateLobby"
 
 -- Types ---------------------------------------------------------------------------
-type Props = {
-	Size: UDim2,
-	AnchorPoint: Vector2?,
-	Position: UDim2?,
-	windowName: string,
-	onClose: (() -> ())?,
-	onCloseCustom: (() -> ())?,
-	exactSize: boolean?,
-	title: string?,
-	titleColorSequence: ColorSequence?,
-	titleColor: Color3?,
-	icon: string?,
-	noCloseButton: boolean?,
-	clipsDescendants: boolean?,
-}
+type Props = {}
 
 -- Variables -----------------------------------------------------------------------
 local e = React.createElement
@@ -73,86 +58,28 @@ local e = React.createElement
 -- Tables --------------------------------------------------------------------------
 
 -- Selectors --------------------------------------------------------------------------
-local selector = UIUtils.Selector.Create({
-	theme = { "maxWindowSizeX", "maxWindowSizeY", "totalScreenSize" },
-})
+
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-local function CustomWindow(props: Props)
-	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
-	local storeState = ReactRedux.useSelector(selector)
 
-	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
+local function CreateLobby(props: Props)
+	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
+
+	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
-	local windowSize = React.useMemo(function()
-		return (
-			props.exactSize
-			or (
-				props.Size
-				and props.Size.X.Scale <= storeState.maxWindowSizeX
-				and props.Size.Y.Scale <= storeState.maxWindowSizeY
-				and props.Size
-			)
-		)
-			or (
-				props.Size ~= nil and UDim2.fromScale(storeState.maxWindowSizeX, storeState.maxWindowSizeY)
-				or UDim2.fromScale(0.5, 0.5)
-			)
-	end, { props.Size, props.exactSize, storeState.maxWindowSizeX, storeState.maxWindowSizeY })
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
-	return e(Window, {
-		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.46),
-		Position = props.Position or UDim2.fromScale(0.5, 0.5),
-		Size = windowSize,
-		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-		BackgroundTransparency = 0,
-		windowName = props.windowName or "CustomWindow",
-		onClose = props.noCloseButton and props.onClose,
-	}, {
-		UIAspectRatioConstraint = e(UIAspectRatioConstraint, {
-			size = windowSize,
-		}),
-		UIGradient = e("UIGradient", {
-			Color = Utils.Color.Configs.colorSequences.blackTotal,
-			Rotation = 90,
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.05),
-				NumberSequenceKeypoint.new(1, 0.175),
-			}),
-		}),
-		UIStroke = e(UIStroke, {
-			Color = Color3.fromRGB(230, 230, 230),
-			LineJoinMode = Enum.LineJoinMode.Round,
-			Thickness = 3.5,
-		}),
-
-		FrameTitle = props.title and e(Title, {
-			Size = windowSize,
-			windowName = props.windowName,
-			title = props.title,
-			titleColorSequence = props.titleColorSequence,
-			titleColor = props.titleColor,
-			icon = props.icon,
-			noCloseButton = props.noCloseButton,
-			onClose = props.onClose,
-			onCloseCustom = props.onCloseCustom,
-		}),
-
-		FrameContent = e("Frame", {
-			AnchorPoint = Vector2.new(0, 0),
-			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 1),
-			ZIndex = 2,
-			ClipsDescendants = props.clipsDescendants,
-		}, props.children or {}),
+	return e(CustomWindow, {
+		windowName = WINDOW_NAME,
+		title = "Create Lobby",
+		titleColorSequence = Utils.Color.Configs.colorSequences.blue,
 	})
 end
 
-return CustomWindow
+return CreateLobby

@@ -55,6 +55,8 @@ type Props = {
 	textAnchorPoint: Vector2?,
 	textPosition: UDim2?,
 	textSize: number?,
+	textBold: boolean?,
+	textItalic: boolean?,
 	smallRatio: number?,
 	largeRatio: number?,
 	onClick: (() -> nil)?,
@@ -140,7 +142,7 @@ local function CustomButton(props: Props)
 			AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
 			Position = props.Position or UDim2.fromScale(0.5, 0.5),
 			Size = props.Size or UDim2.fromScale(1, 1),
-			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 			smallRatio = props.smallRatio,
 			largeRatio = props.largeRatio,
 			onClick = props.onClick,
@@ -148,73 +150,99 @@ local function CustomButton(props: Props)
 			onHoldEnd = props.onHoldEnd,
 			noButtonAnimation = props.noButtonAnimation,
 		}),
-		Utils.Table.Dictionary.merge({
+		{
 			UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
-			TextLabel = props.Text and e(TextLabel, {
-				TextColor3 = props.TextColor3 or Color3.fromRGB(255, 255, 255),
-				AnchorPoint = props.textAnchorPoint or Vector2.new(0.5, 0.5),
-				Position = props.textPosition or UDim2.fromScale(0.5, 0.5),
-				Size = props.textSize or UDim2.fromScale(0.8, 0.8),
-				Font = props.Font,
-				TextStrokeColor3 = props.TextStrokeColor3 or Color3.fromRGB(0, 0, 0),
-				TextStrokeTransparency = props.TextStrokeTransparency or 0.8,
-				Text = props.Text or "",
-				RichText = props.RichText or false,
-				ZIndex = 2,
-			}),
-			UIStroke = props.strokeThickness ~= 0 and e(UIStroke, {
-				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-				LineJoinMode = Enum.LineJoinMode.Round,
-				Color = props.strokeColor3 or Color3.fromRGB(255, 255, 255),
-				Thickness = props.strokeThickness or 2,
-				Transparency = props.strokeTransparency or 0,
-			}),
-			UIGradient = e("UIGradient", {
-				Color = props.colorSequence or Utils.Color.Configs.colorSequences["green5"],
-				Rotation = 90,
-			}),
 			UIAspectRatioConstraint = props.aspectRatio and e("UIAspectRatioConstraint", {
 				AspectRatio = props.aspectRatio,
 			}),
-			FrameShine = props.shineAnimation and e("Frame", {
+			UIStroke = props.strokeThickness ~= 0 and e(UIStroke, {
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				Color = props.strokeColor3 or Color3.fromRGB(25, 25, 25),
+				Thickness = props.strokeThickness or 2.5,
+				Transparency = props.strokeTransparency or 0,
+			}),
+
+			FrameBackground = e("Frame", {
+				BackgroundColor3 = (props.colorSequence or Utils.Color.Configs.colorSequences["green"]).Keypoints[1].Value,
+				BackgroundTransparency = 0.5,
 				Size = UDim2.fromScale(1, 1),
-				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-				ZIndex = 0,
-				Visible = props.shineAnimation or false,
 			}, {
 				UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
-				UIGradient = e("UIGradient", {
-					Color = Utils.Color.ColorSequence({
-						props.shineAnimationColor3 or Color3.fromRGB(235, 235, 235),
-					}),
-					Transparency = NumberSequence.new({
-						NumberSequenceKeypoint.new(0, 1),
-						NumberSequenceKeypoint.new(0.3, 1),
-						NumberSequenceKeypoint.new(0.5, 0.7),
-						NumberSequenceKeypoint.new(0.7, 1),
-						NumberSequenceKeypoint.new(1, 1),
-					}),
-					Offset = shineAnimationMotorConfigs.binding:map(function(value)
-						return Vector2.new(Utils.Math.Lerp(-0.6, 0.6, value), 0)
-					end),
-				}),
 			}),
-			ImageLabel = props.image and e("ImageLabel", {
-				BackgroundTransparency = 1,
-				AnchorPoint = props.imageAnchorPoint or Vector2.new(0.5, 0.5),
-				Position = props.imagePosition or UDim2.fromScale(0.5, 0.5),
-				Size = props.imageSize or UDim2.fromScale(1, 1),
-				Image = props.image or "rbxassetid://9128622454",
-				ImageColor3 = props.imageColor3 or Color3.fromRGB(255, 255, 255),
-				ImageTransparency = props.imageTransparency or 0,
-				ScaleType = Enum.ScaleType.Fit,
-				Visible = props.imageVisible or (props.imageVisible == nil),
-			}, {
-				UIAspectRatioConstraint = props.imageUIAspectRatio and e("UIAspectRatioConstraint", {
-					AspectRatio = props.imageUIAspectRatio,
-				}),
-			}),
-		}, props.children or {})
+
+			FrameForeground = e(
+				"Frame",
+				{
+					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+					Size = UDim2.new(1, 0, 1, -6),
+					ZIndex = 2,
+				},
+				Utils.Table.Dictionary.merge({
+					UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
+					UIGradient = e("UIGradient", {
+						Color = props.colorSequence or Utils.Color.Configs.colorSequences["green"],
+						Rotation = 90,
+					}),
+
+					TextLabel = props.Text and e(TextLabel, {
+						TextColor3 = props.TextColor3 or Color3.fromRGB(255, 255, 255),
+						AnchorPoint = props.textAnchorPoint or Vector2.new(0.5, 0.5),
+						Position = props.textPosition or UDim2.fromScale(0.5, 0.5),
+						Size = props.textSize or UDim2.fromScale(0.8, 0.8),
+						FontFace = props.FontFace,
+						bold = props.textBold,
+						italic = props.textItalic,
+						Text = props.Text or "",
+						RichText = props.RichText or false,
+					}, {
+						UIStroke = e(UIStroke, {
+							Thickness = 2.5,
+							textStroke = true,
+						}),
+					}),
+
+					ImageLabel = props.image and e("ImageLabel", {
+						BackgroundTransparency = 1,
+						AnchorPoint = props.imageAnchorPoint or Vector2.new(0.5, 0.5),
+						Position = props.imagePosition or UDim2.fromScale(0.5, 0.5),
+						Size = props.imageSize or UDim2.fromScale(1, 1),
+						Image = props.image or "rbxassetid://9128622454",
+						ImageColor3 = props.imageColor3 or Color3.fromRGB(255, 255, 255),
+						ImageTransparency = props.imageTransparency or 0,
+						ScaleType = Enum.ScaleType.Fit,
+						Visible = props.imageVisible or (props.imageVisible == nil),
+					}, {
+						UIAspectRatioConstraint = props.imageUIAspectRatio and e("UIAspectRatioConstraint", {
+							AspectRatio = props.imageUIAspectRatio,
+						}),
+					}),
+
+					FrameShine = props.shineAnimation and e("Frame", {
+						Size = UDim2.fromScale(1, 1),
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+						ZIndex = 0,
+						Visible = props.shineAnimation or false,
+					}, {
+						UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
+						UIGradient = e("UIGradient", {
+							Color = Utils.Color.ColorSequence({
+								props.shineAnimationColor3 or Color3.fromRGB(235, 235, 235),
+							}),
+							Transparency = NumberSequence.new({
+								NumberSequenceKeypoint.new(0, 1),
+								NumberSequenceKeypoint.new(0.3, 1),
+								NumberSequenceKeypoint.new(0.5, 0.7),
+								NumberSequenceKeypoint.new(0.7, 1),
+								NumberSequenceKeypoint.new(1, 1),
+							}),
+							Offset = shineAnimationMotorConfigs.binding:map(function(value)
+								return Vector2.new(Utils.Math.Lerp(-0.6, 0.6, value), 0)
+							end),
+						}),
+					}),
+				}, props.children)
+			),
+		}
 	)
 end
 

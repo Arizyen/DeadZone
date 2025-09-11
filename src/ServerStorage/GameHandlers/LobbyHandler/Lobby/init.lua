@@ -4,6 +4,7 @@ Lobby.__index = Lobby
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage.Packages
@@ -39,6 +40,7 @@ local PlayerHandler = require(GameHandlers.PlayerHandler)
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
+local LobbyTypes = require(ReplicatedTypes.Lobby)
 
 -- Variables -----------------------------------------------------------------------
 
@@ -65,10 +67,12 @@ function Lobby.new(lobbyModel: Model)
 	self._destroyed = false
 
 	-- Strings
+	self._id = lobbyModel.Name
 
 	-- Tables
-	self._players = {} :: { Player }
+	self.players = {} :: { Player }
 	self._ignorePlayers = {} :: { [number]: Player } -- UserId: boolean
+	self.settings = {} :: LobbyTypes.LobbySettings?
 
 	-- Instances
 	self._lobbyModel = lobbyModel
@@ -77,6 +81,10 @@ function Lobby.new(lobbyModel: Model)
 
 	-- Signals
 	self.playersUpdated = Utils.Signals.Create() -- Fires {Player}
+	self.lobbyUpdated = Utils.Signals.Create() -- Fires LobbyState
+
+	-- Connections
+	self._wallTouchConnections = {} :: { RBXScriptConnection }
 
 	self:_Init()
 
@@ -84,8 +92,6 @@ function Lobby.new(lobbyModel: Model)
 end
 
 function Lobby:_Init()
-	self:_AddTouchConnections()
-
 	-- Connections
 	Utils.Connections.Add(
 		self,
@@ -99,6 +105,15 @@ function Lobby:_Init()
 		"PlayerDied",
 		Utils.Signals.Connect("PlayerDied", function(player: Player)
 			self:_RemovePlayer(player)
+		end)
+	)
+	Utils.Connections.Add(
+		self,
+		"PlayersUpdated",
+		self.playersUpdated:Connect(function(players: { Player })
+			if #players == 0 then
+				self:ChangeState("Waiting")
+			end
 		end)
 	)
 
@@ -121,34 +136,17 @@ end
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
--- CONSTRUCTORS ----------------------------------------------------------------------------------------------------
+-- EVENTS ----------------------------------------------------------------------------------------------------
 
-function Lobby:GetPlayers(): { Player }
-	return self._players
-end
-
--- CONNECTIONS ----------------------------------------------------------------------------------------------------
-
-function Lobby:_AddTouchConnections()
-	for _, child in pairs(self._lobbyModel:GetChildren()) do
-		if child:IsA("BasePart") and child.Name == "Wall" then
-			child.Touched:Connect(function(hit)
-				local character = hit.Parent
-				if character and character:FindFirstChildWhichIsA("Humanoid") then
-					local player = game.Players:GetPlayerFromCharacter(character)
-					if player then
-						self:_AddPlayer(player)
-					end
-				end
-			end)
-		end
-	end
+function Lobby:_FireLobbyUpdated()
+	self.lobbyUpdated:Fire(self:GetLobbyState())
 end
 
 -- PLAYER MANAGEMENT ---------------------------------------------------------------------------------------------------
 
 function Lobby:_PlayersUpdated()
-	self.playersUpdated:Fire(self._players)
+	self.playersUpdated:Fire(self.players)
+	self:_FireLobbyUpdated()
 end
 
 function Lobby:_AddPlayer(player: Player)
@@ -156,8 +154,21 @@ function Lobby:_AddPlayer(player: Player)
 		return
 	end
 
+	-- Check settings
+	if self.settings then
+		if #self.players >= (self.settings.maxPlayers or 1) then
+			return
+		end
+		if self.settings.friendsOnly then
+			local owner = self.players[1]
+			if owner and owner.UserId ~= player.UserId and not owner:IsFriendsWith(player.UserId) then
+				return
+			end
+		end
+	end
+
 	self._ignorePlayers[player.UserId] = true
-	table.insert(self._players, player)
+	table.insert(self.players, player)
 	self:_PlayersUpdated()
 
 	-- Teleport player inside of lobby
@@ -165,13 +176,13 @@ function Lobby:_AddPlayer(player: Player)
 end
 
 function Lobby:_RemovePlayer(player: Player)
-	local index = table.find(self._players, player)
+	local index = table.find(self.players, player)
 	if not index then
 		return
 	end
 
 	self._ignorePlayers[player.UserId] = nil
-	table.remove(self._players, index)
+	table.remove(self.players, index)
 	self:_PlayersUpdated()
 
 	-- Teleport player outside of lobby
@@ -181,6 +192,26 @@ function Lobby:_RemovePlayer(player: Player)
 			{ position = (self._lobbyModel.PrimaryPart.CFrame * CFrame.new(0, 0, -15)).Position }
 		)
 	end
+end
+
+------------------------------------------------------------------------------------------------------------------------
+-- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+-- GETTERS/SETTERS --------------------------------------------------------------------------------------------------
+
+function Lobby:GetLobbyState(): LobbyTypes.LobbyState
+	return {
+		id = self._id,
+		players = self.players,
+		settings = self.settings,
+		state = self._currentState and self._currentState.type or "Unknown",
+	}
+end
+
+function Lobby:SetSettings(settings: LobbyTypes.LobbySettings?)
+	self.settings = settings
+	self:_FireLobbyUpdated()
 end
 
 -- UI MANAGEMENT ----------------------------------------------------------------------------------------------------
@@ -200,9 +231,34 @@ function Lobby:UpdateFrameChildren(frameName: string, updateFunc: (frame: Frame)
 	end
 end
 
-------------------------------------------------------------------------------------------------------------------------
--- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
+-- CONNECTIONS ----------------------------------------------------------------------------------------------------
+
+function Lobby:AddTouchConnections()
+	self:DestroyTouchConnections()
+	for _, child in pairs(self._lobbyModel:GetChildren()) do
+		if child:IsA("BasePart") and child.Name == "Wall" then
+			table.insert(
+				self._wallTouchConnections,
+				child.Touched:Connect(function(hit)
+					local character = hit.Parent
+					if character and character:FindFirstChildWhichIsA("Humanoid") then
+						local player = game.Players:GetPlayerFromCharacter(character)
+						if player then
+							self:_AddPlayer(player)
+						end
+					end
+				end)
+			)
+		end
+	end
+end
+
+function Lobby:DestroyTouchConnections()
+	for _, connection in pairs(self._wallTouchConnections) do
+		connection:Disconnect()
+	end
+	self._wallTouchConnections = {}
+end
 
 -- STATE MANAGEMENT ----------------------------------------------------------------------------------------------------
 
@@ -220,6 +276,16 @@ function Lobby:ChangeState(newState: string)
 	if stateClass then
 		self._currentState = stateClass.new(self)
 	end
+end
+
+-- LOBBY CREATING ------------------------------------------------------------------------------------------------------
+
+function Lobby:Create(playerFired: Player, lobbySettings: LobbyTypes.LobbySettings): boolean
+	if #self.players == 0 or self.players[1] ~= playerFired or self._currentState.type ~= "Creating" then
+		return false
+	end
+
+	return self._currentState:Create(playerFired, lobbySettings)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

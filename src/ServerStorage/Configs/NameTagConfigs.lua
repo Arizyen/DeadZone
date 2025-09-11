@@ -62,36 +62,6 @@ NameTagConfigs.PLAYER_INSTANCES_UPDATER = {
 
 		NameTagConfigs.CreateInstanceConnection(player, "level", instance, updateFunction)
 	end,
-	TextLabelRank = function(player, instance)
-		local rank = PlayerDataHandler.GetKeyValue(player.UserId, "rank")
-
-		local updateFunction = function(newValue)
-			instance.Text = type(newValue) == "number" and Utils.Number.Spaced(newValue) or "???"
-		end
-		updateFunction(rank)
-
-		NameTagConfigs.CreateInstanceConnection(player, "rank", instance)
-	end,
-	TextLabelWins = function(player, instance)
-		local wins = PlayerDataHandler.GetKeyValue(player.UserId, "wins")
-
-		local updateFunction = function(newValue)
-			instance.Text = "Wins " .. (type(newValue) == "number" and Utils.Number.Spaced(newValue) or "???")
-		end
-		updateFunction(wins)
-
-		NameTagConfigs.CreateInstanceConnection(player, "wins", instance, updateFunction)
-	end,
-	TextLabelAFK = function(player, instance)
-		local afk = PlayerDataHandler.GetKeyValue(player.UserId, "afk")
-
-		local updateFunction = function(newValue)
-			instance.Visible = newValue or false
-		end
-		updateFunction(afk)
-
-		NameTagConfigs.CreateInstanceConnection(player, "afk", instance, updateFunction)
-	end,
 }
 
 NameTagConfigs.DUMMY_INSTANCES_UPDATER = {
@@ -101,12 +71,6 @@ NameTagConfigs.DUMMY_INSTANCES_UPDATER = {
 	ImageLabelLevel = function(data, instance)
 		local level = type(data.level) == "number" and data.level or 1
 		instance.Image = level > #LevelsInfo and LevelsInfo[#LevelsInfo] or LevelsInfo[level]
-	end,
-	TextLabelRank = function(data, instance)
-		instance.Text = type(data.rank) == "number" and Utils.Number.Spaced(data.rank) or "???"
-	end,
-	TextLabelWins = function(data, instance)
-		instance.Text = "Wins " .. (type(data.wins) == "number" and Utils.Number.Spaced(data.wins) or "???")
 	end,
 }
 

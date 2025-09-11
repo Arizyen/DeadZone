@@ -30,6 +30,8 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local LobbyConfigs = require(ReplicatedConfigs.LobbyConfigs)
+local STARTING_TIMER = 20
 
 -- Types ---------------------------------------------------------------------------
 
@@ -45,7 +47,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Starting.new(lobby: Model)
+function Starting.new(lobby: table)
 	local self = setmetatable({}, Starting)
 
 	-- Booleans
@@ -57,13 +59,27 @@ function Starting.new(lobby: Model)
 	-- Instances
 	self.lobby = lobby
 
+	-- Numbers
+	self._timeStarting = os.clock() + STARTING_TIMER
+
 	self:_Init()
 
 	return self
 end
 
 function Starting:_Init()
+	-- Connections
+	Utils.Connections.Add(
+		self,
+		"PlayersUpdated",
+		self.lobby.playersUpdated:Connect(function()
+			self:Update()
+		end)
+	)
+
+	self.lobby:AddTouchConnections()
 	self:Update()
+	self:_StartTimer()
 end
 
 function Starting:Destroy()
@@ -75,11 +91,39 @@ function Starting:Destroy()
 	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function Starting:Update() end
+function Starting:Update()
+	-- Update frames
+	self.lobby:UpdateFrameChildren("Starting", function(frame)
+		frame.TextLabelDifficulty.Text =
+			LobbyConfigs.DIFFICULTY_NAMES[self.lobby.settings and self.lobby.settings.difficulty or 1]
+		frame.TextLabelPlayerCount.Text = #self.lobby.players
+			.. " / "
+			.. (self.lobby.settings and self.lobby.settings.maxPlayers or "???")
+		frame.TextLabelFriendsOnly.Visible = self.lobby.settings and self.lobby.settings.friendsOnly or false
+		frame.TextLabelTeleportTimer.Text = tostring(math.ceil(self._timeStarting - os.clock())) .. "s"
+	end)
+	self.lobby:ShowFrame("Starting")
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function Starting:_StartTimer()
+	task.spawn(function()
+		while os.clock() < self._timeStarting and not self._destroyed do
+			self:Update()
+			task.wait(1)
+		end
+
+		if self._destroyed then
+			return
+		end
+
+		-- Time's up, start the game
+		self.lobby:ChangeState("Teleporting")
+	end)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------

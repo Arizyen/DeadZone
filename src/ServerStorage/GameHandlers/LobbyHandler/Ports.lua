@@ -1,5 +1,13 @@
-export type Ports = {}
+local ReplicatedSource = game:GetService("ReplicatedStorage").Source
+local ReplicatedTypes = ReplicatedSource.Types
+local LobbyTypes = require(ReplicatedTypes.Lobby)
 
-local Ports = {} :: Ports
+export type Ports = {
+	FireLobbyStateUpdate: (state: LobbyTypes.LobbyState) -> (),
+}
+
+local Ports = {
+	FireLobbyStateUpdate = function(_) end,
+} :: Ports
 
 return Ports

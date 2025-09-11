@@ -3,6 +3,7 @@ local PlayerConfigs = {}
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage.Packages
@@ -12,6 +13,7 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
+local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
@@ -20,6 +22,7 @@ local BaseServices = PlaywooEngine.BaseServices
 local GameServices = ServerSource.GameServices
 
 -- Modulescripts -------------------------------------------------------------------
+local HumanoidManager = require(BaseModules.HumanoidManager)
 
 -- KnitServices --------------------------------------------------------------------
 
@@ -28,9 +31,12 @@ local GameServices = ServerSource.GameServices
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local MapConfigs = require(Configs.MapConfigs)
 PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
 PlayerConfigs.AUTO_RESPAWN = true
 PlayerConfigs.AUTO_RESPAWN_DELAY = 3
+
+PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
 
 -- Types ---------------------------------------------------------------------------
 
@@ -59,7 +65,16 @@ function PlayerConfigs.Spawn(player: Player): boolean
 		return false
 	end
 
-	player:LoadCharacter()
+	local playerHumanoidDescription = HumanoidManager.GetPlayerHumanoidDescription(player.UserId)
+
+	--TODO: Update humanoid description based on player data (clothing, accessories, etc.)
+
+	if not playerHumanoidDescription then
+		player:LoadCharacter()
+	else
+		player:LoadCharacterWithHumanoidDescription(playerHumanoidDescription)
+	end
+
 	return true
 end
 
@@ -70,5 +85,6 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+Players.CharacterAutoLoads = false
 
 return PlayerConfigs

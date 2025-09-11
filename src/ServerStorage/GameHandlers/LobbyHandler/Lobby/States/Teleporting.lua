@@ -45,7 +45,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Teleporting.new(lobby: Model)
+function Teleporting.new(lobby: table)
 	local self = setmetatable({}, Teleporting)
 
 	-- Booleans
@@ -63,6 +63,7 @@ function Teleporting.new(lobby: Model)
 end
 
 function Teleporting:_Init()
+	self.lobby:DestroyTouchConnections()
 	self:Update()
 end
 

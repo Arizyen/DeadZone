@@ -1,6 +1,8 @@
 local Keys = {
 	-- VALUES ----------------------------------
-	numbers = {},
+	numbers = {
+		"rebirths",
+	},
 	booleans = {},
 
 	-- CONFIGS ----------------------------------

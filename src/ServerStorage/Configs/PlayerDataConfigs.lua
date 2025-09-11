@@ -1,4 +1,4 @@
-local LobbyHandler = {}
+local PlayerDataConfigs = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -20,12 +20,7 @@ local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
-local LobbyMap = ServerStorage.Maps.Lobby
-
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local Lobby = require(script.Lobby)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -36,12 +31,10 @@ local Lobby = require(script.Lobby)
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes.Lobby)
 
 -- Variables -----------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
-local lobbies = {} :: { [string]: typeof(Lobby) }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -51,32 +44,8 @@ local lobbies = {} :: { [string]: typeof(Lobby) }
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function LobbyHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
-end
-
-function LobbyHandler.Activate()
-	LobbyMap.Parent = game.Workspace
-
-	for _, lobby in pairs(LobbyMap.Lobbies:GetChildren()) do
-		local newLobby = Lobby.new(lobby)
-
-		newLobby.lobbyUpdated:Connect(function(state: LobbyTypes.LobbyState)
-			Ports.FireLobbyStateUpdate(state)
-		end)
-
-		lobbies[lobby.Name] = newLobby
-	end
-end
-
-function LobbyHandler.GetAllLobbiesState(): { [string]: LobbyTypes.LobbyState }
-	local states = {}
-
-	for id, lobby in pairs(lobbies) do
-		states[id] = lobby:GetLobbyState()
-	end
-
-	return states
+function PlayerDataConfigs.LoadExtraPlayerData(player: Player): boolean
+	return true
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -87,4 +56,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return LobbyHandler
+return PlayerDataConfigs

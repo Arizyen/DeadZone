@@ -30,6 +30,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local LobbyConfigs = require(ReplicatedConfigs.LobbyConfigs)
 
 -- Types ---------------------------------------------------------------------------
 
@@ -63,7 +64,14 @@ function Waiting.new(lobby: table)
 end
 
 function Waiting:_Init()
-	self.lobby:ShowFrame("Waiting")
+	self.lobby:SetSettings({
+		difficulty = LobbyConfigs.DEFAULT_DIFFICULTY,
+		maxPlayers = LobbyConfigs.MIN_PLAYERS,
+		friendsOnly = false,
+		saveId = nil,
+	}) -- Reset settings when going back to waiting
+
+	self:Update()
 
 	-- Connections
 	Utils.Connections.Add(
@@ -75,6 +83,8 @@ function Waiting:_Init()
 			end
 		end)
 	)
+
+	self.lobby:AddTouchConnections()
 end
 
 function Waiting:Destroy()
@@ -84,6 +94,10 @@ function Waiting:Destroy()
 	self._destroyed = true
 
 	Utils.Connections.DisconnectKeyConnections(self)
+end
+
+function Waiting:Update()
+	self.lobby:ShowFrame("Waiting")
 end
 
 ------------------------------------------------------------------------------------------------------------------------

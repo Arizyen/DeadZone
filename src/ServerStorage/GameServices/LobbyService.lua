@@ -83,4 +83,12 @@ function LobbyService.Client:GetAllLobbiesState(player: Player): { [string]: Lob
 	return LobbyHandler.GetAllLobbiesState()
 end
 
+function LobbyService.Client:LeaveLobby(player: Player): boolean
+	if not RateLimiter.Use(player, "LobbyService", "LeaveLobby") then
+		return false
+	end
+
+	return LobbyHandler.LeaveLobby(player)
+end
+
 return LobbyService

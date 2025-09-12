@@ -147,9 +147,9 @@ local function StartScreen(props: Props)
 			TextButtonPlay = e(CustomButton, {
 				AnchorPoint = Vector2.new(0, 0.5),
 				Size = UDim2.fromScale(0.485, 1),
-				Text = "Play",
 				Visible = storeState.windowShown == WINDOW_NAME,
 				LayoutOrder = 1,
+				text = "Play",
 				onClick = function()
 					--TODO Implement logic
 					PlayerHandler.Spawn():andThen(function(success)

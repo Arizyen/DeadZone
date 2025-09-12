@@ -33,6 +33,63 @@ return {
 
 		purple = { Color3.fromRGB(119, 44, 225), Color3.fromRGB(81, 81, 225) },
 		purple2 = { Color3.fromRGB(112, 41, 255), Color3.fromRGB(75, 37, 203) },
+		purple3 = {
+			Color3.fromRGB(170, 75, 255),
+			Color3.fromRGB(120, 50, 200),
+		},
+
+		orange = {
+			Color3.fromRGB(255, 140, 25),
+			Color3.fromRGB(210, 90, 10),
+		},
+		yellow = {
+			Color3.fromRGB(255, 225, 50),
+			Color3.fromRGB(210, 180, 20),
+		},
+		pink = {
+			Color3.fromRGB(255, 95, 180),
+			Color3.fromRGB(200, 50, 130),
+		},
+		teal = {
+			Color3.fromRGB(0, 210, 190),
+			Color3.fromRGB(0, 160, 150),
+		},
+		indigo = {
+			Color3.fromRGB(95, 80, 255),
+			Color3.fromRGB(65, 55, 200),
+		},
+		cyan = {
+			Color3.fromRGB(0, 255, 255),
+			Color3.fromRGB(0, 180, 200),
+		},
+		lime = {
+			Color3.fromRGB(150, 255, 70),
+			Color3.fromRGB(100, 200, 40),
+		},
+		magenta = {
+			Color3.fromRGB(255, 0, 180),
+			Color3.fromRGB(200, 0, 120),
+		},
+		gold = {
+			Color3.fromRGB(255, 200, 50),
+			Color3.fromRGB(210, 160, 30),
+		},
+		turquoise = {
+			Color3.fromRGB(64, 224, 208),
+			Color3.fromRGB(40, 160, 150),
+		},
+		crimson = {
+			Color3.fromRGB(220, 20, 60),
+			Color3.fromRGB(160, 15, 45),
+		},
+		silver = {
+			Color3.fromRGB(210, 210, 220),
+			Color3.fromRGB(160, 160, 170),
+		},
+		bronze = {
+			Color3.fromRGB(205, 127, 50),
+			Color3.fromRGB(160, 90, 35),
+		},
 
 		rainbow = {
 			Color3.fromRGB(255, 0, 4),

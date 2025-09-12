@@ -124,7 +124,7 @@ local function CustomWindow(props: Props)
 			Rotation = 90,
 			Transparency = NumberSequence.new({
 				NumberSequenceKeypoint.new(0, 0.05),
-				NumberSequenceKeypoint.new(1, 0.175),
+				NumberSequenceKeypoint.new(1, 0.15),
 			}),
 		}),
 		UIStroke = e(UIStroke, {

@@ -1,7 +1,5 @@
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CollectionService = game:GetService("CollectionService")
-local TweenService = game:GetService("TweenService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -12,16 +10,17 @@ local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
 local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
 local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
 local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
-local BaseControllers = ReplicatedPlaywooEngine:WaitForChild("BaseControllers")
-local GameControllers = ReplicatedSource:WaitForChild("GameControllers")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 local UI = ReplicatedSource:WaitForChild("UI")
 local PlaywooEngineUI = ReplicatedPlaywooEngine:WaitForChild("UI")
+local BaseHooks = PlaywooEngineUI:WaitForChild("BaseHooks")
 local GlobalComponents = PlaywooEngineUI:WaitForChild("GlobalComponents")
 local BaseComponents = PlaywooEngineUI:WaitForChild("BaseComponents")
 local AppComponents = UI:WaitForChild("AppComponents")
 
--- Modulescripts -------------------------------------------------------------------
+-- Modules -------------------------------------------------------------------
 local React = require(Packages:WaitForChild("React"))
 local ReactRedux = require(Packages:WaitForChild("ReactRedux"))
 local Flipper = require(Packages:WaitForChild("Flipper"))
@@ -30,7 +29,7 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
--- Knit Controllers ----------------------------------------------------------------
+-- Handlers ----------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
@@ -40,9 +39,10 @@ local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
 -- GlobalComponents ----------------------------------------------------------------
 
 -- AppComponents -------------------------------------------------------------------
-local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
 
 -- LocalComponents -----------------------------------------------------------------
+
+-- Hooks ---------------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
@@ -50,13 +50,15 @@ local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {
-	Size: UDim2,
-	windowName: string,
 	AnchorPoint: Vector2?,
 	Position: UDim2?,
-	ZIndex: number?,
-	onClose: (() -> nil)?,
-	onCloseCustom: (() -> nil)?,
+	Size: UDim2?,
+	BackgroundColor3: Color3?,
+	BackgroundTransparency: number?,
+	active: boolean,
+	time: number,
+	colorSequence: ColorSequence,
+	onEnd: (() -> ())?,
 }
 
 -- Variables -----------------------------------------------------------------------
@@ -69,69 +71,59 @@ local e = React.createElement
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-local function CloseButton(props: Props)
-	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
-	local dispatch = ReactRedux.useDispatch()
 
-	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
-	local clicked = React.useRef(false)
-	local buttonRef = React.useRef()
+local function ProgressBar(props: Props)
+	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
+
+	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
+	local motorConfigsRef = React.useRef(UIUtils.Flipper.CreateSimpleMotor(1 / props.time))
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
-	local backgroundColor, setBackgroundColor = React.useState(Color3.fromRGB(255, 0, 0))
-
-	local closeMotor, closeMotorBinding = React.useMemo(function()
-		return UIUtils.Flipper.CreateMotor(0.5)
-	end, {})
-
-	-- Unmount effect
+	-- On active change
 	React.useEffect(function()
-		if buttonRef.current then
-			CollectionService:AddTag(buttonRef.current, "Button")
-		end
+		motorConfigsRef.current:Start(props.active)
+	end, { props.active })
 
-		return function()
-			closeMotor:destroy()
-		end
-	end, {})
+	-- On end change
+	React.useEffect(function()
+		motorConfigsRef.current:Update({
+			onEnd = props.onEnd,
+		})
+	end, { props.onEnd })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
-	return e(CustomButton, {
-		Size = props.Size,
+	return e("Frame", {
 		AnchorPoint = props.AnchorPoint,
 		Position = props.Position,
-		ZIndex = props.ZIndex,
-		FontFace = Font.fromName("Montserrat", Enum.FontWeight.Bold),
-		text = "X",
-		aspectRatio = 1,
-		textSize = UDim2.fromScale(1, 1),
-		colorSequence = Utils.Color.Configs.colorSequences.red,
-		onClick = function()
-			if props.onCloseCustom then
-				props.onCloseCustom()
-			elseif props.windowName then
-				dispatch({
-					type = "CloseWindow",
-					value = props.windowName,
-				})
-				dispatch({
-					type = "SetWindowOverlayPosition",
-					windowName = props.windowName,
-					position = nil,
-				})
-
-				if props.onClose then
-					props.onClose()
-				end
-			elseif props.onClose then
-				props.onClose()
-			end
-		end,
+		Size = props.Size,
+		BackgroundColor3 = props.BackgroundColor3 or Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = props.BackgroundTransparency or 0,
+	}, {
+		UICorner = e("UICorner", {
+			CornerRadius = UDim.new(0.3, 0),
+		}),
+		UIStroke = e(UIStroke, {
+			Thickness = 2,
+		}),
+		FrameProgress = e("Frame", {
+			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			Size = UDim2.fromScale(1, 1),
+		}, {
+			UICorner = e("UICorner", {
+				CornerRadius = UDim.new(0.3, 0),
+			}),
+			UIGradient = e("UIGradient", {
+				Color = props.colorSequence or Utils.Color.Configs.colorSequences.blue,
+				Transparency = motorConfigsRef.current.binding:map(function(value)
+					return Utils.NumberSequence.CooldownSequence(1 - value)
+				end),
+			}),
+		}),
 	})
 end
 
-return CloseButton
+return ProgressBar

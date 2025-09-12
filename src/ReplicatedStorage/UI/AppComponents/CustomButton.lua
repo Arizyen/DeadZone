@@ -34,6 +34,7 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- BaseComponents ----------------------------------------------------------------
 local TextLabel = require(BaseComponents:WaitForChild("TextLabel"))
+local TextLabelAutoSize2 = require(BaseComponents:WaitForChild("TextLabelAutoSize2"))
 local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
 
 -- GlobalComponents ----------------------------------------------------------------
@@ -51,10 +52,10 @@ local Button = require(GlobalComponents:WaitForChild("Button"))
 type Props = {
 	Visible: boolean,
 	Size: UDim2,
-	Text: string?,
-	textAnchorPoint: Vector2?,
-	textPosition: UDim2?,
-	textSize: number?,
+	text: string?,
+	richText: boolean?,
+	fontFace: Font?,
+	textSize: UDim2?,
 	textBold: boolean?,
 	textItalic: boolean?,
 	smallRatio: number?,
@@ -73,13 +74,10 @@ type Props = {
 	cornerRadius: UDim?,
 	aspectRatio: number?,
 	image: string?,
-	imageAnchorPoint: Vector2?,
-	imagePosition: UDim2?,
 	imageSize: UDim2?,
 	imageVisible: boolean?,
 	imageColor3: Color3?,
 	imageTransparency: number?,
-	imageUIAspectRatio: number?,
 }
 
 -- Variables -----------------------------------------------------------------------
@@ -96,6 +94,7 @@ local function CustomButton(props: Props)
 	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
+	local isHovering, setIsHovering = React.useState(false)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
@@ -149,6 +148,12 @@ local function CustomButton(props: Props)
 			onHold = props.onHold,
 			onHoldEnd = props.onHoldEnd,
 			noButtonAnimation = props.noButtonAnimation,
+			onMouseEnter = function()
+				setIsHovering(true)
+			end,
+			onMouseLeave = function()
+				setIsHovering(false)
+			end,
 		}),
 		{
 			UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
@@ -174,7 +179,7 @@ local function CustomButton(props: Props)
 				"Frame",
 				{
 					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					Size = UDim2.new(1, 0, 1, -6),
+					Size = UDim2.new(1, 0, 1, -5),
 					ZIndex = 2,
 				},
 				Utils.Table.Dictionary.merge({
@@ -184,44 +189,67 @@ local function CustomButton(props: Props)
 						Rotation = 90,
 					}),
 
-					TextLabel = props.Text and e(TextLabel, {
-						TextColor3 = props.TextColor3 or Color3.fromRGB(255, 255, 255),
-						AnchorPoint = props.textAnchorPoint or Vector2.new(0.5, 0.5),
-						Position = props.textPosition or UDim2.fromScale(0.5, 0.5),
-						Size = props.textSize or UDim2.fromScale(0.8, 0.8),
-						FontFace = props.FontFace,
-						bold = props.textBold,
-						italic = props.textItalic,
-						Text = props.Text or "",
-						RichText = props.RichText or false,
+					FrameContent = (props.image or props.text) and e("Frame", {
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						BackgroundTransparency = 1,
+						Position = UDim2.fromScale(0.5, 0.5),
+						Size = UDim2.fromScale(0.85, 1),
 					}, {
-						UIStroke = e(UIStroke, {
-							Thickness = 2.5,
-							textStroke = true,
+						UIListLayout = e("UIListLayout", {
+							Padding = UDim.new(0.035, 0),
+							FillDirection = Enum.FillDirection.Horizontal,
+							HorizontalAlignment = Enum.HorizontalAlignment.Center,
+							VerticalAlignment = Enum.VerticalAlignment.Center,
+							SortOrder = Enum.SortOrder.LayoutOrder,
+						}),
+
+						ImageLabel = props.image and e("ImageLabel", {
+							BackgroundTransparency = 1,
+							LayoutOrder = 1,
+							Size = props.imageSize or UDim2.fromScale(0.23, 1),
+							Image = props.image or "",
+							ImageColor3 = props.imageColor3 or Color3.fromRGB(255, 255, 255),
+							ImageTransparency = props.imageTransparency or 0,
+							Visible = props.image and (props.imageVisible or (props.imageVisible == nil)) or false,
+							ScaleType = Enum.ScaleType.Fit,
+							ZIndex = 3,
+						}),
+
+						TextLabel = props.text and e(TextLabelAutoSize2, {
+							LayoutOrder = 2,
+							Size = props.textSize or UDim2.fromScale(0.7, 0.85),
+							TextColor3 = props.textColor3 or Color3.fromRGB(255, 255, 255),
+							FontFace = props.fontFace,
+							Text = props.text or "",
+							RichText = props.richText or false,
+							ZIndex = 3,
+							bold = props.textBold,
+							italic = props.textItalic,
+							lengthAtMaxScaleX = 7,
+							minScaleX = 0.5,
+						}, {
+							UIStroke = e(UIStroke, {
+								Thickness = 2.5,
+								textStroke = true,
+							}),
 						}),
 					}),
 
-					ImageLabel = props.image and e("ImageLabel", {
-						BackgroundTransparency = 1,
-						AnchorPoint = props.imageAnchorPoint or Vector2.new(0.5, 0.5),
-						Position = props.imagePosition or UDim2.fromScale(0.5, 0.5),
-						Size = props.imageSize or UDim2.fromScale(1, 1),
-						Image = props.image or "rbxassetid://9128622454",
-						ImageColor3 = props.imageColor3 or Color3.fromRGB(255, 255, 255),
-						ImageTransparency = props.imageTransparency or 0,
-						ScaleType = Enum.ScaleType.Fit,
-						Visible = props.imageVisible or (props.imageVisible == nil),
+					FrameHover = e("Frame", {
+						Size = UDim2.fromScale(1, 1),
+						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+						BackgroundTransparency = 0.9,
+						Visible = isHovering,
+						ZIndex = 2,
 					}, {
-						UIAspectRatioConstraint = props.imageUIAspectRatio and e("UIAspectRatioConstraint", {
-							AspectRatio = props.imageUIAspectRatio,
-						}),
+						UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
 					}),
 
 					FrameShine = props.shineAnimation and e("Frame", {
 						Size = UDim2.fromScale(1, 1),
 						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						ZIndex = 0,
 						Visible = props.shineAnimation or false,
+						ZIndex = 0,
 					}, {
 						UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
 						UIGradient = e("UIGradient", {

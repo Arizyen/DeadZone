@@ -51,6 +51,7 @@ local states = {
 	Starting = Starting,
 	Teleporting = Teleporting,
 }
+local playersLobbyId = {} :: { [number]: string } -- UserId: lobbyId
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -71,7 +72,6 @@ function Lobby.new(lobbyModel: Model)
 
 	-- Tables
 	self.players = {} :: { Player }
-	self._ignorePlayers = {} :: { [number]: Player } -- UserId: boolean
 	self.settings = {} :: LobbyTypes.LobbySettings?
 
 	-- Instances
@@ -149,39 +149,45 @@ function Lobby:_PlayersUpdated()
 	self:_FireLobbyUpdated()
 end
 
-function Lobby:_AddPlayer(player: Player)
-	if self._ignorePlayers[player.UserId] or player:GetAttribute("isDead") then
-		return
+function Lobby:_AddPlayer(player: Player): boolean
+	if playersLobbyId[player.UserId] or player:GetAttribute("isDead") then
+		return false
 	end
 
 	-- Check settings
 	if self.settings then
 		if #self.players >= (self.settings.maxPlayers or 1) then
-			return
+			return false
 		end
 		if self.settings.friendsOnly then
 			local owner = self.players[1]
 			if owner and owner.UserId ~= player.UserId and not owner:IsFriendsWith(player.UserId) then
-				return
+				return false
 			end
 		end
 	end
 
-	self._ignorePlayers[player.UserId] = true
+	playersLobbyId[player.UserId] = self._id
 	table.insert(self.players, player)
 	self:_PlayersUpdated()
 
 	-- Teleport player inside of lobby
 	PlayerHandler.Teleport(player, { part = self._lobbyModel.PrimaryPart })
+
+	return true
 end
 
-function Lobby:_RemovePlayer(player: Player)
-	local index = table.find(self.players, player)
-	if not index then
-		return
+function Lobby:_RemovePlayer(player: Player): boolean
+	if playersLobbyId[player.UserId] ~= self._id then
+		return false
 	end
 
-	self._ignorePlayers[player.UserId] = nil
+	local index = table.find(self.players, player)
+	if not index then
+		return false
+	end
+
+	playersLobbyId[player.UserId] = nil
 	table.remove(self.players, index)
 	self:_PlayersUpdated()
 
@@ -192,6 +198,8 @@ function Lobby:_RemovePlayer(player: Player)
 			{ position = (self._lobbyModel.PrimaryPart.CFrame * CFrame.new(0, 0, -15)).Position }
 		)
 	end
+
+	return true
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -213,6 +221,12 @@ function Lobby:SetSettings(settings: LobbyTypes.LobbySettings?)
 	self.settings = settings
 	self:_FireLobbyUpdated()
 end
+
+function Lobby:HasPlayer(player: Player): boolean
+	return playersLobbyId[player.UserId] == self._id
+end
+
+Lobby.RemovePlayer = Lobby._RemovePlayer
 
 -- UI MANAGEMENT ----------------------------------------------------------------------------------------------------
 

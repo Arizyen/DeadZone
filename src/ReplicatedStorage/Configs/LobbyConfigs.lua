@@ -11,6 +11,8 @@ local LobbyConfigs = {
 		[2] = "Normal",
 		[3] = "Hard",
 	},
+
+	MAX_TIME_WAIT_LOBBY_CREATION = 25, -- Seconds
 }
 
 return LobbyConfigs

@@ -65,6 +65,9 @@ function Creating.new(lobby: table)
 	-- Strings
 	self.type = "Creating"
 
+	-- Numbers
+	self._timer = 0
+
 	-- Instances
 	self.lobby = lobby
 
@@ -75,6 +78,7 @@ end
 
 function Creating:_Init()
 	self.lobby:DestroyTouchConnections()
+	self:_StartTimer()
 	self:Update()
 end
 
@@ -100,6 +104,22 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function Creating:_StartTimer()
+	task.spawn(function()
+		self._timer = 0
+		while self._timer < LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION and not self._destroyed do
+			task.wait(1)
+			self._timer += 1
+		end
+
+		-- Time's up, return to waiting state
+		if not self._destroyed then
+			MessageHandler.SendMessageToPlayer(self.lobby.players[1], "Lobby creation timed out.", "Error")
+			self.lobby:ChangeState("Waiting")
+		end
+	end)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------

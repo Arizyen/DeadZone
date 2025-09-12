@@ -30,6 +30,7 @@ local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- Handlers ----------------------------------------------------------------
+local LobbyHandler = require(ReplicatedGameHandlers:WaitForChild("LobbyHandler"))
 
 -- Instances -----------------------------------------------------------------------
 
@@ -39,6 +40,8 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- AppComponents -------------------------------------------------------------------
 local CustomWindow = require(AppComponents:WaitForChild("CustomWindow"))
+local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
+local ProgressBar = require(AppComponents:WaitForChild("ProgressBar"))
 
 -- LocalComponents -----------------------------------------------------------------
 
@@ -47,6 +50,7 @@ local CustomWindow = require(AppComponents:WaitForChild("CustomWindow"))
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local LobbyConfigs = require(ReplicatedConfigs:WaitForChild("LobbyConfigs"))
 local WINDOW_NAME = "CreateLobby"
 
 -- Types ---------------------------------------------------------------------------
@@ -56,8 +60,15 @@ type Props = {}
 local e = React.createElement
 
 -- Tables --------------------------------------------------------------------------
-
+local framesSize = {
+	Select = UDim2.fromScale(0.3, 0.3),
+	NewGame = UDim2.fromScale(0.8, 0.35),
+	LoadGame = UDim2.fromScale(0.8, 0.35),
+}
 -- Selectors --------------------------------------------------------------------------
+local selector = UIUtils.Selector.Create({
+	window = { "windowShown" },
+})
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -65,8 +76,10 @@ local e = React.createElement
 
 local function CreateLobby(props: Props)
 	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
+	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
+	local selectedFrame, setSelectedFrame = React.useState("Select")
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
@@ -79,6 +92,67 @@ local function CreateLobby(props: Props)
 		windowName = WINDOW_NAME,
 		title = "Create Lobby",
 		titleColorSequence = Utils.Color.Configs.colorSequences.blue,
+		onClose = function()
+			LobbyHandler.LeaveLobby()
+		end,
+		Size = framesSize[selectedFrame],
+	}, {
+		FrameSelect = e("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Visible = selectedFrame == "Select",
+		}, {
+			FrameButtons = e("Frame", {
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 0.835),
+			}, {
+				UIListLayout = e("UIListLayout", {
+					Padding = UDim.new(0.045, 0),
+					FillDirection = Enum.FillDirection.Vertical,
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+				}),
+
+				ButtonNewGame = e(CustomButton, {
+					LayoutOrder = 1,
+					Size = UDim2.fromScale(0.75, 0.35),
+					text = "New Game",
+					colorSequence = Utils.Color.Configs.colorSequences.green,
+					image = "rbxassetid://85710190932350",
+				}),
+
+				ButtonLoadGame = e(CustomButton, {
+					LayoutOrder = 2,
+					Size = UDim2.fromScale(0.75, 0.35),
+					text = "Load Game",
+					colorSequence = Utils.Color.Configs.colorSequences.orange,
+					image = "rbxassetid://127374615809191",
+				}),
+			}),
+
+			ProgressBar = e(ProgressBar, {
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.fromScale(0.5, 0.825),
+				Size = UDim2.fromScale(0.85, 0.1),
+				active = storeState.windowShown == WINDOW_NAME,
+				time = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
+				onEnd = function()
+					UIUtils.Window.Close(WINDOW_NAME)
+				end,
+			}),
+		}),
+
+		FrameNewGame = e("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Visible = selectedFrame == "NewGame",
+		}),
+		FrameLoadGame = e("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Visible = selectedFrame == "LoadGame",
+		}),
 	})
 end
 

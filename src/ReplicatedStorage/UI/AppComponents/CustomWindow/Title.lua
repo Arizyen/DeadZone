@@ -1,5 +1,6 @@
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -74,16 +75,20 @@ local function Title(props: Props)
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e("Frame", {
-		AnchorPoint = Vector2.new(0, 0),
+		AnchorPoint = Vector2.new(0, 1),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = props.title and 0 or 1,
 		Position = UDim2.fromScale(0, 0),
-		Size = UDim2.fromScale(1, 0.25):Lerp(
-			UDim2.fromScale(1, 0.14),
-			math.clamp(
-				(((props.Size and props.Size.Y.Scale or theme.maxWindowSizeY) - 0.25) / (theme.maxWindowSizeY - 0.25)),
-				0,
-				1
+		Size = UDim2.fromScale(1, 0.23):Lerp(
+			UDim2.fromScale(1, 0.105),
+			TweenService:GetValue(
+				math.clamp(
+					(((props.Size and props.Size.Y.Scale or theme.maxWindowSizeY) - 0.3) / (theme.maxWindowSizeY - 0.3)),
+					0,
+					1
+				),
+				Enum.EasingStyle.Sine,
+				Enum.EasingDirection.Out
 			)
 		),
 		ZIndex = 3,
@@ -155,13 +160,21 @@ local function Title(props: Props)
 			}),
 		}),
 
-		CloseButton = not props.noCloseButton and e(CloseButton, {
-			windowName = props.windowName,
-			onClose = props.onClose,
-			onCloseCustom = props.onCloseCustom,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.948, 0.5),
-			Size = UDim2.fromScale(0.1, 0.775),
+		FrameClose = e("Frame", {
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundTransparency = 1,
+			Position = UDim2.fromScale(0.98, 0),
+			Size = UDim2.fromScale(0.1, 1),
+			ZIndex = 2,
+		}, {
+			CloseButton = not props.noCloseButton and e(CloseButton, {
+				windowName = props.windowName,
+				onClose = props.onClose,
+				onCloseCustom = props.onCloseCustom,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromScale(1, 0.775),
+			}),
 		}),
 	})
 end

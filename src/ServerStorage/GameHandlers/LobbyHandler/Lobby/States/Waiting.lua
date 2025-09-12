@@ -64,12 +64,18 @@ function Waiting.new(lobby: table)
 end
 
 function Waiting:_Init()
+	-- Remove all players
+	for _, eachPlayer in pairs(self.lobby.players) do
+		self.lobby:RemovePlayer(eachPlayer)
+	end
+
+	-- Reset settings
 	self.lobby:SetSettings({
 		difficulty = LobbyConfigs.DEFAULT_DIFFICULTY,
 		maxPlayers = LobbyConfigs.MIN_PLAYERS,
 		friendsOnly = false,
 		saveId = nil,
-	}) -- Reset settings when going back to waiting
+	})
 
 	self:Update()
 

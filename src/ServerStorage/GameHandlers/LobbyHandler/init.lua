@@ -79,6 +79,16 @@ function LobbyHandler.GetAllLobbiesState(): { [string]: LobbyTypes.LobbyState }
 	return states
 end
 
+function LobbyHandler.LeaveLobby(player: Player): boolean
+	for _, lobby in pairs(lobbies) do
+		if lobby:RemovePlayer(player) then
+			return true
+		end
+	end
+
+	return false
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------

@@ -54,6 +54,9 @@ function LobbyController:KnitInit()
 		GetAllLobbiesState = function()
 			return knitServices["Lobby"]:GetAllLobbiesState()
 		end,
+		LeaveLobby = function(): boolean
+			return knitServices["Lobby"]:LeaveLobby()
+		end,
 	})
 end
 

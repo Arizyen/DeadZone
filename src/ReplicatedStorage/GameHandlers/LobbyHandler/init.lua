@@ -67,13 +67,17 @@ function LobbyHandler.UpdateLobbyState(lobbyState: LobbyTypes.LobbyState)
 	if lobbyState.state == "Creating" and lobbyState.players[1] == game.Players.LocalPlayer then
 		Utils.Signals.Fire("DispatchAction", {
 			type = "ShowWindow",
-			value = "CreateLobby",
+			value = "LobbyCreate",
 		})
 	end
 end
 
 function LobbyHandler.LeaveLobby()
 	Ports.LeaveLobby()
+end
+
+function LobbyHandler.CloseLobby()
+	Ports.CloseLobby()
 end
 
 ------------------------------------------------------------------------------------------------------------------------

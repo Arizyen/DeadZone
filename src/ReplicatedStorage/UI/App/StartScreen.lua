@@ -18,6 +18,7 @@ local PlaywooEngineUI = ReplicatedPlaywooEngine:WaitForChild("UI")
 local GlobalComponents = PlaywooEngineUI:WaitForChild("GlobalComponents")
 local BaseComponents = PlaywooEngineUI:WaitForChild("BaseComponents")
 local AppComponents = UI:WaitForChild("AppComponents")
+local BaseHooks = PlaywooEngineUI:WaitForChild("BaseHooks")
 
 -- Modulescripts -------------------------------------------------------------------
 local React = require(Packages:WaitForChild("React"))
@@ -43,6 +44,9 @@ local PlayerHandler = require(GameHandlers:WaitForChild("PlayerHandler"))
 
 -- AppComponents -------------------------------------------------------------------
 local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
+
+-- Hooks ---------------------------------------------------------------------------
+local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBinding"))
 
 -- Info ---------------------------------------------------------------------------
 
@@ -79,31 +83,37 @@ local function StartScreen(props: Props)
 	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
 	local storeState = ReactRedux.useSelector(selector)
 
-	local logoMotorConfigs = React.useRef(UIUtils.Flipper.CreateLoopingMotor(1 / 1.5))
+	local motorRef = React.useRef(UIUtils.Motor.OscillatingMotor.new(1 / 1.5))
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
+	local sizeMappedBinding = useMotorMappedBinding(motorRef, function(value)
+		return UDim2.fromScale(0.7, 0.5):Lerp(
+			UDim2.fromScale(0.7, 0.6),
+			TweenService:GetValue(value, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		)
+	end, UDim2.fromScale(0.7, 0.5))
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	-- Cleanup
 	React.useEffect(function()
 		return function()
-			logoMotorConfigs.current:Destroy()
+			motorRef.current:Destroy()
 		end
 	end, {})
 
 	-- Window shown changed
 	React.useEffect(function()
-		if storeState.windowShown == WINDOW_NAME and not logoMotorConfigs.current.active then
+		if storeState.windowShown == WINDOW_NAME then
 			canRunCinematic = true
 			-- task.spawn(RunCinematic)
-			logoMotorConfigs.current:Start(true)
-		elseif storeState.windowShown ~= WINDOW_NAME and logoMotorConfigs.current.active then
+			motorRef.current:Start()
+		elseif storeState.windowShown ~= WINDOW_NAME then
 			canRunCinematic = false
-			logoMotorConfigs.current:Start(false)
+			motorRef.current:Stop()
 		end
 
 		if not windowsWithCameraAnimation[storeState.windowShown] then
@@ -122,12 +132,7 @@ local function StartScreen(props: Props)
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundTransparency = 1,
 			Position = UDim2.fromScale(0.5, 0.35),
-			Size = logoMotorConfigs.current.binding:map(function(value)
-				return UDim2.fromScale(0.7, 0.5):Lerp(
-					UDim2.fromScale(0.7, 0.6),
-					TweenService:GetValue(value, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-				)
-			end),
+			Size = sizeMappedBinding,
 			Image = "rbxassetid://117041876607097",
 			ScaleType = Enum.ScaleType.Fit,
 		}),

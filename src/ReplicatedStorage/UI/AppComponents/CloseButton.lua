@@ -35,7 +35,6 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 -- Instances -----------------------------------------------------------------------
 
 -- BaseComponents ----------------------------------------------------------------
-local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
 
 -- GlobalComponents ----------------------------------------------------------------
 
@@ -43,6 +42,8 @@ local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
 local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
 
 -- LocalComponents -----------------------------------------------------------------
+
+-- Hooks ---------------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
@@ -55,8 +56,7 @@ type Props = {
 	AnchorPoint: Vector2?,
 	Position: UDim2?,
 	ZIndex: number?,
-	onClose: (() -> nil)?,
-	onCloseCustom: (() -> nil)?,
+	onCloseButtonClicked: (() -> ())?,
 }
 
 -- Variables -----------------------------------------------------------------------
@@ -74,30 +74,12 @@ local function CloseButton(props: Props)
 	local dispatch = ReactRedux.useDispatch()
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
-	local clicked = React.useRef(false)
-	local buttonRef = React.useRef()
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
-	local backgroundColor, setBackgroundColor = React.useState(Color3.fromRGB(255, 0, 0))
-
-	local closeMotor, closeMotorBinding = React.useMemo(function()
-		return UIUtils.Flipper.CreateMotor(0.5)
-	end, {})
-
-	-- Unmount effect
-	React.useEffect(function()
-		if buttonRef.current then
-			CollectionService:AddTag(buttonRef.current, "Button")
-		end
-
-		return function()
-			closeMotor:destroy()
-		end
-	end, {})
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e(CustomButton, {
@@ -111,9 +93,7 @@ local function CloseButton(props: Props)
 		textSize = UDim2.fromScale(1, 1),
 		colorSequence = Utils.Color.Configs.colorSequences.red,
 		onClick = function()
-			if props.onCloseCustom then
-				props.onCloseCustom()
-			elseif props.windowName then
+			if props.windowName then
 				dispatch({
 					type = "CloseWindow",
 					value = props.windowName,
@@ -124,11 +104,11 @@ local function CloseButton(props: Props)
 					position = nil,
 				})
 
-				if props.onClose then
-					props.onClose()
+				if props.onCloseButtonClicked then
+					props.onCloseButtonClicked()
 				end
-			elseif props.onClose then
-				props.onClose()
+			elseif props.onCloseButtonClicked then
+				props.onCloseButtonClicked()
 			end
 		end,
 	})

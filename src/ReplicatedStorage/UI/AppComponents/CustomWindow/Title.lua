@@ -49,7 +49,10 @@ local CloseButton = require(AppComponents:WaitForChild("CloseButton"))
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-type Props = {}
+type Props = {
+	windowName: string,
+	onCloseButtonClicked: (() -> ())?,
+}
 
 -- Variables -----------------------------------------------------------------------
 local e = React.createElement
@@ -169,8 +172,7 @@ local function Title(props: Props)
 		}, {
 			CloseButton = not props.noCloseButton and e(CloseButton, {
 				windowName = props.windowName,
-				onClose = props.onClose,
-				onCloseCustom = props.onCloseCustom,
+				onCloseButtonClicked = props.onCloseButtonClicked,
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.fromScale(0.5, 0.5),
 				Size = UDim2.fromScale(1, 0.775),

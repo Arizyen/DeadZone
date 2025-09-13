@@ -89,6 +89,16 @@ function LobbyHandler.LeaveLobby(player: Player): boolean
 	return false
 end
 
+function LobbyHandler.CloseLobby(player: Player): boolean
+	for _, lobby in pairs(lobbies) do
+		if lobby:HasPlayer(player) and lobby.players[1] == player then
+			return lobby:Reset()
+		end
+	end
+
+	return false
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------

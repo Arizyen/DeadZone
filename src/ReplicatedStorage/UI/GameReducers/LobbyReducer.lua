@@ -39,11 +39,13 @@ local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
 ------------------------------------------------------------------------------------------------------------------------
 
 local LobbyReducer = Rodux.createReducer({
-	nil,
+	lobbyStates = {} :: { [string]: LobbyTypes.LobbyState },
+	lobbyCreationTimeLeft = 0 :: number,
 }, {
 	UpdateLobbyState = function(state, action: { value: LobbyTypes.LobbyState })
 		local newState = Utils.Table.Dictionary.copy(state) :: { [string]: LobbyTypes.LobbyState }
-		newState[action.value.id] = Utils.Table.Dictionary.merge(newState[action.value.id] or {}, action.value)
+		newState.lobbyStates[action.value.id] =
+			Utils.Table.Dictionary.merge(newState.lobbyStates[action.value.id] or {}, action.value)
 
 		return newState
 	end,
@@ -51,8 +53,15 @@ local LobbyReducer = Rodux.createReducer({
 	UpdateLobbyStates = function(state, action: { value: { [string]: LobbyTypes.LobbyState } })
 		local newState = Utils.Table.Dictionary.copy(state) :: { [string]: LobbyTypes.LobbyState }
 		for id, lobbyState in pairs(action.value) do
-			newState[id] = Utils.Table.Dictionary.merge(newState[id] or {}, lobbyState)
+			newState.lobbyStates[id] = Utils.Table.Dictionary.merge(newState.lobbyStates[id] or {}, lobbyState)
 		end
+
+		return newState
+	end,
+
+	SetLobbyCreationTimeLeft = function(state, action: { value: number })
+		local newState = Utils.Table.Dictionary.copy(state) :: { [string]: LobbyTypes.LobbyState }
+		newState.lobbyCreationTimeLeft = action.value
 
 		return newState
 	end,

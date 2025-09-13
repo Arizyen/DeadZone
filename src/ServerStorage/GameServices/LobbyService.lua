@@ -91,4 +91,12 @@ function LobbyService.Client:LeaveLobby(player: Player): boolean
 	return LobbyHandler.LeaveLobby(player)
 end
 
+function LobbyService.Client:CloseLobby(player: Player): boolean
+	if not RateLimiter.Use(player, "LobbyService", "CloseLobby") then
+		return false
+	end
+
+	return LobbyHandler.CloseLobby(player)
+end
+
 return LobbyService

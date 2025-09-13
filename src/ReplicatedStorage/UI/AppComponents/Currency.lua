@@ -26,6 +26,7 @@ local Flipper = require(Packages:WaitForChild("Flipper"))
 local UIUtils = require(ReplicatedPlaywooEngine:WaitForChild("UIUtils"))
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
+local BaseHooks = PlaywooEngineUI:WaitForChild("BaseHooks")
 
 -- Knit Controllers ----------------------------------------------------------------
 
@@ -41,6 +42,9 @@ local ImageButton = require(BaseComponents:WaitForChild("ImageButton"))
 -- LocalComponents -----------------------------------------------------------------
 
 -- AppComponents -------------------------------------------------------------------
+
+-- Hooks ---------------------------------------------------------------------------
+local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBinding"))
 
 -- Info ---------------------------------------------------------------------------
 local ResourcesInfo = require(ReplicatedInfo:WaitForChild("ResourcesInfo"))
@@ -73,7 +77,7 @@ local function Currency(props: Props)
 	end)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
-	local motorConfigsRef = React.useRef(UIUtils.Flipper.CreateReturningMotor(3.75))
+	local motorRef = React.useRef(UIUtils.Motor.SnapBackMotor.new(3.75))
 	local previousCountRef = React.useRef(currencyCount)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
@@ -82,6 +86,19 @@ local function Currency(props: Props)
 	local resourceInfo = React.useMemo(function()
 		return ResourcesInfo.byKey[props.type] or {}
 	end, { props.type })
+
+	local positionMappedBinding = useMotorMappedBinding(motorRef, function(value)
+		return UDim2.fromScale(
+			0.25,
+			0.5
+				+ (
+					0.175
+					* math.sin(
+						math.pi * 2 * TweenService:GetValue(value, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+					)
+				)
+		)
+	end, UDim2.fromScale(0.25, 0.5))
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	React.useEffect(function()
@@ -94,7 +111,7 @@ local function Currency(props: Props)
 		end
 		previousCountRef.current = currencyCount
 
-		motorConfigsRef.current:Restart(true)
+		motorRef.current:Restart(true)
 	end, { props.visible, currencyCount })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
@@ -132,20 +149,7 @@ local function Currency(props: Props)
 
 		TextLabelValue = e(TextLabel, {
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = motorConfigsRef.current.binding:map(function(value)
-				return UDim2.fromScale(
-					0.25,
-					0.5
-						+ (
-							0.175
-							* math.sin(
-								math.pi
-									* 2
-									* TweenService:GetValue(value, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-							)
-						)
-				)
-			end),
+			Position = positionMappedBinding,
 			Size = UDim2.fromScale(0.5, 1),
 			Text = Utils.Number.ToEnglish(currencyCount),
 			TextColor3 = resourceInfo.colorSequence and Color3.fromRGB(255, 255, 255) or resourceInfo.color,

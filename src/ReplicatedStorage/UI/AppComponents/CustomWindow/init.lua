@@ -57,7 +57,7 @@ type Props = {
 	Position: UDim2?,
 	windowName: string,
 	onClose: (() -> ())?,
-	onCloseCustom: (() -> ())?,
+	onCloseButtonClicked: (() -> ())?,
 	exactSize: boolean?,
 	title: string?,
 	titleColorSequence: ColorSequence?,
@@ -114,7 +114,7 @@ local function CustomWindow(props: Props)
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = 0,
 		windowName = props.windowName or "CustomWindow",
-		onClose = props.noCloseButton and props.onClose,
+		onClose = props.onClose,
 	}, {
 		UIAspectRatioConstraint = e(UIAspectRatioConstraint, {
 			size = windowSize,
@@ -141,8 +141,7 @@ local function CustomWindow(props: Props)
 			titleColor = props.titleColor,
 			icon = props.icon,
 			noCloseButton = props.noCloseButton,
-			onClose = props.onClose,
-			onCloseCustom = props.onCloseCustom,
+			onCloseButtonClicked = props.onCloseButtonClicked,
 		}),
 
 		FrameContent = e("Frame", {

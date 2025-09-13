@@ -148,7 +148,13 @@ function Creating:Create(playerFired: Player, lobbySettings: LobbyTypes.LobbySet
 	end
 
 	self.lobby:SetSettings(lobbySettings)
-	self.lobby:ChangeState("Starting")
+
+	if lobbySettings.maxPlayers == 1 then
+		-- Start immediately if single player
+		self.lobby:ChangeState("Teleporting")
+	else
+		self.lobby:ChangeState("Starting")
+	end
 
 	return true
 end

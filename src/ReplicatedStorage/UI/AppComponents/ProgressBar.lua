@@ -43,6 +43,7 @@ local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
 -- LocalComponents -----------------------------------------------------------------
 
 -- Hooks ---------------------------------------------------------------------------
+local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBinding"))
 
 -- Info ---------------------------------------------------------------------------
 
@@ -56,7 +57,8 @@ type Props = {
 	BackgroundColor3: Color3?,
 	BackgroundTransparency: number?,
 	active: boolean,
-	time: number,
+	maxTime: number,
+	currentTime: number,
 	colorSequence: ColorSequence,
 	onEnd: (() -> ())?,
 }
@@ -76,23 +78,28 @@ local function ProgressBar(props: Props)
 	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
 
 	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
-	local motorConfigsRef = React.useRef(UIUtils.Flipper.CreateSimpleMotor(1 / props.time))
+	local motorRef = React.useRef(UIUtils.Motor.SimpleMotor.new(1 / props.maxTime))
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
+	local transparencyMappedBinding = useMotorMappedBinding(motorRef, function(value)
+		return Utils.NumberSequence.CooldownSequence(1 - value)
+	end, Utils.NumberSequence.CooldownSequence(1))
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	-- On active change
 	React.useEffect(function()
-		motorConfigsRef.current:Start(props.active)
+		if props.active then
+			motorRef.current:Start()
+		else
+			motorRef.current:Stop()
+		end
 	end, { props.active })
 
 	-- On end change
 	React.useEffect(function()
-		motorConfigsRef.current:Update({
-			onEnd = props.onEnd,
-		})
+		motorRef.current.onReachedEndValue = props.onEnd
 	end, { props.onEnd })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
@@ -118,9 +125,7 @@ local function ProgressBar(props: Props)
 			}),
 			UIGradient = e("UIGradient", {
 				Color = props.colorSequence or Utils.Color.Configs.colorSequences.blue,
-				Transparency = motorConfigsRef.current.binding:map(function(value)
-					return Utils.NumberSequence.CooldownSequence(1 - value)
-				end),
+				Transparency = transparencyMappedBinding,
 			}),
 		}),
 	})

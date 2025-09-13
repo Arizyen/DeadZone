@@ -27,6 +27,7 @@ local UIUtils = require(ReplicatedPlaywooEngine:WaitForChild("UIUtils"))
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
+local BaseHooks = PlaywooEngineUI:WaitForChild("BaseHooks")
 
 -- Knit Controllers ----------------------------------------------------------------
 
@@ -43,6 +44,9 @@ local Button = require(GlobalComponents:WaitForChild("Button"))
 -- LocalComponents -----------------------------------------------------------------
 
 -- AppComponents -------------------------------------------------------------------
+
+-- Hooks ---------------------------------------------------------------------------
+local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBinding"))
 
 -- Info ---------------------------------------------------------------------------
 
@@ -84,6 +88,16 @@ type Props = {
 local e = React.createElement
 
 -- Tables --------------------------------------------------------------------------
+local deviceTypeCornerRadius = {
+	pc = UDim.new(0.125, 0),
+	mobile = UDim.new(0.175, 0),
+	console = UDim.new(0.1, 0),
+}
+local deviceTypeButtonOffset = {
+	pc = -5,
+	mobile = -2,
+	console = -6,
+}
 
 -- Selectors --------------------------------------------------------------------------
 
@@ -92,44 +106,45 @@ local e = React.createElement
 ------------------------------------------------------------------------------------------------------------------------
 local function CustomButton(props: Props)
 	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
+	local deviceType = ReactRedux.useSelector(function(state)
+		return state.game.deviceType
+	end)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
 	local isHovering, setIsHovering = React.useState(false)
+	local motorRef = props.shineAnimation
+		and React.useRef(UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8))
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
-	local shineAnimationMotorConfigs = React.useMemo(function()
-		if props.shineAnimation then
-			return UIUtils.Flipper.CreateLoopingMotor(props.shineAnimationVelocity or 0.8)
-		end
-	end, { props.shineAnimation })
+	local offsetMappedBinding = useMotorMappedBinding(motorRef or {}, function(value)
+		return Vector2.new(Utils.Math.Lerp(-0.6, 0.6, value), 0)
+	end, Vector2.new(-0.6, 0), { motorRef })
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	-- Cleanup
 	React.useEffect(function()
 		return function()
-			if shineAnimationMotorConfigs then
-				shineAnimationMotorConfigs:Destroy()
+			if motorRef then
+				motorRef.current:Destroy()
 			end
 		end
 	end, {})
 
-	-- Update shineAnimationMotorConfigs
+	-- Update motorRef
 	React.useLayoutEffect(function()
-		if not props.shineAnimation and shineAnimationMotorConfigs then
-			shineAnimationMotorConfigs:Destroy()
-		elseif props.shineAnimation and shineAnimationMotorConfigs then
+		if not props.shineAnimation and motorRef then
+			motorRef.current:Destroy()
+		elseif props.shineAnimation and motorRef then
 			-- Update velocity
-			if shineAnimationMotorConfigs.velocity ~= props.shineAnimationVelocity then
-				shineAnimationMotorConfigs:UpdateVelocity(props.shineAnimationVelocity)
-			end
-
+			motorRef.current:SetVelocity(props.shineAnimationVelocity or 0.8)
 			-- Update active state
-			if (props.Visible or props.Visible == nil) and not shineAnimationMotorConfigs.active then
-				shineAnimationMotorConfigs:Start(true)
-			elseif props.Visible == false and shineAnimationMotorConfigs.active then
-				shineAnimationMotorConfigs:Start(false)
+			local isVisible = props.Visible == nil or props.Visible
+			if isVisible then
+				motorRef.current:Start()
+			else
+				motorRef.current:Stop()
 			end
 		end
 	end, { props.shineAnimation, props.shineAnimationVelocity, props.Visible })
@@ -139,9 +154,10 @@ local function CustomButton(props: Props)
 		Button,
 		Utils.Table.Dictionary.merge(props, {
 			AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
+			AutoButtonColor = false,
+			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 			Position = props.Position or UDim2.fromScale(0.5, 0.5),
 			Size = props.Size or UDim2.fromScale(1, 1),
-			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 			smallRatio = props.smallRatio,
 			largeRatio = props.largeRatio,
 			onClick = props.onClick,
@@ -156,7 +172,7 @@ local function CustomButton(props: Props)
 			end,
 		}),
 		{
-			UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
+			UICorner = e("UICorner", { CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }),
 			UIAspectRatioConstraint = props.aspectRatio and e("UIAspectRatioConstraint", {
 				AspectRatio = props.aspectRatio,
 			}),
@@ -172,18 +188,21 @@ local function CustomButton(props: Props)
 				BackgroundTransparency = 0.5,
 				Size = UDim2.fromScale(1, 1),
 			}, {
-				UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
+				UICorner = e("UICorner", { CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }),
 			}),
 
 			FrameForeground = e(
 				"Frame",
 				{
 					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					Size = UDim2.new(1, 0, 1, -5),
+					Size = UDim2.new(1, 0, 1, deviceTypeButtonOffset[deviceType] or -5),
 					ZIndex = 2,
 				},
 				Utils.Table.Dictionary.merge({
-					UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
+					UICorner = e(
+						"UICorner",
+						{ CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }
+					),
 					UIGradient = e("UIGradient", {
 						Color = props.colorSequence or Utils.Color.Configs.colorSequences["green"],
 						Rotation = 90,
@@ -194,6 +213,7 @@ local function CustomButton(props: Props)
 						BackgroundTransparency = 1,
 						Position = UDim2.fromScale(0.5, 0.5),
 						Size = UDim2.fromScale(0.85, 1),
+						ZIndex = 3,
 					}, {
 						UIListLayout = e("UIListLayout", {
 							Padding = UDim.new(0.035, 0),
@@ -212,7 +232,6 @@ local function CustomButton(props: Props)
 							ImageTransparency = props.imageTransparency or 0,
 							Visible = props.image and (props.imageVisible or (props.imageVisible == nil)) or false,
 							ScaleType = Enum.ScaleType.Fit,
-							ZIndex = 3,
 						}),
 
 						TextLabel = props.text and e(TextLabelAutoSize2, {
@@ -222,7 +241,6 @@ local function CustomButton(props: Props)
 							FontFace = props.fontFace,
 							Text = props.text or "",
 							RichText = props.richText or false,
-							ZIndex = 3,
 							bold = props.textBold,
 							italic = props.textItalic,
 							lengthAtMaxScaleX = 7,
@@ -238,20 +256,25 @@ local function CustomButton(props: Props)
 					FrameHover = e("Frame", {
 						Size = UDim2.fromScale(1, 1),
 						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-						BackgroundTransparency = 0.9,
+						BackgroundTransparency = 0.925,
 						Visible = isHovering,
 						ZIndex = 2,
 					}, {
-						UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
+						UICorner = e(
+							"UICorner",
+							{ CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }
+						),
 					}),
 
 					FrameShine = props.shineAnimation and e("Frame", {
 						Size = UDim2.fromScale(1, 1),
 						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						Visible = props.shineAnimation or false,
-						ZIndex = 0,
 					}, {
-						UICorner = e("UICorner", { CornerRadius = props.cornerRadius or UDim.new(0.1, 0) }),
+						UICorner = e(
+							"UICorner",
+							{ CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }
+						),
 						UIGradient = e("UIGradient", {
 							Color = Utils.Color.ColorSequence({
 								props.shineAnimationColor3 or Color3.fromRGB(235, 235, 235),
@@ -263,9 +286,7 @@ local function CustomButton(props: Props)
 								NumberSequenceKeypoint.new(0.7, 1),
 								NumberSequenceKeypoint.new(1, 1),
 							}),
-							Offset = shineAnimationMotorConfigs.binding:map(function(value)
-								return Vector2.new(Utils.Math.Lerp(-0.6, 0.6, value), 0)
-							end),
+							Offset = props.shineAnimation and offsetMappedBinding or Vector2.new(-0.6, 0),
 						}),
 					}),
 				}, props.children)

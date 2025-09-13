@@ -32,6 +32,7 @@ local Teleporting = require(States.Teleporting)
 
 -- Handlers --------------------------------------------------------------------
 local PlayerHandler = require(GameHandlers.PlayerHandler)
+local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Instances -----------------------------------------------------------------------
 
@@ -275,6 +276,24 @@ function Lobby:DestroyTouchConnections()
 end
 
 -- STATE MANAGEMENT ----------------------------------------------------------------------------------------------------
+
+function Lobby:Reset()
+	MessageHandler.SendMessageToPlayers(self.players, "The lobby has been closed by the host.", "Error")
+
+	-- Remove all players
+	for _, player in pairs(self.players) do
+		self:_RemovePlayer(player)
+	end
+
+	-- Reset settings
+	self.settings = nil
+	self:_FireLobbyUpdated()
+
+	-- Change state
+	self:ChangeState("Waiting")
+
+	return true
+end
 
 function Lobby:ChangeState(newState: string)
 	if self._currentState and self._currentState.type == newState then

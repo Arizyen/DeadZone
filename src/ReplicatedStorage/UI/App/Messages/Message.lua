@@ -1,5 +1,6 @@
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -29,131 +30,152 @@ local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- Handlers ----------------------------------------------------------------
-local LobbyHandler = require(ReplicatedGameHandlers:WaitForChild("LobbyHandler"))
 
 -- Instances -----------------------------------------------------------------------
 
 -- BaseComponents ----------------------------------------------------------------
+local TextLabel = require(BaseComponents:WaitForChild("TextLabel"))
+local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
 
 -- GlobalComponents ----------------------------------------------------------------
 
 -- AppComponents -------------------------------------------------------------------
-local CustomWindow = require(AppComponents:WaitForChild("CustomWindow"))
-local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
-local ProgressBar = require(AppComponents:WaitForChild("ProgressBar"))
 
 -- LocalComponents -----------------------------------------------------------------
 
 -- Hooks ---------------------------------------------------------------------------
 local usePrevious = require(BaseHooks:WaitForChild("usePrevious"))
+local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBinding"))
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local LobbyConfigs = require(ReplicatedConfigs:WaitForChild("LobbyConfigs"))
-local WINDOW_NAME = "LobbyCreate"
 
 -- Types ---------------------------------------------------------------------------
-type Props = {}
+local MessageTypes = require(ReplicatedTypes:WaitForChild("Message"))
+type Props = { LayoutOrder: number, message: MessageTypes.Message }
 
 -- Variables -----------------------------------------------------------------------
 local e = React.createElement
 
 -- Tables --------------------------------------------------------------------------
-local otherLobbyWindows = {
-	"LobbyNew",
-	"LobbyLoad",
-}
 
 -- Selectors --------------------------------------------------------------------------
-local selector = UIUtils.Selector.Create({
-	window = { "windowShown" },
-	lobby = { "lobbyCreationTimeLeft" },
-})
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function LobbyCreate(props: Props)
+local function Message(props: Props)
 	local dispatch = ReactRedux.useDispatch()
 
 	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
-	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
-	local previousWindow = usePrevious(storeState.windowShown, nil)
+	local prevCount = usePrevious(props.message.count, props.message.count)
+	local initMotorRef = React.useRef(UIUtils.Motor.SimpleMotor.new(3.5))
+	local textBounceMotorRef = React.useRef(UIUtils.Motor.SnapBackMotor.new(4))
+	local timerScheduleRef = React.useRef()
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
+	local function cancelTimer()
+		if timerScheduleRef.current then
+			timerScheduleRef.current:Disconnect()
+			timerScheduleRef.current = nil
+		end
+	end
+
+	local function setTimer()
+		cancelTimer()
+		timerScheduleRef.current = Utils.Scheduler.Add(props.message.props.duration, function()
+			dispatch({
+				type = "RemoveMessage",
+				value = props.message.id,
+			})
+		end)
+	end
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
+	local sizeMappedBinding = useMotorMappedBinding(initMotorRef, function(value: number)
+		return UDim2.fromScale(1, 0):Lerp(
+			UDim2.fromScale(1, 1),
+			TweenService:GetValue(value, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+		)
+	end)
+	local textPositionMappedBinding = useMotorMappedBinding(textBounceMotorRef, function(value: number)
+		return UDim2.fromScale(0, 0.5 + (math.sin(math.pi * 2 * value) * 0.05))
+	end)
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
-	-- On window open
+
+	-- Register events to motors
 	React.useLayoutEffect(function()
-		if
-			storeState.windowShown == WINDOW_NAME
-			and previousWindow ~= WINDOW_NAME
-			and not table.find(otherLobbyWindows, previousWindow)
-		then
-			dispatch({
-				type = "SetLobbyCreationTimeLeft",
-				value = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
-			})
+		initMotorRef.current:SetEvents({
+			onReachedEndValue = function()
+				setTimer()
+			end,
+		})
+	end, {})
+
+	-- On mount
+	React.useEffect(function()
+		-- Start initial animation
+		initMotorRef.current:Start()
+
+		return function()
+			-- Cleanup timer
+			cancelTimer()
+
+			-- Cleanup motors
+			initMotorRef.current:Destroy()
+			textBounceMotorRef.current:Destroy()
 		end
-	end, { storeState.windowShown, previousWindow })
+	end, {})
+
+	-- On message changed
+	React.useEffect(function()
+		-- Play sound
+		if props.message.props.soundInfoKey then
+			local soundInfo = Utils.Sound.Info.byKey[props.message.props.soundInfoKey]
+			if soundInfo then
+				Utils.Sound.Play(soundInfo)
+			end
+		end
+
+		-- Detect if new message
+		if prevCount ~= props.message.count then
+			-- Same message, count increased
+			setTimer()
+			textBounceMotorRef.current:Restart(true)
+		end
+	end, { props.message })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
-	return e(CustomWindow, {
-		windowName = WINDOW_NAME,
-		title = "Create Lobby",
-		titleColorSequence = Utils.Color.Configs.colorSequences.blue,
-		onCloseButtonClicked = function()
-			LobbyHandler.LeaveLobby()
-		end,
-		Size = UDim2.fromScale(0.3, 0.33),
+	return e("Frame", {
+		BackgroundTransparency = 1,
+		LayoutOrder = props.LayoutOrder,
+		Size = sizeMappedBinding,
 	}, {
-		FrameButtons = e("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 0.835),
-		}, {
-			UIListLayout = e("UIListLayout", {
-				Padding = UDim.new(0.045, 0),
-				FillDirection = Enum.FillDirection.Vertical,
-				SortOrder = Enum.SortOrder.LayoutOrder,
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
-			}),
-
-			ButtonNewGame = e(CustomButton, {
-				LayoutOrder = 1,
-				Size = UDim2.fromScale(0.75, 0.35),
-				text = "New Game",
-				colorSequence = Utils.Color.Configs.colorSequences.green,
-				image = "rbxassetid://85710190932350",
-			}),
-
-			ButtonLoadGame = e(CustomButton, {
-				LayoutOrder = 2,
-				Size = UDim2.fromScale(0.75, 0.35),
-				text = "Load Game",
-				colorSequence = Utils.Color.Configs.colorSequences.orange,
-				image = "rbxassetid://127374615809191",
-			}),
-		}),
-
-		ProgressBar = e(ProgressBar, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0.825),
-			Size = UDim2.fromScale(0.85, 0.1),
-			active = storeState.windowShown == WINDOW_NAME,
-			maxTime = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
-			lobbyCreationTimeLeft = storeState.lobbyCreationTimeLeft,
-			onEnd = function()
-				UIUtils.Window.Close(WINDOW_NAME)
-			end,
-		}),
+		TextLabel = e(
+			TextLabel,
+			Utils.Table.Dictionary.mergeInstanceProps({
+				AnchorPoint = Vector2.new(0, 0.5),
+				BackgroundTransparency = 1,
+				Position = textPositionMappedBinding,
+				Size = UDim2.fromScale(1, 1),
+				Text = if props.message.count > 1
+					then props.message.message .. " (x" .. tostring(props.message.count) .. ")"
+					else props.message.message,
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+			}, props.message.props),
+			{
+				UIStroke = e(UIStroke, {
+					textStroke = true,
+					Thickness = props.message.props.strokeThickness or 2.5,
+				}),
+			}
+		),
 	})
 end
 
-return LobbyCreate
+return Message

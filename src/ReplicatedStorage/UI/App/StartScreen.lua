@@ -23,7 +23,6 @@ local BaseHooks = PlaywooEngineUI:WaitForChild("BaseHooks")
 -- Modulescripts -------------------------------------------------------------------
 local React = require(Packages:WaitForChild("React"))
 local ReactRedux = require(Packages:WaitForChild("ReactRedux"))
-local Flipper = require(Packages:WaitForChild("Flipper"))
 local UIUtils = require(ReplicatedPlaywooEngine:WaitForChild("UIUtils"))
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Contexts = require(UI:WaitForChild("Contexts"))

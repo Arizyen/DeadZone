@@ -22,7 +22,6 @@ local AppComponents = UI:WaitForChild("AppComponents")
 -- Modulescripts -------------------------------------------------------------------
 local React = require(Packages:WaitForChild("React"))
 local ReactRedux = require(Packages:WaitForChild("ReactRedux"))
-local Flipper = require(Packages:WaitForChild("Flipper"))
 local UIUtils = require(ReplicatedPlaywooEngine:WaitForChild("UIUtils"))
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Contexts = require(UI:WaitForChild("Contexts"))
@@ -112,21 +111,22 @@ local function CustomButton(props: Props)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
 	local isHovering, setIsHovering = React.useState(false)
-	local motorRef = props.shineAnimation
-		and React.useRef(UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8))
+	local motorRef = React.useRef(
+		props.shineAnimation and UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8) or nil
+	)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
-	local offsetMappedBinding = useMotorMappedBinding(motorRef or {}, function(value)
+	local offsetMappedBinding = useMotorMappedBinding(motorRef, function(value)
 		return Vector2.new(Utils.Math.Lerp(-0.6, 0.6, value), 0)
-	end, Vector2.new(-0.6, 0), { motorRef })
+	end, Vector2.new(-0.6, 0), { motorRef.current })
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	-- Cleanup
 	React.useEffect(function()
 		return function()
-			if motorRef then
+			if motorRef.current then
 				motorRef.current:Destroy()
 			end
 		end
@@ -134,18 +134,28 @@ local function CustomButton(props: Props)
 
 	-- Update motorRef
 	React.useLayoutEffect(function()
-		if not props.shineAnimation and motorRef then
-			motorRef.current:Destroy()
-		elseif props.shineAnimation and motorRef then
-			-- Update velocity
-			motorRef.current:SetVelocity(props.shineAnimationVelocity or 0.8)
-			-- Update active state
-			local isVisible = props.Visible == nil or props.Visible
-			if isVisible then
-				motorRef.current:Start()
-			else
-				motorRef.current:Stop()
+		-- If shineAnimation is false, destroy motor if it exists
+		if not props.shineAnimation then
+			if motorRef.current then
+				motorRef.current:Destroy()
+				motorRef.current = nil
 			end
+			return
+		end
+
+		-- Create motor if it doesn't exist
+		if not motorRef.current then
+			motorRef.current = UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8)
+		end
+
+		-- Update velocity
+		motorRef.current:SetVelocity(props.shineAnimationVelocity or 0.8)
+		-- Update motor state based on visibility
+		local isVisible = props.Visible == nil or props.Visible
+		if isVisible then
+			motorRef.current:Start()
+		else
+			motorRef.current:Stop()
 		end
 	end, { props.shineAnimation, props.shineAnimationVelocity, props.Visible })
 

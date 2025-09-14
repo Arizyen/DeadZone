@@ -29,29 +29,25 @@ local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- Handlers ----------------------------------------------------------------
-local LobbyHandler = require(ReplicatedGameHandlers:WaitForChild("LobbyHandler"))
 
 -- Instances -----------------------------------------------------------------------
 
 -- BaseComponents ----------------------------------------------------------------
+local UIAspectRatioConstraint = require(BaseComponents:WaitForChild("UIAspectRatioConstraint"))
 
 -- GlobalComponents ----------------------------------------------------------------
 
 -- AppComponents -------------------------------------------------------------------
-local CustomWindow = require(AppComponents:WaitForChild("CustomWindow"))
-local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
-local ProgressBar = require(AppComponents:WaitForChild("ProgressBar"))
 
 -- LocalComponents -----------------------------------------------------------------
+local Message = require(script.Message)
 
 -- Hooks ---------------------------------------------------------------------------
-local usePrevious = require(BaseHooks:WaitForChild("usePrevious"))
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local LobbyConfigs = require(ReplicatedConfigs:WaitForChild("LobbyConfigs"))
-local WINDOW_NAME = "LobbyCreate"
+local MessageConfigs = require(ReplicatedConfigs:WaitForChild("MessageConfigs"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {}
@@ -60,100 +56,63 @@ type Props = {}
 local e = React.createElement
 
 -- Tables --------------------------------------------------------------------------
-local otherLobbyWindows = {
-	"LobbyNew",
-	"LobbyLoad",
-}
 
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
-	window = { "windowShown" },
-	lobby = { "lobbyCreationTimeLeft" },
+	message = { "messages", "windowProps" },
 })
-
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function LobbyCreate(props: Props)
-	local dispatch = ReactRedux.useDispatch()
-
+local function Messages(props: Props)
 	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
 	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
-	local previousWindow = usePrevious(storeState.windowShown, nil)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
+	local mergedProps = React.useMemo(function()
+		return Utils.Table.Dictionary.mergeInstanceProps(
+			{ BackgroundTransparency = 1 },
+			MessageConfigs.DEFAULT_MESSAGE_WINDOW_PROPS,
+			storeState.windowProps
+		)
+	end, { storeState.windowProps })
 
-	-- EFFECTS -------------------------------------------------------------------------------------------------------------
-	-- On window open
-	React.useLayoutEffect(function()
-		if
-			storeState.windowShown == WINDOW_NAME
-			and previousWindow ~= WINDOW_NAME
-			and not table.find(otherLobbyWindows, previousWindow)
-		then
-			dispatch({
-				type = "SetLobbyCreationTimeLeft",
-				value = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
+	local messages = React.useMemo(function()
+		local msgs = {}
+
+		for index, message in ipairs(storeState.messages) do
+			msgs[message.id] = e(Message, {
+				LayoutOrder = index,
+				message = message,
 			})
 		end
-	end, { storeState.windowShown, previousWindow })
+
+		return msgs
+	end, { storeState.messages, storeState.windowProps })
+
+	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
-	return e(CustomWindow, {
-		windowName = WINDOW_NAME,
-		title = "Create Lobby",
-		titleColorSequence = Utils.Color.Configs.colorSequences.blue,
-		onCloseButtonClicked = function()
-			LobbyHandler.LeaveLobby()
-		end,
-		Size = UDim2.fromScale(0.3, 0.33),
-	}, {
-		FrameButtons = e("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 0.835),
-		}, {
+	return e(
+		"Frame",
+		mergedProps,
+		Utils.Table.Dictionary.merge({
 			UIListLayout = e("UIListLayout", {
-				Padding = UDim.new(0.045, 0),
 				FillDirection = Enum.FillDirection.Vertical,
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Bottom,
 			}),
-
-			ButtonNewGame = e(CustomButton, {
-				LayoutOrder = 1,
-				Size = UDim2.fromScale(0.75, 0.35),
-				text = "New Game",
-				colorSequence = Utils.Color.Configs.colorSequences.green,
-				image = "rbxassetid://85710190932350",
+			UIAspectRatioConstraint = e(UIAspectRatioConstraint, {
+				size = mergedProps.Size,
 			}),
-
-			ButtonLoadGame = e(CustomButton, {
-				LayoutOrder = 2,
-				Size = UDim2.fromScale(0.75, 0.35),
-				text = "Load Game",
-				colorSequence = Utils.Color.Configs.colorSequences.orange,
-				image = "rbxassetid://127374615809191",
-			}),
-		}),
-
-		ProgressBar = e(ProgressBar, {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0.825),
-			Size = UDim2.fromScale(0.85, 0.1),
-			active = storeState.windowShown == WINDOW_NAME,
-			maxTime = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
-			lobbyCreationTimeLeft = storeState.lobbyCreationTimeLeft,
-			onEnd = function()
-				UIUtils.Window.Close(WINDOW_NAME)
-			end,
-		}),
-	})
+		}, messages)
+	)
 end
 
-return LobbyCreate
+return Messages

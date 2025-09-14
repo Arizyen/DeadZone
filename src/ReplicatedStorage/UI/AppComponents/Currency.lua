@@ -22,7 +22,6 @@ local GlobalComponents = PlaywooEngineUI:WaitForChild("GlobalComponents")
 -- Modulescripts -------------------------------------------------------------------
 local React = require(Packages:WaitForChild("React"))
 local ReactRedux = require(Packages:WaitForChild("ReactRedux"))
-local Flipper = require(Packages:WaitForChild("Flipper"))
 local UIUtils = require(ReplicatedPlaywooEngine:WaitForChild("UIUtils"))
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
@@ -77,7 +76,7 @@ local function Currency(props: Props)
 	end)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
-	local motorRef = React.useRef(UIUtils.Motor.SnapBackMotor.new(3.75))
+	local motorRef = React.useRef(UIUtils.Motor.SnapBackMotor.new(4))
 	local previousCountRef = React.useRef(currencyCount)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------

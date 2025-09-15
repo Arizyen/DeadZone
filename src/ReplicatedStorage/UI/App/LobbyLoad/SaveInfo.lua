@@ -30,10 +30,8 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- Handlers ----------------------------------------------------------------
 
--- Instances -----------------------------------------------------------------------
-
 -- BaseComponents ----------------------------------------------------------------
-local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
+local TextLabel = require(BaseComponents:WaitForChild("TextLabel"))
 
 -- GlobalComponents ----------------------------------------------------------------
 
@@ -42,25 +40,17 @@ local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
 -- LocalComponents -----------------------------------------------------------------
 
 -- Hooks ---------------------------------------------------------------------------
-local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBinding"))
-
--- Info ---------------------------------------------------------------------------
-
--- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-type Props = {
-	AnchorPoint: Vector2?,
-	Position: UDim2?,
-	Size: UDim2?,
-	BackgroundColor3: Color3?,
-	BackgroundTransparency: number?,
-	active: boolean,
-	maxTime: number,
-	currentTime: number,
-	colorSequence: ColorSequence,
-	onEnd: (() -> ())?,
-}
+local SaveTypes = require(ReplicatedTypes:WaitForChild("Save"))
+type Props = { save: SaveTypes.SaveInfo }
+
+-- Instances -----------------------------------------------------------------------
+
+-- Info ---------------------------------------------------------------------------
+local DifficultiesInfo = require(ReplicatedInfo:WaitForChild("DifficultiesInfo"))
+
+-- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
 local e = React.createElement
@@ -73,61 +63,100 @@ local e = React.createElement
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function ProgressBar(props: Props)
+local function SaveInfo(props: Props)
 	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
 
 	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
-	local motorRef = React.useRef(UIUtils.Motor.SimpleMotor.new(1 / props.maxTime))
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
-	local transparencyMappedBinding = useMotorMappedBinding(motorRef, function(value)
-		return Utils.NumberSequence.CooldownSequence(1 - value)
-	end, Utils.NumberSequence.CooldownSequence(1))
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
-	-- On active change
-	React.useEffect(function()
-		if props.active then
-			motorRef.current:Start()
-		else
-			motorRef.current:Stop()
-		end
-	end, { props.active })
-
-	-- On end change
-	React.useEffect(function()
-		motorRef.current.onReachedEndValue = props.onEnd
-	end, { props.onEnd })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
-	return e("Frame", {
-		AnchorPoint = props.AnchorPoint,
-		Position = props.Position,
-		Size = props.Size,
-		BackgroundColor3 = props.BackgroundColor3 or Color3.fromRGB(0, 0, 0),
-		BackgroundTransparency = props.BackgroundTransparency or 0,
-	}, {
-		UICorner = e("UICorner", {
-			CornerRadius = UDim.new(0.3, 0),
-		}),
-		UIStroke = e(UIStroke, {
-			Thickness = 2,
-		}),
-		FrameProgress = e("Frame", {
-			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-			Size = UDim2.fromScale(1, 1),
-		}, {
-			UICorner = e("UICorner", {
-				CornerRadius = UDim.new(0.3, 0),
+	return e(
+		"Frame",
+		Utils.Table.Dictionary.mergeInstanceProps({
+			AnchorPoint = Vector2.new(0, 0.5),
+			BackgroundTransparency = 1,
+			Position = UDim2.fromScale(0.02, 0.5),
+			Size = UDim2.fromScale(0.69, 0.9),
+		}, props),
+		{
+			Frame1 = e("Frame", {
+				UIListLayout = e("UIListLayout", {
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+				}),
+
+				TextLabelSaveName = e(TextLabel, {
+					LayoutOrder = 1,
+					Size = UDim2.fromScale(1, 0.4),
+					Text = props.props.save.name or "???",
+					textStroke = true,
+				}),
+				TextLabelDifficulty = e(TextLabel, {
+					LayoutOrder = 2,
+					Size = UDim2.fromScale(1, 0.3),
+					Text = props.save.difficulty or "???",
+					textStroke = true,
+					textColorSequence = Utils.Color.Configs.colorSequences[DifficultiesInfo.byKey[DifficultiesInfo.allKeys[props.save.difficulty or 2]].colorName]
+						or Utils.Color.Configs.colorSequences.white,
+				}),
+				TextLabelNightsSurvived = e(TextLabel, {
+					LayoutOrder = 3,
+					Size = UDim2.fromScale(1, 0.3),
+					RichText = true,
+					Text = string.format(
+						"Nights Survived: <font color='rgb(255,0,0)'>%s</font>",
+						tostring(props.save.nightsSurvived or 0)
+					),
+					textStroke = true,
+				}),
 			}),
-			UIGradient = e("UIGradient", {
-				Color = props.colorSequence or Utils.Color.Configs.colorSequences.blue,
-				Transparency = transparencyMappedBinding,
+
+			Frame2 = e("Frame", {
+				UIListLayout = e("UIListLayout", {
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+				}),
+
+				TextLabelPlaytime = e(TextLabel, {
+					LayoutOrder = 1,
+					Size = UDim2.fromScale(1, 0.3),
+					RichText = true,
+					Text = string.format(
+						"Playtime: <font color='rgb(28,141,244)'>%s</font>",
+						Utils.Time.Format(props.save.playTime or 0)
+					),
+					textStroke = true,
+				}),
+				TextLabelCreatedAt = e(TextLabel, {
+					LayoutOrder = 2,
+					Size = UDim2.fromScale(1, 0.3),
+					RichText = true,
+					Text = string.format(
+						"Created At: <font color='rgb(28,141,244)'>%s</font>",
+						Utils.Time.FormatUnixToLocal(props.save.createdAt or 0)
+					),
+					textStroke = true,
+				}),
+				TextLabelUpdatedAt = e(TextLabel, {
+					LayoutOrder = 3,
+					Size = UDim2.fromScale(1, 0.3),
+					RichText = true,
+					Text = string.format(
+						"Updated At: <font color='rgb(28,141,244)'>%s</font>",
+						Utils.Time.FormatUnixToLocal(props.save.updatedAt or 0)
+					),
+					textStroke = true,
+				}),
 			}),
-		}),
-	})
+		}
+	)
 end
 
-return ProgressBar
+return SaveInfo

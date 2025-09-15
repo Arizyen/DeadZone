@@ -29,6 +29,7 @@ local Waiting = require(States.Waiting)
 local Creating = require(States.Creating)
 local Starting = require(States.Starting)
 local Teleporting = require(States.Teleporting)
+local RateLimiter = require(BaseModules.RateLimiter)
 
 -- Handlers --------------------------------------------------------------------
 local PlayerHandler = require(GameHandlers.PlayerHandler)
@@ -155,16 +156,19 @@ function Lobby:_AddPlayer(player: Player): boolean
 		return false
 	end
 
+	-- Throttle join requests
+	if not RateLimiter.Use(player, "Lobby", "_AddPlayer", 2, 3) then
+		return false
+	end
+
 	-- Check settings
-	if self.settings then
-		if #self.players >= (self.settings.maxPlayers or 1) then
+	if #self.players >= (self.settings.maxPlayers or 1) then
+		return false
+	end
+	if self.settings.friendsOnly then
+		local owner = self.players[1]
+		if owner and owner.UserId ~= player.UserId and not owner:IsFriendsWith(player.UserId) then
 			return false
-		end
-		if self.settings.friendsOnly then
-			local owner = self.players[1]
-			if owner and owner.UserId ~= player.UserId and not owner:IsFriendsWith(player.UserId) then
-				return false
-			end
 		end
 	end
 
@@ -200,6 +204,11 @@ function Lobby:_RemovePlayer(player: Player): boolean
 		)
 	end
 
+	-- Close lobby if the host leaves on a loaded game lobby
+	if index == 1 and self.settings.saveIndex and #self.players > 0 then
+		self:Reset()
+	end
+
 	return true
 end
 
@@ -219,7 +228,7 @@ function Lobby:GetLobbyState(): LobbyTypes.LobbyState
 end
 
 function Lobby:SetSettings(settings: LobbyTypes.LobbySettings?)
-	self.settings = settings
+	self.settings = settings or {}
 	self:_FireLobbyUpdated()
 end
 
@@ -286,7 +295,7 @@ function Lobby:Reset()
 	end
 
 	-- Reset settings
-	self.settings = nil
+	self.settings = {}
 	self:_FireLobbyUpdated()
 
 	-- Change state

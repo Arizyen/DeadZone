@@ -36,11 +36,12 @@ local LobbyHandler = require(ReplicatedGameHandlers:WaitForChild("LobbyHandler")
 -- BaseComponents ----------------------------------------------------------------
 
 -- GlobalComponents ----------------------------------------------------------------
+local ProgressBar = require(GlobalComponents:WaitForChild("ProgressBar"))
 
 -- AppComponents -------------------------------------------------------------------
 local CustomWindow = require(AppComponents:WaitForChild("CustomWindow"))
 local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
-local ProgressBar = require(AppComponents:WaitForChild("ProgressBar"))
+
 
 -- LocalComponents -----------------------------------------------------------------
 
@@ -68,7 +69,7 @@ local otherLobbyWindows = {
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
 	window = { "windowShown" },
-	lobby = { "lobbyCreationTimeLeft" },
+	lobby = { "lobbyCreationTimeLimit" },
 })
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -82,26 +83,12 @@ local function LobbyCreate(props: Props)
 	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
-	local previousWindow = usePrevious(storeState.windowShown, nil)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
-	-- On window open
-	React.useLayoutEffect(function()
-		if
-			storeState.windowShown == WINDOW_NAME
-			and previousWindow ~= WINDOW_NAME
-			and not table.find(otherLobbyWindows, previousWindow)
-		then
-			dispatch({
-				type = "SetLobbyCreationTimeLeft",
-				value = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
-			})
-		end
-	end, { storeState.windowShown, previousWindow })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e(CustomWindow, {
@@ -131,6 +118,9 @@ local function LobbyCreate(props: Props)
 				text = "New Game",
 				colorSequence = Utils.Color.Configs.colorSequences.green,
 				image = "rbxassetid://85710190932350",
+				onClick = function()
+					UIUtils.Window.Show("LobbyNew")
+				end,
 			}),
 
 			ButtonLoadGame = e(CustomButton, {
@@ -139,6 +129,9 @@ local function LobbyCreate(props: Props)
 				text = "Load Game",
 				colorSequence = Utils.Color.Configs.colorSequences.orange,
 				image = "rbxassetid://127374615809191",
+				onClick = function()
+					UIUtils.Window.Show("LobbyLoad")
+				end,
 			}),
 		}),
 
@@ -147,8 +140,8 @@ local function LobbyCreate(props: Props)
 			Position = UDim2.fromScale(0.5, 0.825),
 			Size = UDim2.fromScale(0.85, 0.1),
 			active = storeState.windowShown == WINDOW_NAME,
-			maxTime = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
-			lobbyCreationTimeLeft = storeState.lobbyCreationTimeLeft,
+			timeLimit = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
+			timePassed = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION - (storeState.lobbyCreationTimeLimit - os.clock()),
 			onEnd = function()
 				UIUtils.Window.Close(WINDOW_NAME)
 			end,

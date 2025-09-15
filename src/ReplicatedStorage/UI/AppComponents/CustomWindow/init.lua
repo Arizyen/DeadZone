@@ -73,7 +73,7 @@ local e = React.createElement
 
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
-	theme = { "maxWindowSizeX", "maxWindowSizeY", "totalScreenSize" },
+	theme = { "maxWindowSizeX", "maxWindowSizeY" },
 })
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------

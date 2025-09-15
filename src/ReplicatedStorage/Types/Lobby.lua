@@ -4,7 +4,7 @@ export type LobbySettings = {
 	difficulty: number,
 	maxPlayers: number,
 	friendsOnly: boolean,
-	saveId: string?,
+	saveIndex: number?,
 }
 
 export type LobbyState = {

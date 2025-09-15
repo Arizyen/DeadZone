@@ -89,10 +89,15 @@ function LobbyHandler.LeaveLobby(player: Player): boolean
 	return false
 end
 
-function LobbyHandler.CloseLobby(player: Player): boolean
+function LobbyHandler.CreateLobby(player: Player, settings: LobbyTypes.LobbySettings): boolean
+	if not (settings.difficulty and settings.maxPlayers and settings.friendsOnly) then
+		return false
+	end
+
+	-- Find the player's lobby
 	for _, lobby in pairs(lobbies) do
-		if lobby:HasPlayer(player) and lobby.players[1] == player then
-			return lobby:Reset()
+		if lobby:HasPlayer(player) then
+			return lobby:Create(player, settings)
 		end
 	end
 

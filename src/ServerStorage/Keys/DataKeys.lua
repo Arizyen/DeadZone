@@ -4,6 +4,10 @@ local Keys = {
 		"rebirths",
 	},
 	booleans = {},
+	strings = {},
+	tables = {
+		"saves",
+	},
 
 	-- CONFIGS ----------------------------------
 	defaultValues = {},

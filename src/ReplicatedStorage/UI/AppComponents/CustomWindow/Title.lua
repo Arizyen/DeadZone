@@ -163,12 +163,16 @@ local function Title(props: Props)
 		}),
 
 		FrameClose = e("Frame", {
-			AnchorPoint = Vector2.new(1, 0),
+			AnchorPoint = Vector2.new(1, 0.5),
 			BackgroundTransparency = 1,
-			Position = UDim2.fromScale(0.98, 0),
-			Size = UDim2.fromScale(0.1, 1),
+			Position = UDim2.new(1, -4, 0.5, 0),
+			Size = UDim2.fromScale(0.15, 1),
 			ZIndex = 2,
 		}, {
+			UIAspectRatioConstraint = e("UIAspectRatioConstraint", {
+				AspectRatio = 1,
+			}),
+
 			CloseButton = not props.noCloseButton and e(CloseButton, {
 				windowName = props.windowName,
 				onCloseButtonClicked = props.onCloseButtonClicked,

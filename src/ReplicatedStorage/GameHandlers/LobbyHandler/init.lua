@@ -20,12 +20,14 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Ports = require(script:WaitForChild("Ports"))
 
 -- Handlers ----------------------------------------------------------------
+local MessageHandler = require(ReplicatedBaseHandlers:WaitForChild("MessageHandler"))
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local LobbyConfigs = require(ReplicatedConfigs:WaitForChild("LobbyConfigs"))
 
 -- Types ---------------------------------------------------------------------------
 local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
@@ -66,6 +68,10 @@ function LobbyHandler.UpdateLobbyState(lobbyState: LobbyTypes.LobbyState)
 	-- Show CreateLobby window if player is in a lobby that is in "Creating" state
 	if lobbyState.state == "Creating" and lobbyState.players[1] == game.Players.LocalPlayer then
 		Utils.Signals.Fire("DispatchAction", {
+			type = "SetLobbyCreationTimeLimit",
+			value = os.clock() + LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
+		})
+		Utils.Signals.Fire("DispatchAction", {
 			type = "ShowWindow",
 			value = "LobbyCreate",
 		})
@@ -76,8 +82,22 @@ function LobbyHandler.LeaveLobby()
 	Ports.LeaveLobby()
 end
 
-function LobbyHandler.CloseLobby()
-	Ports.CloseLobby()
+function LobbyHandler.CreateLobby(settings: LobbyTypes.LobbySettings)
+	Ports.CreateLobby(settings):andThen(function(success: boolean)
+		if success then
+			print("Lobby created successfully.")
+			Utils.Signals.Fire("DispatchAction", {
+				type = "CloseWindow",
+				value = "LobbyCreate",
+			})
+			Utils.Signals.Fire("DispatchAction", {
+				type = "CloseWindow",
+				value = "LobbyLoad",
+			})
+		else
+			MessageHandler.ShowMessage("Failed to create lobby.", "Error")
+		end
+	end)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

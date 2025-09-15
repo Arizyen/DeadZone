@@ -34,8 +34,9 @@ local ReactRedux = require(Packages:WaitForChild("ReactRedux"))
 
 -- LocalComponents
 local StartScreen = require(script:WaitForChild("StartScreen"))
-local LobbyCreate = require(script:WaitForChild("LobbyCreate"))
 local Messages = require(script:WaitForChild("Messages"))
+local LobbyCreate = require(script:WaitForChild("LobbyCreate"))
+local LobbyLoad = require(script:WaitForChild("LobbyLoad"))
 
 -- Configs
 
@@ -69,8 +70,9 @@ local function App(props)
 	-- COMPONENT ----------------------------------------------------------------------------------------------------------------------------------
 	return {
 		StartScreen = e(StartScreen),
-		LobbyCreate = e(LobbyCreate),
 		Messages = e(Messages),
+		LobbyCreate = e(LobbyCreate),
+		LobbyLoad = e(LobbyLoad),
 	}
 end
 

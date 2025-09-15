@@ -57,8 +57,8 @@ function LobbyController:KnitInit()
 		LeaveLobby = function(): boolean
 			return knitServices["Lobby"]:LeaveLobby()
 		end,
-		CloseLobby = function(): boolean
-			return knitServices["Lobby"]:CloseLobby()
+		CreateLobby = function(settings: LobbyTypes.LobbySettings): boolean
+			return knitServices["Lobby"]:CreateLobby(settings)
 		end,
 	})
 end

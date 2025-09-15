@@ -47,7 +47,6 @@ local Message = require(script.Message)
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MessageConfigs = require(ReplicatedConfigs:WaitForChild("MessageConfigs"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {}
@@ -61,6 +60,7 @@ local e = React.createElement
 local selector = UIUtils.Selector.Create({
 	message = { "messages", "windowProps" },
 })
+
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
@@ -75,11 +75,7 @@ local function Messages(props: Props)
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 	local mergedProps = React.useMemo(function()
-		return Utils.Table.Dictionary.mergeInstanceProps(
-			{ BackgroundTransparency = 1 },
-			MessageConfigs.DEFAULT_MESSAGE_WINDOW_PROPS,
-			storeState.windowProps
-		)
+		return Utils.Table.Dictionary.mergeInstanceProps({ BackgroundTransparency = 1 }, storeState.windowProps)
 	end, { storeState.windowProps })
 
 	local messages = React.useMemo(function()
@@ -109,7 +105,7 @@ local function Messages(props: Props)
 				VerticalAlignment = Enum.VerticalAlignment.Bottom,
 			}),
 			UIAspectRatioConstraint = e(UIAspectRatioConstraint, {
-				size = mergedProps.Size,
+				size = mergedProps.Size or UDim2.fromScale(0.65, 0.075),
 			}),
 		}, messages)
 	)

@@ -110,7 +110,7 @@ local function CustomButton(props: Props)
 	end)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
-	local isHovering, setIsHovering = React.useState(false)
+	local isHoveringBinding, setIsHovering = React.useBinding(false)
 	local motorRef = React.useRef(
 		props.shineAnimation and UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8) or nil
 	)
@@ -244,7 +244,7 @@ local function CustomButton(props: Props)
 							ScaleType = Enum.ScaleType.Fit,
 						}),
 
-						TextLabel = props.text and e(TextLabelAutoSize2, {
+						TextLabel = props.text and e(props.textSize and TextLabel or TextLabelAutoSize2, {
 							LayoutOrder = 2,
 							Size = props.textSize or UDim2.fromScale(0.7, 0.85),
 							TextColor3 = props.textColor3 or Color3.fromRGB(255, 255, 255),
@@ -267,7 +267,7 @@ local function CustomButton(props: Props)
 						Size = UDim2.fromScale(1, 1),
 						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 						BackgroundTransparency = 0.925,
-						Visible = isHovering,
+						Visible = isHoveringBinding,
 						ZIndex = 2,
 					}, {
 						UICorner = e(

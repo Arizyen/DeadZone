@@ -40,7 +40,7 @@ local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
 
 local LobbyReducer = Rodux.createReducer({
 	lobbyStates = {} :: { [string]: LobbyTypes.LobbyState },
-	lobbyCreationTimeLeft = 0 :: number,
+	lobbyCreationTimeLimit = 0 :: number, -- os.clock() time
 }, {
 	UpdateLobbyState = function(state, action: { value: LobbyTypes.LobbyState })
 		local newState = Utils.Table.Dictionary.copy(state) :: { [string]: LobbyTypes.LobbyState }
@@ -59,9 +59,9 @@ local LobbyReducer = Rodux.createReducer({
 		return newState
 	end,
 
-	SetLobbyCreationTimeLeft = function(state, action: { value: number })
+	SetLobbyCreationTimeLimit = function(state, action: { value: number })
 		local newState = Utils.Table.Dictionary.copy(state) :: { [string]: LobbyTypes.LobbyState }
-		newState.lobbyCreationTimeLeft = action.value
+		newState.lobbyCreationTimeLimit = action.value
 
 		return newState
 	end,

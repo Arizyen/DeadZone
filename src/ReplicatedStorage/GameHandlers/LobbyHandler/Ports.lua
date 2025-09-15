@@ -5,7 +5,7 @@ local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
 export type Ports = {
 	GetAllLobbiesState: () -> { [string]: LobbyTypes.LobbyState },
 	LeaveLobby: () -> (),
-	CloseLobby: () -> (),
+	CreateLobby: (settings: LobbyTypes.LobbySettings) -> (),
 }
 
 local Ports = {} :: Ports

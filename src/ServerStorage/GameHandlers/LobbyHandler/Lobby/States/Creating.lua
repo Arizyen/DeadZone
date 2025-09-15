@@ -41,7 +41,7 @@ local ILobbySettings = t.strictInterface({
 	difficulty = t.number,
 	maxPlayers = t.number,
 	friendsOnly = t.boolean,
-	saveId = t.optional(t.string),
+	saveIndex = t.optional(t.number),
 })
 
 -- Variables -----------------------------------------------------------------------
@@ -136,9 +136,9 @@ function Creating:Create(playerFired: Player, lobbySettings: LobbyTypes.LobbySet
 		math.clamp(lobbySettings.difficulty or 1, LobbyConfigs.MIN_DIFFICULTY, LobbyConfigs.MAX_DIFFICULTY)
 	lobbySettings.maxPlayers = math.clamp(lobbySettings.maxPlayers, LobbyConfigs.MIN_PLAYERS, LobbyConfigs.MAX_PLAYERS)
 
-	-- Get save data if saveId is provided
-	if lobbySettings.saveId then
-		local saveInfo = PlayerDataHandler.GetKeyValue(playerFired.UserId, "SavesInfo", lobbySettings.saveId)
+	-- Get save data if saveIndex is provided
+	if lobbySettings.saveIndex then
+		local saveInfo = PlayerDataHandler.GetKeyValue(playerFired.UserId, "saves", lobbySettings.saveIndex)
 		if not saveInfo then
 			MessageHandler.SendMessageToPlayer(playerFired, "Error: could not find the save.", "Error")
 			return false

@@ -1,4 +1,4 @@
-local Message = {}
+local MessageTypes = {}
 
 export type MessageWindowProps = {
 	maxMessages: number?,
@@ -19,4 +19,4 @@ export type Message = {
 	props: MessageProps,
 }
 
-return Message
+return MessageTypes

@@ -152,16 +152,7 @@ local function Currency(props: Props)
 			Size = UDim2.fromScale(0.5, 1),
 			Text = Utils.Number.ToEnglish(currencyCount),
 			TextColor3 = resourceInfo.colorSequence and Color3.fromRGB(255, 255, 255) or resourceInfo.color,
-			TextStrokeTransparency = 0.5,
-		}, {
-			UIStroke = e(UIStroke, {
-				Thickness = 2,
-				textStroke = true,
-			}),
-			UIGradient = resourceInfo.colorSequence and e("UIGradient", {
-				Color = resourceInfo.colorSequence,
-				Rotation = 90,
-			}),
+			textColorSequence = resourceInfo.colorSequence,
 		}),
 
 		ImageButtonPlus = e(ImageButton, {

@@ -28,10 +28,10 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local DifficultiesInfo = require(ReplicatedInfo.DifficultiesInfo)
 
 -- Configs -------------------------------------------------------------------------
 local LobbyConfigs = require(ReplicatedConfigs.LobbyConfigs)
-local STARTING_TIMER = 20
 
 -- Types ---------------------------------------------------------------------------
 
@@ -60,7 +60,7 @@ function Starting.new(lobby: table)
 	self.lobby = lobby
 
 	-- Numbers
-	self._timeStarting = os.clock() + STARTING_TIMER
+	self._timeStarting = os.clock() + LobbyConfigs.START_TIME_WAIT
 
 	self:_Init()
 
@@ -68,6 +68,8 @@ function Starting.new(lobby: table)
 end
 
 function Starting:_Init()
+	self.lobby:SetStartTime(game.Workspace:GetServerTimeNow() + LobbyConfigs.START_TIME_WAIT)
+
 	-- Connections
 	Utils.Connections.Add(
 		self,
@@ -93,9 +95,14 @@ end
 
 function Starting:Update()
 	-- Update frames
+	local lobbyDifficultyInfo =
+		DifficultiesInfo.byKey[DifficultiesInfo.allKeys[self.lobby.settings and self.lobby.settings.difficulty or 1]]
+
 	self.lobby:UpdateFrameChildren("Starting", function(frame)
 		frame.TextLabelDifficulty.Text =
 			LobbyConfigs.DIFFICULTY_NAMES[self.lobby.settings and self.lobby.settings.difficulty or 1]
+		frame.TextLabelDifficulty.UIGradient.Color = Utils.Color.Configs.colorSequences[lobbyDifficultyInfo.colorName]
+
 		frame.TextLabelPlayerCount.Text = #self.lobby.players
 			.. " / "
 			.. (self.lobby.settings and self.lobby.settings.maxPlayers or "???")

@@ -8,7 +8,7 @@ local DifficultiesInfo = {
 			spawnRateMultiplier = 0.75,
 			healthMultiplier = 0.75,
 			damageMultiplier = 0.75,
-			colorName = "lime",
+			colorName = "green",
 		},
 		Normal = {
 			name = "Normal",

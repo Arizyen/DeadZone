@@ -37,6 +37,9 @@ local StartScreen = require(script:WaitForChild("StartScreen"))
 local Messages = require(script:WaitForChild("Messages"))
 local LobbyCreate = require(script:WaitForChild("LobbyCreate"))
 local LobbyLoad = require(script:WaitForChild("LobbyLoad"))
+local LobbyNew = require(script:WaitForChild("LobbyNew"))
+local HUDLobby = require(script:WaitForChild("HUDLobby"))
+local Teleporting = require(script:WaitForChild("Teleporting"))
 
 -- Configs
 
@@ -73,6 +76,9 @@ local function App(props)
 		Messages = e(Messages),
 		LobbyCreate = e(LobbyCreate),
 		LobbyLoad = e(LobbyLoad),
+		LobbyNew = e(LobbyNew),
+		HUDLobby = e(HUDLobby),
+		Teleporting = e(Teleporting),
 	}
 end
 

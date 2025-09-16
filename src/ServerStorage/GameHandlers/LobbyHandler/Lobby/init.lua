@@ -43,6 +43,7 @@ local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Types ---------------------------------------------------------------------------
 local LobbyTypes = require(ReplicatedTypes.Lobby)
+local SaveTypes = require(ReplicatedTypes.Save)
 
 -- Variables -----------------------------------------------------------------------
 
@@ -68,13 +69,18 @@ function Lobby.new(lobbyModel: Model)
 
 	-- Booleans
 	self._destroyed = false
+	self._settingsUpdated = false
 
 	-- Strings
 	self._id = lobbyModel.Name
 
+	-- Numbers
+	self._serverStartTime = nil :: number? -- game.Workspace:GetServerTimeNow()
+
 	-- Tables
 	self.players = {} :: { Player }
 	self.settings = {} :: LobbyTypes.LobbySettings?
+	self.saveInfo = nil :: SaveTypes.SaveInfo?
 
 	-- Instances
 	self._lobbyModel = lobbyModel
@@ -83,7 +89,7 @@ function Lobby.new(lobbyModel: Model)
 
 	-- Signals
 	self.playersUpdated = Utils.Signals.Create() -- Fires {Player}
-	self.lobbyUpdated = Utils.Signals.Create() -- Fires LobbyState
+	self.lobbyUpdated = Utils.Signals.Create() -- Fires (LobbyState, playersLobbyId)
 
 	-- Connections
 	self._wallTouchConnections = {} :: { RBXScriptConnection }
@@ -132,6 +138,7 @@ function Lobby:Destroy()
 
 	-- Cleanup
 	self.playersUpdated:Destroy()
+	self.lobbyUpdated:Destroy()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -141,7 +148,7 @@ end
 -- EVENTS ----------------------------------------------------------------------------------------------------
 
 function Lobby:_FireLobbyUpdated()
-	self.lobbyUpdated:Fire(self:GetLobbyState())
+	self.lobbyUpdated:Fire(self:GetLobbyState(), playersLobbyId)
 end
 
 -- PLAYER MANAGEMENT ---------------------------------------------------------------------------------------------------
@@ -205,7 +212,7 @@ function Lobby:_RemovePlayer(player: Player): boolean
 	end
 
 	-- Close lobby if the host leaves on a loaded game lobby
-	if index == 1 and self.settings.saveIndex and #self.players > 0 then
+	if index == 1 and self.settings.saveId and #self.players > 0 then
 		self:Reset()
 	end
 
@@ -222,13 +229,22 @@ function Lobby:GetLobbyState(): LobbyTypes.LobbyState
 	return {
 		id = self._id,
 		players = self.players,
-		settings = self.settings,
 		state = self._currentState and self._currentState.type or "Unknown",
+		settings = self.settings,
+		settingsUpdated = self._settingsUpdated,
+		serverStartTime = self._serverStartTime,
 	}
 end
 
-function Lobby:SetSettings(settings: LobbyTypes.LobbySettings?)
+function Lobby:SetSettings(settings: LobbyTypes.LobbySettings?, customSettings: boolean?, saveInfo: SaveTypes.SaveInfo?)
 	self.settings = settings or {}
+	self._settingsUpdated = customSettings and true or false
+	self.saveInfo = saveInfo
+	self:_FireLobbyUpdated()
+end
+
+function Lobby:SetStartTime(serverStartTime: number?)
+	self._serverStartTime = serverStartTime
 	self:_FireLobbyUpdated()
 end
 
@@ -296,7 +312,6 @@ function Lobby:Reset()
 
 	-- Reset settings
 	self.settings = {}
-	self:_FireLobbyUpdated()
 
 	-- Change state
 	self:ChangeState("Waiting")
@@ -317,6 +332,7 @@ function Lobby:ChangeState(newState: string)
 	local stateClass = states[newState]
 	if stateClass then
 		self._currentState = stateClass.new(self)
+		self:_FireLobbyUpdated()
 	end
 end
 
@@ -327,7 +343,7 @@ function Lobby:Create(playerFired: Player, lobbySettings: LobbyTypes.LobbySettin
 		return false
 	end
 
-	return self._currentState:Create(playerFired, lobbySettings)
+	return self._currentState:Create(playerFired, lobbySettings), self._id
 end
 
 ------------------------------------------------------------------------------------------------------------------------

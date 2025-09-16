@@ -57,7 +57,7 @@ function LobbyController:KnitInit()
 		LeaveLobby = function(): boolean
 			return knitServices["Lobby"]:LeaveLobby()
 		end,
-		CreateLobby = function(settings: LobbyTypes.LobbySettings): boolean
+		CreateLobby = function(settings: LobbyTypes.LobbySettings): (boolean, string?)
 			return knitServices["Lobby"]:CreateLobby(settings)
 		end,
 	})
@@ -65,9 +65,11 @@ end
 
 -- KnitStart() fires after all KnitInit() have been completed.
 function LobbyController:KnitStart()
-	knitServices["Lobby"].UpdateLobbyState:Connect(function(lobbyState: LobbyTypes.LobbyState)
-		LobbyHandler.UpdateLobbyState(lobbyState)
-	end)
+	knitServices["Lobby"].UpdateLobbyState:Connect(
+		function(lobbyState: LobbyTypes.LobbyState, playersLobbyId: { [string]: string })
+			LobbyHandler.UpdateLobbyState(lobbyState, playersLobbyId)
+		end
+	)
 end
 
 return LobbyController

@@ -36,7 +36,7 @@ local LobbyService = Knit.CreateService({
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(Configs.MapConfigs)
+local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 
 -- Types ---------------------------------------------------------------------------
 local LobbyTypes = require(ReplicatedTypes.Lobby)
@@ -58,8 +58,8 @@ local isLobby = MapConfigs.MAPS_PLACE_ID.Lobby == game.PlaceId
 -- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
 function LobbyService:KnitInit()
 	LobbyHandler.Register({
-		FireLobbyStateUpdate = function(state: LobbyTypes.LobbyState)
-			self.Client.UpdateLobbyState:FireAll(state)
+		FireLobbyStateUpdate = function(state: LobbyTypes.LobbyState, playersLobbyId: { [number]: string })
+			self.Client.UpdateLobbyState:FireAll(state, playersLobbyId)
 		end,
 	})
 end
@@ -91,7 +91,7 @@ function LobbyService.Client:LeaveLobby(player: Player): boolean
 	return LobbyHandler.LeaveLobby(player)
 end
 
-function LobbyService.Client:CreateLobby(player: Player, settings: LobbyTypes.LobbySettings): boolean
+function LobbyService.Client:CreateLobby(player: Player, settings: LobbyTypes.LobbySettings): (boolean, string?)
 	if not RateLimiter.Use(player, "LobbyService", "CreateLobby") then
 		return false
 	end

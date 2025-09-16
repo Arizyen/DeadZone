@@ -110,22 +110,28 @@ return {
 		-- Interface sounds
 		MouseEnter = {
 			SoundId = 101795256683715,
-			PlaybackSpeed = math.random(90, 110) / 100,
+			PlaybackSpeed = function()
+				return math.random(90, 110) / 100
+			end,
 			Volume = 0.85,
 			tag = "SoundEffect",
 			preloadLocal = true,
 		},
 		MouseButton1Down = {
 			SoundId = 9118134279,
-			PlaybackSpeed = math.random(90, 110) / 100,
+			PlaybackSpeed = function()
+				return math.random(90, 110) / 100
+			end,
 			Volume = 0.85,
 			tag = "SoundEffect",
 			preloadLocal = true,
 		},
 		MouseButton1Click = {
 			SoundId = 9117841338,
-			PlaybackSpeed = math.random(100, 120) / 100,
-			Volume = 0.85,
+			PlaybackSpeed = function()
+				return math.random(100, 120) / 100
+			end,
+			Volume = 0.45,
 			tag = "SoundEffect",
 			preloadLocal = true,
 		},

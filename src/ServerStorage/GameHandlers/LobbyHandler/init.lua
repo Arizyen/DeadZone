@@ -61,8 +61,8 @@ function LobbyHandler.Activate()
 	for _, lobby in pairs(LobbyMap.Lobbies:GetChildren()) do
 		local newLobby = Lobby.new(lobby)
 
-		newLobby.lobbyUpdated:Connect(function(state: LobbyTypes.LobbyState)
-			Ports.FireLobbyStateUpdate(state)
+		newLobby.lobbyUpdated:Connect(function(state: LobbyTypes.LobbyState, playersLobbyId: { [number]: string })
+			Ports.FireLobbyStateUpdate(state, playersLobbyId)
 		end)
 
 		lobbies[lobby.Name] = newLobby
@@ -89,8 +89,8 @@ function LobbyHandler.LeaveLobby(player: Player): boolean
 	return false
 end
 
-function LobbyHandler.CreateLobby(player: Player, settings: LobbyTypes.LobbySettings): boolean
-	if not (settings.difficulty and settings.maxPlayers and settings.friendsOnly) then
+function LobbyHandler.CreateLobby(player: Player, settings: LobbyTypes.LobbySettings): (boolean, string?)
+	if not (settings.difficulty and settings.maxPlayers and settings.friendsOnly ~= nil) then
 		return false
 	end
 

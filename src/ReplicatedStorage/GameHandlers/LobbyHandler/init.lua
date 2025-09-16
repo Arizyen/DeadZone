@@ -59,14 +59,22 @@ end
 
 function LobbyHandler.Activate() end
 
-function LobbyHandler.UpdateLobbyState(lobbyState: LobbyTypes.LobbyState)
+function LobbyHandler.UpdateLobbyState(lobbyState: LobbyTypes.LobbyState, playersLobbyId: { [number]: string })
 	Utils.Signals.Fire("DispatchAction", {
 		type = "UpdateLobbyState",
 		value = lobbyState,
 	})
+	Utils.Signals.Fire("DispatchAction", {
+		type = "UpdatePlayersLobbyId",
+		value = playersLobbyId,
+	})
 
 	-- Show CreateLobby window if player is in a lobby that is in "Creating" state
-	if lobbyState.state == "Creating" and lobbyState.players[1] == game.Players.LocalPlayer then
+	if
+		lobbyState.state == "Creating"
+		and lobbyState.players[1] == game.Players.LocalPlayer
+		and not lobbyState.settingsUpdated
+	then
 		Utils.Signals.Fire("DispatchAction", {
 			type = "SetLobbyCreationTimeLimit",
 			value = os.clock() + LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
@@ -79,16 +87,23 @@ function LobbyHandler.UpdateLobbyState(lobbyState: LobbyTypes.LobbyState)
 end
 
 function LobbyHandler.LeaveLobby()
-	Ports.LeaveLobby()
+	Ports.LeaveLobby():andThen(function(success: boolean)
+		if not success then
+			MessageHandler.ShowMessage("Failed to leave lobby.", "Error")
+		end
+	end)
 end
 
 function LobbyHandler.CreateLobby(settings: LobbyTypes.LobbySettings)
 	Ports.CreateLobby(settings):andThen(function(success: boolean)
 		if success then
-			print("Lobby created successfully.")
 			Utils.Signals.Fire("DispatchAction", {
 				type = "CloseWindow",
 				value = "LobbyCreate",
+			})
+			Utils.Signals.Fire("DispatchAction", {
+				type = "CloseWindow",
+				value = "LobbyNew",
 			})
 			Utils.Signals.Fire("DispatchAction", {
 				type = "CloseWindow",

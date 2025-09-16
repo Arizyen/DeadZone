@@ -31,7 +31,7 @@ local HumanoidManager = require(BaseModules.HumanoidManager)
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(Configs.MapConfigs)
+local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
 PlayerConfigs.AUTO_RESPAWN = true
 PlayerConfigs.AUTO_RESPAWN_DELAY = 3

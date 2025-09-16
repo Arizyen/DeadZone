@@ -45,10 +45,8 @@ local CustomWindow = require(AppComponents:WaitForChild("CustomWindow"))
 local CustomButton = require(AppComponents:WaitForChild("CustomButton"))
 
 -- LocalComponents -----------------------------------------------------------------
-local SaveInfo = require(script:WaitForChild("SaveInfo"))
 
 -- Hooks ---------------------------------------------------------------------------
-local usePrevious = require(BaseHooks:WaitForChild("usePrevious"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {}
@@ -56,10 +54,11 @@ type Props = {}
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local DifficultiesInfo = require(ReplicatedInfo:WaitForChild("DifficultiesInfo"))
 
 -- Configs -------------------------------------------------------------------------
 local LobbyConfigs = require(ReplicatedConfigs:WaitForChild("LobbyConfigs"))
-local WINDOW_NAME = "LobbyLoad"
+local WINDOW_NAME = "LobbyNew"
 
 -- Variables -----------------------------------------------------------------------
 local e = React.createElement
@@ -70,188 +69,62 @@ local e = React.createElement
 local selector = UIUtils.Selector.Create({
 	window = { "windowShown" },
 	lobby = { "lobbyCreationTimeLimit" },
-	data = { "saves" },
 })
-
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function LobbyLoad(props: Props)
+local function LobbyNew(props: Props)
 	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
 	local storeState = ReactRedux.useSelector(selector)
 
-	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
-	local saveIdSelected, setSaveIdSelected = React.useState(nil)
+	-- STATES/REFS/BINDINGS/HOOKS ------------------------------------------------------------------------------------------
+	local difficultyIndex, setDifficultyIndex = React.useState(LobbyConfigs.DEFAULT_DIFFICULTY)
 	local friendsOnly, setFriendsOnly = React.useState(false)
-	local maxPlayersBinding, setMaxPlayers = React.useBinding(LobbyConfigs.DEFAULT_MAX_PLAYERS)
-
-	local prevWindowShown = usePrevious(storeState.windowShown)
+	local maxPlayers, setMaxPlayers = React.useBinding(LobbyConfigs.DEFAULT_MAX_PLAYERS)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
-	local saves = React.useMemo(function()
-		local frames = {}
-
-		local sortedSaves = Utils.Table.Array.orderedValuesByEntry(storeState.saves, function(a, b)
-			return a.updatedAt > b.updatedAt
-		end)
-
-		for index, save in ipairs(sortedSaves) do
-			frames["Save" .. index] = e("Frame", {
-				BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-				LayoutOrder = index,
-				Size = UDim2.fromScale(0.975, 0.3),
-			}, {
-				UICorner = e("UICorner", {
-					CornerRadius = UDim.new(0.1, 0),
-				}),
-				UIStroke = e(UIStroke, {
-					Thickness = 2,
-				}),
-
-				FrameContent = e(SaveInfo, {
-					save = save,
-				}),
-
-				FrameLoad = e("Frame", {
-					BackgroundTransparency = 1,
-					Position = UDim2.fromScale(0.73, 0),
-					Size = UDim2.fromScale(0.25, 1),
-				}, {
-					TextButtonLoad = e(CustomButton, {
-						Position = UDim2.fromScale(0.5, 0.5),
-						Size = UDim2.fromScale(0.875, 0.55),
-						textSize = UDim2.fromScale(0.67, 0.855),
-						text = "Load",
-						colorSequence = Utils.Color.Configs.colorSequences.orange,
-						image = "rbxassetid://127374615809191",
-						imageSize = UDim2.fromScale(0.3, 1),
-						onClick = function()
-							setSaveIdSelected(save.id)
-						end,
-					}),
-				}),
+	local difficultyButtons = React.useMemo(function()
+		return Utils.Table.Dictionary.map(DifficultiesInfo.byKey, function(difficultyInfo)
+			return e(CustomButton, {
+				LayoutOrder = difficultyInfo.difficultyIndex,
+				Size = UDim2.fromScale(0.315, 0.85),
+				text = difficultyInfo.name,
+				colorSequence = difficultyIndex == difficultyInfo.difficultyIndex
+						and Utils.Color.Configs.colorSequences[difficultyInfo.colorName]
+					or Utils.Color.Configs.colorSequences.silver,
+				onClick = function()
+					setDifficultyIndex(difficultyInfo.difficultyIndex)
+				end,
 			})
-		end
-
-		return frames
-	end, { storeState.saves })
+		end)
+	end, { difficultyIndex })
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
-	-- On window shown
-	React.useLayoutEffect(function()
-		if storeState.window == WINDOW_NAME and prevWindowShown ~= WINDOW_NAME then
-			setSaveIdSelected(nil)
-		end
-	end, { storeState.window })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e(CustomWindow, {
 		windowName = WINDOW_NAME,
-		title = "Load Game",
+		title = "New Game",
 		titleColorSequence = Utils.Color.Configs.colorSequences.blue,
 		onCloseButtonClicked = function()
 			UIUtils.Window.Show("LobbyCreate")
 		end,
-		Size = UDim2.fromScale(0.5, 0.55),
+		Size = UDim2.fromScale(0.5, 0.475),
 	}, {
-		FrameNoSaves = e("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0),
-			BackgroundTransparency = 1,
-			Position = UDim2.fromScale(0.5, 0.05),
-			Size = UDim2.fromScale(0.95, 0.8),
-			Visible = #storeState.saves == 0,
-		}, {
-			UIListLayout = e("UIListLayout", {
-				SortOrder = Enum.SortOrder.LayoutOrder,
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
-			}),
-			TextLabel1 = e(TextLabel, {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				LayoutOrder = 1,
-				Size = UDim2.fromScale(0.9, 0.25),
-				Text = "No saves found",
-				textStroke = true,
-				textColorSequence = Utils.Color.Configs.colorSequences.red,
-			}),
-			TextLabel2 = e(TextLabel, {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				LayoutOrder = 2,
-				Size = UDim2.fromScale(0.9, 0.15),
-				Text = "Create a new game to start playing!",
-				textStroke = true,
-			}),
-		}),
-
-		ScrollingFrameSaves = e(
-			"ScrollingFrame",
-			{
-				AnchorPoint = Vector2.new(0.5, 0),
-				BackgroundTransparency = 1,
-				Position = UDim2.fromScale(0.5, 0.05),
-				Size = UDim2.fromScale(0.95, 0.8),
-				Visible = #storeState.saves > 0 and saveIdSelected == nil,
-				CanvasSize = UDim2.fromScale(0, 0.7),
-				ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255),
-				ScrollBarThickness = 16,
-				ScrollingDirection = Enum.ScrollingDirection.Y,
-				VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
-			},
-			Utils.Table.Dictionary.merge({
-				UIListLayout = e("UIListLayout", {
-					Padding = UDim.new(0.025, 0),
-					SortOrder = Enum.SortOrder.LayoutOrder,
-					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				}),
-				FrameStart = e("Frame", {
-					Size = UDim2.fromScale(1, 0.001),
-					BackgroundTransparency = 1,
-					LayoutOrder = 0,
-				}),
-				FrameEnd = e("Frame", {
-					Size = UDim2.fromScale(1, 0.01),
-					BackgroundTransparency = 1,
-					LayoutOrder = 1000,
-				}),
-			}, saves)
-		),
-
 		FrameSelectSettings = e("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0),
 			BackgroundTransparency = 1,
 			Position = UDim2.fromScale(0.5, 0.05),
 			Size = UDim2.fromScale(0.95, 0.8),
-			Visible = #storeState.saves > 0 and saveIdSelected ~= nil,
 		}, {
-			FrameSaveInfo = e("Frame", {
-				AnchorPoint = Vector2.new(0.5, 0),
-				BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-				BackgroundTransparency = 0,
-				Position = UDim2.fromScale(0.5, 0),
-				Size = UDim2.fromScale(0.975, 0.3),
-			}, {
-				UICorner = e("UICorner", {
-					CornerRadius = UDim.new(0.1, 0),
-				}),
-				UIStroke = e(UIStroke, {
-					Thickness = 2,
-				}),
-				SaveInfo = saveIdSelected and e(SaveInfo, {
-					save = storeState.saves[saveIdSelected],
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Position = UDim2.fromScale(0.5, 0.5),
-					Size = UDim2.fromScale(0.85, 0.9),
-				}) or nil,
-			}),
-
 			FrameSettings = e("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0),
 				BackgroundTransparency = 1,
-				Position = UDim2.fromScale(0.5, 0.35),
-				Size = UDim2.fromScale(0.65, 0.4),
+				Position = UDim2.fromScale(0.5, 0),
+				Size = UDim2.fromScale(0.65, 0.695),
 			}, {
 				UIListLayout = e("UIListLayout", {
 					Padding = UDim.new(0.05, 0),
@@ -261,10 +134,44 @@ local function LobbyLoad(props: Props)
 					VerticalAlignment = Enum.VerticalAlignment.Center,
 				}),
 
-				FrameMaxPlayers = e("Frame", {
+				FrameDifficulty = e("Frame", {
 					BackgroundTransparency = 1,
 					LayoutOrder = 1,
-					Size = UDim2.fromScale(1, 0.4),
+					Size = UDim2.fromScale(1.35, 0.266),
+				}, {
+					FrameLeft = e("Frame", {
+						BackgroundTransparency = 1,
+						Position = UDim2.fromScale(0, 0),
+						Size = UDim2.fromScale(0.31, 1),
+					}, {
+						TextLabel = e(TextLabel, {
+							Position = UDim2.fromScale(0, 0),
+							Size = UDim2.fromScale(1, 1),
+							Text = "Difficulty:",
+							textStroke = true,
+						}),
+					}),
+
+					FrameRight = e("Frame", {
+						BackgroundTransparency = 1,
+						Position = UDim2.fromScale(0.37, 0),
+						Size = UDim2.fromScale(0.63, 1),
+					}, {
+						UIListLayout = e("UIListLayout", {
+							Padding = UDim.new(0.03, 0),
+							FillDirection = Enum.FillDirection.Horizontal,
+							SortOrder = Enum.SortOrder.LayoutOrder,
+							HorizontalAlignment = Enum.HorizontalAlignment.Center,
+							VerticalAlignment = Enum.VerticalAlignment.Center,
+						}),
+						Buttons = e(React.Fragment, nil, difficultyButtons),
+					}),
+				}),
+
+				FrameMaxPlayers = e("Frame", {
+					BackgroundTransparency = 1,
+					LayoutOrder = 2,
+					Size = UDim2.fromScale(1, 0.266),
 				}, {
 					FrameLeft = e("Frame", {
 						BackgroundTransparency = 1,
@@ -288,7 +195,7 @@ local function LobbyLoad(props: Props)
 							AnchorPoint = Vector2.new(0.5, 0.5),
 							Position = UDim2.fromScale(0.5, 0.5),
 							Size = UDim2.fromScale(0.65, 0.85),
-							number = LobbyConfigs.DEFAULT_MAX_PLAYERS,
+							number = maxPlayers:getValue(),
 							minNumber = 1,
 							maxNumber = LobbyConfigs.MAX_PLAYERS,
 							increment = 1,
@@ -301,8 +208,8 @@ local function LobbyLoad(props: Props)
 
 				FrameFriendsOnly = e("Frame", {
 					BackgroundTransparency = 1,
-					LayoutOrder = 2,
-					Size = UDim2.fromScale(1, 0.4),
+					LayoutOrder = 3,
+					Size = UDim2.fromScale(1, 0.266),
 				}, {
 					FrameLeft = e("Frame", {
 						BackgroundTransparency = 1,
@@ -338,8 +245,8 @@ local function LobbyLoad(props: Props)
 			FrameButtons = e("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0),
 				BackgroundTransparency = 1,
-				Position = UDim2.fromScale(0.5, 0.8),
-				Size = UDim2.fromScale(0.8, 0.2),
+				Position = UDim2.fromScale(0.5, 0.735),
+				Size = UDim2.fromScale(0.8, 0.231),
 			}, {
 				UIListLayout = e("UIListLayout", {
 					Padding = UDim.new(0.025, 0),
@@ -356,27 +263,23 @@ local function LobbyLoad(props: Props)
 					colorSequence = Utils.Color.Configs.colorSequences.red,
 					image = "rbxassetid://76533847836378",
 					onClick = function()
-						setSaveIdSelected(nil)
 						UIUtils.Window.Show("LobbyCreate")
 						UIUtils.Window.Close(WINDOW_NAME)
 					end,
 				}),
 
-				ButtonLoad = e(CustomButton, {
+				ButtonNew = e(CustomButton, {
 					LayoutOrder = 2,
 					Size = UDim2.fromScale(0.4, 1),
-					text = "Load",
-					colorSequence = Utils.Color.Configs.colorSequences.orange,
-					image = "rbxassetid://127374615809191",
+					text = "New",
+					colorSequence = Utils.Color.Configs.colorSequences.green,
+					image = "rbxassetid://85710190932350",
 					onClick = function()
-						if saveIdSelected then
-							LobbyHandler.CreateLobby({
-								difficulty = storeState.saves[saveIdSelected].difficulty,
-								maxPlayers = maxPlayersBinding:getValue(),
-								friendsOnly = friendsOnly,
-								saveId = saveIdSelected,
-							})
-						end
+						LobbyHandler.CreateLobby({
+							difficulty = difficultyIndex,
+							maxPlayers = maxPlayers:getValue(),
+							friendsOnly = friendsOnly,
+						})
 					end,
 				}),
 			}),
@@ -385,7 +288,7 @@ local function LobbyLoad(props: Props)
 		ProgressBar = e(ProgressBar, {
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.fromScale(0.5, 0.955),
-			Size = UDim2.fromScale(0.85, 0.06),
+			Size = UDim2.fromScale(0.85, 0.07),
 			active = storeState.windowShown == WINDOW_NAME,
 			timeLimit = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION,
 			timePassed = LobbyConfigs.MAX_TIME_WAIT_LOBBY_CREATION - (storeState.lobbyCreationTimeLimit - os.clock()),
@@ -397,4 +300,4 @@ local function LobbyLoad(props: Props)
 	})
 end
 
-return LobbyLoad
+return LobbyNew

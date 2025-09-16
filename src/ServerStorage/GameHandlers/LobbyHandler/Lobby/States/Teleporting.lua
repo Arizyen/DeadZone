@@ -22,14 +22,17 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
+local SafeTeleport = require(BaseModules.SafeTeleport)
 
 -- Handlers --------------------------------------------------------------------
+local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 
 -- Types ---------------------------------------------------------------------------
 
@@ -64,7 +67,8 @@ end
 
 function Teleporting:_Init()
 	self.lobby:DestroyTouchConnections()
-	self:Update()
+	self.lobby:ShowFrame("Teleporting")
+	self:_TeleportPlayers()
 end
 
 function Teleporting:Destroy()
@@ -76,11 +80,30 @@ function Teleporting:Destroy()
 	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function Teleporting:Update() end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function Teleporting:_TeleportPlayers()
+	local teleportOptions = Instance.new("TeleportOptions")
+	teleportOptions.ShouldReserveServer = true
+
+	local teleportData = {
+		saveInfo = self.lobby.saveInfo,
+	}
+	teleportOptions:SetTeleportData(teleportData)
+
+	if not SafeTeleport(MapConfigs.MAPS_PLACE_ID.PVE, self.lobby.players, teleportOptions) then
+		task.defer(function()
+			MessageHandler.SendMessageToPlayers(
+				self.lobby.players,
+				"There was an error teleporting players. Please try again.",
+				"Error"
+			)
+			self.lobby:Reset()
+		end)
+	end
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------

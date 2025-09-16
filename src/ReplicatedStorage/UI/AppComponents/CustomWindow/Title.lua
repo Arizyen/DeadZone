@@ -132,12 +132,8 @@ local function Title(props: Props)
 			TextXAlignment = Enum.TextXAlignment.Left,
 			bold = true,
 			italic = true,
-		}, {
-			UIStroke = e(UIStroke, {
-				ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
-				Thickness = 2.5,
-				textStroke = true,
-			}),
+			textStroke = true,
+			textStrokeThickness = 2.5,
 		}),
 
 		ImageLabelIcon = e("ImageLabel", {

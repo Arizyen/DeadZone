@@ -41,26 +41,42 @@ local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
 local LobbyReducer = Rodux.createReducer({
 	lobbyStates = {} :: { [string]: LobbyTypes.LobbyState },
 	lobbyCreationTimeLimit = 0 :: number, -- os.clock() time
+	playersLobbyId = {} :: { [string]: string }, -- ["player.UserId"] = lobbyId
+	currentLobbyId = nil :: string?,
 }, {
 	UpdateLobbyState = function(state, action: { value: LobbyTypes.LobbyState })
-		local newState = Utils.Table.Dictionary.copy(state) :: { [string]: LobbyTypes.LobbyState }
-		newState.lobbyStates[action.value.id] =
-			Utils.Table.Dictionary.merge(newState.lobbyStates[action.value.id] or {}, action.value)
+		local newState = table.clone(state)
+
+		-- Merge the existing lobby state with the new state
+		newState.lobbyStates = table.clone(state.lobbyStates)
+		newState.lobbyStates[action.value.id] = Utils.Table.Dictionary.merge(
+			newState.lobbyStates[action.value.id] or {},
+			action.value
+		) :: { [string]: LobbyTypes.LobbyState }
 
 		return newState
 	end,
 
 	UpdateLobbyStates = function(state, action: { value: { [string]: LobbyTypes.LobbyState } })
-		local newState = Utils.Table.Dictionary.copy(state) :: { [string]: LobbyTypes.LobbyState }
+		local newState = table.clone(state)
 		for id, lobbyState in pairs(action.value) do
-			newState.lobbyStates[id] = Utils.Table.Dictionary.merge(newState.lobbyStates[id] or {}, lobbyState)
+			newState.lobbyStates[id] =
+				Utils.Table.Dictionary.merge(newState.lobbyStates[id] or {}, lobbyState) :: { [string]: LobbyTypes.LobbyState }
 		end
 
 		return newState
 	end,
 
+	UpdatePlayersLobbyId = function(state, action: { value: { [string]: string } })
+		local newState = table.clone(state)
+		newState.playersLobbyId = table.clone(action.value)
+		newState.currentLobbyId = action.value[tostring(game.Players.LocalPlayer.UserId)]
+
+		return newState
+	end,
+
 	SetLobbyCreationTimeLimit = function(state, action: { value: number })
-		local newState = Utils.Table.Dictionary.copy(state) :: { [string]: LobbyTypes.LobbyState }
+		local newState = table.clone(state)
 		newState.lobbyCreationTimeLimit = action.value
 
 		return newState

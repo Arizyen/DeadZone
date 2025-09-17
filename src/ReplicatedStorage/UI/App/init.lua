@@ -39,9 +39,16 @@ local LobbyCreate = require(script:WaitForChild("LobbyCreate"))
 local LobbyLoad = require(script:WaitForChild("LobbyLoad"))
 local LobbyNew = require(script:WaitForChild("LobbyNew"))
 local HUDLobby = require(script:WaitForChild("HUDLobby"))
+local HUDLobbyRightSide = require(script:WaitForChild("HUDLobbyRightSide"))
 local Teleporting = require(script:WaitForChild("Teleporting"))
 
 -- Configs
+
+-- Types
+type Props = {
+	screenGUI: ScreenGui,
+	lobbyApp: boolean,
+}
 
 -- Variables
 local e = React.createElement
@@ -61,7 +68,7 @@ local function App(props)
 
 	-- EFFECTS -----------------------------------------------------------------------------------------------------------------------------------
 	React.useEffect(function()
-		task.spawn(function()
+		task.defer(function()
 			game.ReplicatedFirst:WaitForChild("GuisLoaded").Value = true
 		end)
 	end, {})
@@ -71,15 +78,24 @@ local function App(props)
 	end, appEnabled)
 
 	-- COMPONENT ----------------------------------------------------------------------------------------------------------------------------------
-	return {
-		StartScreen = e(StartScreen),
-		Messages = e(Messages),
-		LobbyCreate = e(LobbyCreate),
-		LobbyLoad = e(LobbyLoad),
-		LobbyNew = e(LobbyNew),
-		HUDLobby = e(HUDLobby),
-		Teleporting = e(Teleporting),
-	}
+
+	if props.lobbyApp then
+		return {
+			StartScreen = e(StartScreen),
+			Messages = e(Messages),
+			LobbyCreate = e(LobbyCreate),
+			LobbyLoad = e(LobbyLoad),
+			LobbyNew = e(LobbyNew),
+			HUDLobby = e(HUDLobby),
+			HUDLobbyRightSide = e(HUDLobbyRightSide),
+			Teleporting = e(Teleporting),
+		}
+	else
+		return {
+			Messages = e(Messages),
+			Teleporting = e(Teleporting),
+		}
+	end
 end
 
 return App

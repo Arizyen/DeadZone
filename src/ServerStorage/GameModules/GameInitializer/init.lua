@@ -1,5 +1,4 @@
-local Teleporting = {}
-Teleporting.__index = Teleporting
+local GameInitializer = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -17,15 +16,14 @@ local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
-local BaseHandlers = PlaywooEngine.BaseHandlers
-local GameHandlers = ServerSource.GameHandlers
+local BaseServices = PlaywooEngine.BaseServices
+local GameServices = ServerSource.GameServices
 
--- Modules -------------------------------------------------------------------
+-- Modulescripts -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local SafeTeleport = require(BaseModules.SafeTeleport)
+local GameLoader = require(script.GameLoader)
 
--- Handlers --------------------------------------------------------------------
-local MessageHandler = require(BaseHandlers.MessageHandler)
+-- KnitServices --------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
@@ -44,80 +42,39 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------
--- CORE METHODS --------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-function Teleporting.new(lobby: table)
-	local self = setmetatable({}, Teleporting)
-
-	-- Booleans
-	self._destroyed = false
-
-	-- Strings
-	self.type = "Teleporting"
-
-	-- Instances
-	self.lobby = lobby
-
-	self:_Init()
-
-	return self
-end
-
-function Teleporting:_Init()
-	self.lobby:DestroyTouchConnections()
-	self.lobby:ShowFrame("Teleporting")
-	self:_TeleportPlayers()
-end
-
-function Teleporting:Destroy()
-	if self._destroyed then
+local function Initialize()
+	if not table.find(MapConfigs.PVE_PLACE_IDS, game.PlaceId) then
 		return
 	end
-	self._destroyed = true
 
-	Utils.Connections.DisconnectKeyConnections(self)
+	-- Place map in workspace
+	local mapName = Utils.Table.Dictionary.getKeyByValue(MapConfigs.MAPS_PLACE_ID, game.PlaceId)
+	local map = ServerStorage.Maps[mapName]
+	map.Name = "Map"
+	map.Parent = game.Workspace
+
+	-- Load in players
+	Utils.Signals.Connect("PlayerLoaded", function(player)
+		GameLoader.GetJoinData(player)
+		GameLoader.LoadPlayer(player)
+	end)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
--- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-function Teleporting:_TeleportPlayers()
-	local teleportOptions = Instance.new("TeleportOptions")
-	teleportOptions.ShouldReserveServer = true
-
-	local teleportData = {
-		saveInfo = self.lobby.saveInfo,
-	}
-	teleportOptions:SetTeleportData(teleportData)
-
-	local placeId = self.lobby.saveInfo and self.lobby.saveInfo.placeId
-		or MapConfigs.PVE_PLACE_IDS[#MapConfigs.PVE_PLACE_IDS] -- Default to last PVE map if no saveInfo
-
-	if not SafeTeleport(placeId, self.lobby.players, teleportOptions) then
-		task.defer(function()
-			MessageHandler.SendMessageToPlayers(
-				self.lobby.players,
-				"There was an error teleporting players. Please try again.",
-				"Error"
-			)
-			self.lobby:Reset()
-		end)
-	end
-end
-
-------------------------------------------------------------------------------------------------------------------------
--- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+-- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+Utils.Signals.Connect("PlayerLoaded", function(player)
+	Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
+end)
+
+Utils.Signals.Connect("KnitStarted", Initialize)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return Teleporting
+return GameInitializer

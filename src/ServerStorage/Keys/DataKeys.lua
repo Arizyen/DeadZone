@@ -7,12 +7,18 @@ local Keys = {
 	strings = {},
 	tables = {
 		"saves",
+		"backpackPVP",
+		"backpack",
 	},
 
 	-- CONFIGS ----------------------------------
 	defaultValues = {},
-	onLeaveValues = {},
-	keysToResetOnLoad = {},
+	onLeaveValues = {
+		backpack = {},
+	},
+	keysToResetOnLoad = {
+		"backpack", -- Backpack is initialized on load (depending on save or if in PVP game)
+	},
 	keysNotToReplicate = {},
 	keysToShareWithOthers = {},
 }

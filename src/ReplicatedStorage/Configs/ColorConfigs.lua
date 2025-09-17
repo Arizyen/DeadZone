@@ -42,6 +42,10 @@ return {
 			Color3.fromRGB(255, 140, 25),
 			Color3.fromRGB(210, 90, 10),
 		},
+		gold = {
+			Color3.fromRGB(255, 190, 40),
+			Color3.fromRGB(210, 135, 15),
+		},
 		yellow = {
 			Color3.fromRGB(255, 225, 50),
 			Color3.fromRGB(210, 180, 20),
@@ -70,10 +74,10 @@ return {
 			Color3.fromRGB(255, 0, 180),
 			Color3.fromRGB(200, 0, 120),
 		},
-		gold = {
-			Color3.fromRGB(255, 200, 50),
-			Color3.fromRGB(210, 160, 30),
-		},
+		-- gold = {
+		-- 	Color3.fromRGB(255, 200, 50),
+		-- 	Color3.fromRGB(210, 160, 30),
+		-- },
 		turquoise = {
 			Color3.fromRGB(64, 224, 208),
 			Color3.fromRGB(40, 160, 150),

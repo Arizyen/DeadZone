@@ -80,7 +80,7 @@ function Lobby.new(lobbyModel: Model)
 	-- Tables
 	self.players = {} :: { Player }
 	self.settings = {} :: LobbyTypes.LobbySettings?
-	self.saveInfo = nil :: SaveTypes.SaveInfo?
+	self.saveInfo = {} :: SaveTypes.SaveInfo?
 
 	-- Instances
 	self._lobbyModel = lobbyModel
@@ -239,7 +239,7 @@ end
 function Lobby:SetSettings(settings: LobbyTypes.LobbySettings?, customSettings: boolean?, saveInfo: SaveTypes.SaveInfo?)
 	self.settings = settings or {}
 	self._settingsUpdated = customSettings and true or false
-	self.saveInfo = saveInfo
+	self.saveInfo = saveInfo or {}
 	self:_FireLobbyUpdated()
 end
 

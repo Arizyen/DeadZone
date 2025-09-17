@@ -60,24 +60,6 @@ function PlayerConfigs.GetPlayerMaxHP(player: Player): number
 	return 100
 end
 
-function PlayerConfigs.Spawn(player: Player): boolean
-	if not player or not player:IsA("Player") then
-		return false
-	end
-
-	local playerHumanoidDescription = HumanoidManager.GetPlayerHumanoidDescription(player.UserId)
-
-	--TODO: Update humanoid description based on player data (clothing, accessories, etc.)
-
-	if not playerHumanoidDescription then
-		player:LoadCharacter()
-	else
-		player:LoadCharacterWithHumanoidDescription(playerHumanoidDescription)
-	end
-
-	return true
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------

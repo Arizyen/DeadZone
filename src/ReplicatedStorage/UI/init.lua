@@ -37,6 +37,7 @@ local PlayerGui = localPlayer:WaitForChild("PlayerGui")
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local MapConfigs = require(ReplicatedConfigs:WaitForChild("MapConfigs"))
 
 -- Types ---------------------------------------------------------------------------
 
@@ -108,6 +109,7 @@ function UI.MountApp()
 			nil,
 			e(App, {
 				screenGUI = screenGUI,
+				lobbyApp = game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby,
 			})
 		)
 	))
@@ -121,10 +123,10 @@ function UI.MountApp()
 	})
 
 	-- Show StartScreen or join directly the game
-	local teleportData = TeleportService:GetLocalPlayerTeleportData()
-	if teleportData and teleportData.noStartScreen then
-		--TODO Implement logic to join directly the game
-	else
+	-- local teleportData = TeleportService:GetLocalPlayerTeleportData()
+
+	if game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby then
+		-- Spawning is not handled automatically in the Lobby, so showing the StartScreen
 		Utils.Signals.Fire("DispatchAction", {
 			type = "ShowWindow",
 			value = "StartScreen",

@@ -42,7 +42,7 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function Initialize()
+local function Init()
 	if not table.find(MapConfigs.PVE_PLACE_IDS, game.PlaceId) then
 		return
 	end
@@ -71,7 +71,7 @@ Utils.Signals.Connect("PlayerLoaded", function(player)
 	Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
 end)
 
-Utils.Signals.Connect("KnitStarted", Initialize)
+Utils.Signals.Connect("KnitStarted", Init)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------

@@ -2,22 +2,30 @@ local Keys = {
 	-- VALUES ----------------------------------
 	numbers = {
 		"rebirths",
+
+		-- "hp", -- In Default DataKeys
+		-- "maxHp", -- In Default DataKeys
+		"energy",
+		"maxEnergy",
 	},
 	booleans = {},
 	strings = {},
 	tables = {
 		"saves",
-		"backpackPVP",
-		"backpack",
+		"inventoryPVP",
+		"inventory",
+		"playerStatePVP",
+		"playerState", -- health, energy, thirst, position, etc.
 	},
 
 	-- CONFIGS ----------------------------------
 	defaultValues = {},
 	onLeaveValues = {
-		backpack = {},
+		inventory = {},
 	},
 	keysToResetOnLoad = {
-		"backpack", -- Backpack is initialized on load (depending on save or if in PVP game)
+		"inventory", -- Inventory is initialized on load (depending on save or if in PVP game)
+		"playerState", -- Player state is initialized on load (depending on save or if in PVP game)
 	},
 	keysNotToReplicate = {},
 	keysToShareWithOthers = {},

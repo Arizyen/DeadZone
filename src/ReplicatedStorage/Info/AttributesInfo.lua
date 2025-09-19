@@ -1,9 +1,6 @@
 return {
-	allKeys = { "level", "isDead", "isAlive" },
+	allKeys = { "isDead", "isAlive" },
 	byKey = {
-		level = {
-			default = 1,
-		},
 		isDead = {
 			default = true,
 		},

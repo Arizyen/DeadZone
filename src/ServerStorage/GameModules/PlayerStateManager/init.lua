@@ -1,9 +1,8 @@
-local PlayerConfigs = {}
+local PlayerStateManager = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage.Packages
@@ -18,31 +17,28 @@ local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
-local BaseServices = PlaywooEngine.BaseServices
-local GameServices = ServerSource.GameServices
+local BaseHandlers = PlaywooEngine.BaseHandlers
+local GameHandlers = ServerSource.GameHandlers
 
--- Modulescripts -------------------------------------------------------------------
-local HumanoidManager = require(BaseModules.HumanoidManager)
+-- Modules -------------------------------------------------------------------
+local Utils = require(ReplicatedPlaywooEngine.Utils)
+local StateManager = require(script.StateManager)
 
--- KnitServices --------------------------------------------------------------------
+-- Handlers --------------------------------------------------------------------
+
+-- Types ---------------------------------------------------------------------------
+local SaveTypes = require(ReplicatedTypes.Save)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
-PlayerConfigs.AUTO_RESPAWN = game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby
-PlayerConfigs.AUTO_RESPAWN_DELAY = 3
-
-PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
-
--- Types ---------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
+local playersStateManager = {} :: { [number]: typeof(StateManager) }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -52,21 +48,40 @@ PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerConfigs.GetPlayerMaxHP(player: Player): number
-	if not player or not player:IsA("Player") then
-		return 100
+-- Creates or retrieves the StateManager for a player with optional initial state
+-- If the StateManager already exists, it updates it with the provided state
+function PlayerStateManager.Create(player: Player, playerState: SaveTypes.PlayerState?): typeof(StateManager)
+	if playersStateManager[player.UserId] then
+		playersStateManager[player.UserId]:Update(playerState)
+		return playersStateManager[player.UserId]
 	end
 
-	return 100
+	playersStateManager[player.UserId] = StateManager.new(player, playerState)
+	return playersStateManager[player.UserId]
+end
+
+-- Retrieves the StateManager for a player, creating it if it doesn't exist
+function PlayerStateManager.GetStateManager(player: Player): typeof(StateManager)
+	if playersStateManager[player.UserId] then
+		return playersStateManager[player.UserId]
+	end
+
+	playersStateManager[player.UserId] = StateManager.new(player)
+	return playersStateManager[player.UserId]
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+Utils.Signals.Connect("PlayerRemoving", function(player: Player)
+	if playersStateManager[player.UserId] then
+		playersStateManager[player.UserId]:Destroy()
+		playersStateManager[player.UserId] = nil
+	end
+end)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-Players.CharacterAutoLoads = false
 
-return PlayerConfigs
+return PlayerStateManager

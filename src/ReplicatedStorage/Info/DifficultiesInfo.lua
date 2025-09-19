@@ -1,5 +1,5 @@
 local DifficultiesInfo = {
-	allKeys = { "Easy", "Normal", "Pro" },
+	allKeys = { "Easy", "Normal", "Hard" },
 	byKey = {
 		Easy = {
 			name = "Easy",
@@ -19,8 +19,8 @@ local DifficultiesInfo = {
 			damageMultiplier = 1.0,
 			colorName = "yellow",
 		},
-		Pro = {
-			name = "Pro",
+		Hard = {
+			name = "Hard",
 			description = "Intense waves of stronger zombies for seasoned players.",
 			difficultyIndex = 3,
 			spawnRateMultiplier = 1.5,

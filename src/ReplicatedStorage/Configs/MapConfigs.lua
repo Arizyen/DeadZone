@@ -14,4 +14,6 @@ MapConfigs.PVE_PLACE_IDS = {
 	MapConfigs.MAPS_PLACE_ID.PVE1,
 }
 
+MapConfigs.IS_PVE_PLACE = table.find(MapConfigs.PVE_PLACE_IDS, game.PlaceId) ~= nil
+
 return MapConfigs

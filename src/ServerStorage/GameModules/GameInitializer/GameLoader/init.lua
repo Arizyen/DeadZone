@@ -24,8 +24,11 @@ local GameHandlers = ServerSource.GameHandlers
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local SaveData = require(script.SaveData)
 local PlayerManager = require(BaseModules.PlayerManager)
+local PlayerStateManager = require(GameModules.PlayerStateManager)
 
 -- Handlers --------------------------------------------------------------------
+local GameHandler = require(GameHandlers.GameHandler)
+local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
 local SaveTypes = require(ReplicatedTypes.Save)
@@ -35,6 +38,7 @@ local SaveTypes = require(ReplicatedTypes.Save)
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 
 -- Variables -----------------------------------------------------------------------
 local gotJoinData = false
@@ -58,9 +62,18 @@ local function GetSpawnLocation()
 	return chosenSpawnLocation
 end
 
+-- Loads a player's state and inventory based on their save data
 local function LoadPlayer(player: Player, playerSave: SaveTypes.PlayerSave?)
+	if MapConfigs.IS_PVE_PLACE then
+		PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
+	else
+		playerSave = PlayerDataHandler.GetKeyValue(player.UserId, "playerStatePVP") :: SaveTypes.PlayerState?
+		PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
+	end
+
 	if playerSave then
 		-- Set player's data based on save
+		--TODO: Load save data of player
 	else
 		-- Initialize player as new player
 		local spawnLocation = GetSpawnLocation()
@@ -81,9 +94,19 @@ function GameLoader.GetJoinData(playerJoined: Player)
 	local joinData = playerJoined:GetJoinData()
 	if joinData and type(joinData.TeleportData) == "table" then
 		if joinData.TeleportData.saveInfo then
-			isSavedGame = true
-			--TODO: Load save data
+			local saveInfo = joinData.TeleportData.saveInfo
+			if saveInfo.id then
+				isSavedGame = true
+
+				--TODO: Load save data
+
+				GameHandler.Init(SaveData.info) -- SaveData.info contains all settings of the saved game
+			else
+				GameHandler.Init(saveInfo) -- saveInfo contains settings of the new game
+			end
 		end
+	else
+		GameHandler.Init() -- New game with default settings
 	end
 
 	return joinData

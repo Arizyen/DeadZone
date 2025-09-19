@@ -1,9 +1,8 @@
-local PlayerConfigs = {}
+local GameState = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage.Packages
@@ -18,13 +17,16 @@ local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
-local BaseServices = PlaywooEngine.BaseServices
-local GameServices = ServerSource.GameServices
+local BaseHandlers = PlaywooEngine.BaseHandlers
+local GameHandlers = ServerSource.GameHandlers
 
--- Modulescripts -------------------------------------------------------------------
-local HumanoidManager = require(BaseModules.HumanoidManager)
+-- Modules -------------------------------------------------------------------
+local Utils = require(ReplicatedPlaywooEngine.Utils)
 
--- KnitServices --------------------------------------------------------------------
+-- Handlers --------------------------------------------------------------------
+
+-- Types ---------------------------------------------------------------------------
+local SaveTypes = require(ReplicatedTypes.Save)
 
 -- Instances -----------------------------------------------------------------------
 
@@ -32,17 +34,22 @@ local HumanoidManager = require(BaseModules.HumanoidManager)
 
 -- Configs -------------------------------------------------------------------------
 local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
-PlayerConfigs.AUTO_RESPAWN = game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby
-PlayerConfigs.AUTO_RESPAWN_DELAY = 3
-
-PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
-
--- Types ---------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
+local lastInitTime = os.time()
 
 -- Tables --------------------------------------------------------------------------
+local gameState = {
+	placeId = MapConfigs.PVE_PLACE_IDS[#MapConfigs.PVE_PLACE_IDS],
+	difficulty = 1,
+	nightsSurvived = 0,
+	playtime = 0,
+	createdAt = os.time(),
+	updatedAt = os.time(),
+	creatorId = 0,
+
+	clockTime = 12, -- Day time ratio (0-24)
+} :: SaveTypes.SaveInfo
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -52,12 +59,27 @@ PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerConfigs.GetPlayerMaxHP(player: Player): number
-	if not player or not player:IsA("Player") then
-		return 100
+function GameState.Init(saveInfo: SaveTypes.SaveInfo?)
+	Utils.Table.Dictionary.merge(gameState, saveInfo or {})
+	lastInitTime = os.time()
+end
+
+function GameState.Get(key: string?)
+	if key then
+		return gameState[key]
 	end
 
-	return 100
+	-- Make updates required before returning full state
+	local currentTime = os.time()
+	gameState.playtime += currentTime - lastInitTime
+	gameState.updatedAt = currentTime
+	lastInitTime = currentTime
+
+	return gameState
+end
+
+function GameState.Set(key: string, value: any)
+	gameState[key] = value
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -67,6 +89,5 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-Players.CharacterAutoLoads = false
 
-return PlayerConfigs
+return GameState

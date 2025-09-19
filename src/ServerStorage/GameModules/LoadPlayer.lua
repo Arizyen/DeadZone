@@ -49,7 +49,7 @@ local function LoadPlayer(player: Player)
 	hDesc.BackAccessory = ""
 	hDesc.FaceAccessory = ""
 	hDesc.FrontAccessory = ""
-	hDesc.HairAccessory = ""
+	-- hDesc.HairAccessory = ""
 	hDesc.HatAccessory = ""
 	hDesc.NeckAccessory = ""
 	hDesc.ShouldersAccessory = ""

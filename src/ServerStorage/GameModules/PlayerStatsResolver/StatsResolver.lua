@@ -1,9 +1,9 @@
-local PlayerConfigs = {}
+local StatsResolver = {}
+StatsResolver.__index = StatsResolver
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage.Packages
@@ -13,32 +13,25 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
-local BaseServices = PlaywooEngine.BaseServices
-local GameServices = ServerSource.GameServices
+local BaseHandlers = PlaywooEngine.BaseHandlers
+local GameHandlers = ServerSource.GameHandlers
 
--- Modulescripts -------------------------------------------------------------------
-local HumanoidManager = require(BaseModules.HumanoidManager)
+-- Modules -------------------------------------------------------------------
+local Utils = require(ReplicatedPlaywooEngine.Utils)
 
--- KnitServices --------------------------------------------------------------------
+-- Handlers --------------------------------------------------------------------
+
+-- Types ---------------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
-PlayerConfigs.AUTO_RESPAWN = game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby
-PlayerConfigs.AUTO_RESPAWN_DELAY = 3
-
-PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
-
--- Types ---------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
 
@@ -49,16 +42,45 @@ PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
--- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
+-- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerConfigs.GetPlayerMaxHP(player: Player): number
-	if not player or not player:IsA("Player") then
-		return 100
-	end
+function StatsResolver.new(player: Player)
+	local self = setmetatable({}, StatsResolver)
 
-	return 100
+	-- Booleans
+	self._destroyed = false
+
+	-- Instances
+	self._player = player :: Player
+
+	self:_Init()
+
+	return self
 end
+
+function StatsResolver:_Init()
+	self:Update()
+end
+
+function StatsResolver:Destroy()
+	if self._destroyed then
+		return
+	end
+	self._destroyed = true
+
+	Utils.Connections.DisconnectKeyConnections(self)
+end
+
+function StatsResolver:Update() end
+
+------------------------------------------------------------------------------------------------------------------------
+-- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+-- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -67,6 +89,5 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-Players.CharacterAutoLoads = false
 
-return PlayerConfigs
+return StatsResolver

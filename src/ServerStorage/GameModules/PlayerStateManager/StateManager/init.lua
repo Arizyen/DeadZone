@@ -1,5 +1,5 @@
-local Teleporting = {}
-Teleporting.__index = Teleporting
+local StateManager = {}
+StateManager.__index = StateManager
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -13,6 +13,7 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
+local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
@@ -22,57 +23,93 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local SafeTeleport = require(BaseModules.SafeTeleport)
+local PlayerStatsResolver = require(GameModules.PlayerStatsResolver)
+local HP = require(script.HP)
+local Energy = require(script.Energy)
 
 -- Handlers --------------------------------------------------------------------
-local MessageHandler = require(BaseHandlers.MessageHandler)
+local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
+
+-- Types ---------------------------------------------------------------------------
+local SaveTypes = require(ReplicatedTypes.Save)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-
--- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.Save)
+local StateConfigs = require(Configs.StateConfigs)
 
 -- Variables -----------------------------------------------------------------------
+local updateTimerRunning = false
 
 -- Tables --------------------------------------------------------------------------
+local stateManagers = {} :: { [number]: typeof(StateManager) } -- Key is player UserId
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+local function StartUpdateTimer()
+	if updateTimerRunning then
+		return
+	end
+	updateTimerRunning = true
+
+	task.spawn(function()
+		while updateTimerRunning do
+			task.wait(5)
+			for _, stateManager in pairs(stateManagers) do
+				stateManager:Update(nil, 5)
+			end
+		end
+	end)
+end
+
+-- Deserialize the player state, ensuring all fields are present and correctly typed
+local function Deserialize(player: Player, playerState: SaveTypes.PlayerState): SaveTypes.PlayerState
+	local playerGamepasses = PlayerDataHandler.GetKeyValue(player.UserId, "gamepasses") or {} :: { [string]: boolean }
+
+	return {
+		health = playerState.health or StateConfigs.MAX_HP,
+		energy = playerState.energy or StateConfigs.MAX_ENERGY * (playerGamepasses["x2Energy"] and 2 or 1),
+		position = type(playerState.position) == "string" and Vector3.new(unpack(string.split(playerState.position)))
+			or playerState.position,
+	}
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Teleporting.new(lobby: table)
-	local self = setmetatable({}, Teleporting)
+function StateManager.new(player: Player, playerState: SaveTypes.PlayerState?)
+	local self = setmetatable({}, StateManager)
 
 	-- Booleans
 	self._destroyed = false
 
-	-- Strings
-	self.type = "Teleporting"
-
 	-- Instances
-	self.lobby = lobby
+	self._player = player :: Player
+
+	-- Tables
+	self.state = Deserialize(player, playerState or {}) :: SaveTypes.PlayerState
+
+	-- Metatables
+	self.statsResolver = PlayerStatsResolver.GetStatsResolver(player)
+	self._hp = HP.new(self)
+	self._energy = Energy.new(self)
 
 	self:_Init()
 
 	return self
 end
 
-function Teleporting:_Init()
-	self.lobby:DestroyTouchConnections()
-	self.lobby:ShowFrame("Teleporting")
-	self:_TeleportPlayers()
+function StateManager:_Init()
+	StartUpdateTimer()
+	self:Update()
 end
 
-function Teleporting:Destroy()
+function StateManager:Destroy()
 	if self._destroyed then
 		return
 	end
@@ -81,39 +118,24 @@ function Teleporting:Destroy()
 	Utils.Connections.DisconnectKeyConnections(self)
 end
 
+function StateManager:Update(playerState: SaveTypes.PlayerState?, elapsedTime: number?)
+	if self._destroyed then
+		return
+	end
+
+	if playerState then
+		self._state = Deserialize(self._player, playerState)
+	end
+
+	elapsedTime = elapsedTime or 1
+
+	self._hp:Update(elapsedTime)
+	self._energy:Update(elapsedTime)
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-
-function Teleporting:_TeleportPlayers()
-	local teleportOptions = Instance.new("TeleportOptions")
-	teleportOptions.ShouldReserveServer = true
-
-	local saveInfo = self.lobby.saveInfo
-		or {
-			placeId = MapConfigs.PVE_PLACE_IDS[#MapConfigs.PVE_PLACE_IDS], -- Default to last PVE map if no saveInfo
-			difficulty = self.lobby.settings.difficulty or 1,
-			creatorId = self.lobby.players[1] and self.lobby.players[1].UserId or 0,
-		} :: SaveTypes.SaveInfo
-
-	teleportOptions:SetTeleportData({
-		saveInfo = saveInfo,
-	})
-
-	local placeId = self.lobby.saveInfo and self.lobby.saveInfo.placeId
-		or MapConfigs.PVE_PLACE_IDS[#MapConfigs.PVE_PLACE_IDS] -- Default to last PVE map if no saveInfo
-
-	if not SafeTeleport(placeId, self.lobby.players, teleportOptions) then
-		task.defer(function()
-			MessageHandler.SendMessageToPlayers(
-				self.lobby.players,
-				"There was an error teleporting players. Please try again.",
-				"Error"
-			)
-			self.lobby:Reset()
-		end)
-	end
-end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
@@ -127,4 +149,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return Teleporting
+return StateManager

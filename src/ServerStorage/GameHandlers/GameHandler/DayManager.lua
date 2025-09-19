@@ -1,9 +1,8 @@
-local PlayerConfigs = {}
+local DayManager = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage.Packages
@@ -18,29 +17,27 @@ local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
-local BaseServices = PlaywooEngine.BaseServices
-local GameServices = ServerSource.GameServices
+local BaseHandlers = PlaywooEngine.BaseHandlers
+local GameHandlers = ServerSource.GameHandlers
 
--- Modulescripts -------------------------------------------------------------------
-local HumanoidManager = require(BaseModules.HumanoidManager)
+-- Modules -------------------------------------------------------------------
+local GameState = require(script.Parent.GameState)
 
--- KnitServices --------------------------------------------------------------------
-
--- Instances -----------------------------------------------------------------------
-
--- Info ---------------------------------------------------------------------------
-
--- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
-PlayerConfigs.AUTO_RESPAWN = game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby
-PlayerConfigs.AUTO_RESPAWN_DELAY = 3
-
-PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
+-- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
 
+-- Instances -----------------------------------------------------------------------
+
+-- Info ----------------------------------------------------------------------------
+
+-- Configs -------------------------------------------------------------------------
+local DifficultyConfigs = require(Configs.DifficultyConfigs)
+local TimeConfigs = require(Configs.TimeConfigs)
+
 -- Variables -----------------------------------------------------------------------
+
+-- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
 
@@ -52,13 +49,7 @@ PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerConfigs.GetPlayerMaxHP(player: Player): number
-	if not player or not player:IsA("Player") then
-		return 100
-	end
-
-	return 100
-end
+function DayManager.Start() end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -67,6 +58,5 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-Players.CharacterAutoLoads = false
 
-return PlayerConfigs
+return DayManager

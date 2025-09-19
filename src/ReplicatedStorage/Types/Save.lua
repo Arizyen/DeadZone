@@ -1,23 +1,25 @@
 local SaveTypes = {}
 
 export type SaveInfo = {
-	id: string, -- Player UserId .. _ .. save # .. _ .. save cycle id
+	id: string?, -- Player UserId .. _ .. save # .. _ .. save cycle id
+	chunks: number?, -- Number of data chunks --> Player USerId .. _ .. save # .. _ .. save cycle id .. _ .. chunk #
+	name: string?,
 	placeId: number,
-	chunks: number, -- Number of data chunks --> Player USerId .. _ .. save # .. _ .. save cycle id .. _ .. chunk #
-	name: string,
 	difficulty: number,
-	nightsSurvived: number,
-	playtime: number,
-	createdAt: number,
-	updatedAt: number,
-	creatorId: number,
+	nightsSurvived: number?,
+	playtime: number?,
+	createdAt: number?,
+	updatedAt: number?,
+	creatorId: number?,
+
+	-- Supplementary info
+	clockTime: number?, -- Time of day in a ratio of 24 (0-24)
 }
 
 export type PlayerState = {
 	health: number,
-	hunger: number,
-	thirst: number,
-	position: Vector3,
+	energy: number,
+	position: Vector3?,
 }
 
 export type PlayerSave = {

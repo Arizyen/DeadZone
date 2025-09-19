@@ -1,44 +1,33 @@
-local PlayerConfigs = {}
+local GameHandler = {}
 
 -- Services ------------------------------------------------------------------------
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 
 -- Folders -------------------------------------------------------------------------
-local Packages = ReplicatedStorage.Packages
-local ReplicatedSource = ReplicatedStorage.Source
-local ServerSource = ServerStorage.Source
-local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
-local PlaywooEngine = ServerSource.PlaywooEngine
-local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
-local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
-local ReplicatedInfo = ReplicatedSource.Info
-local ReplicatedTypes = ReplicatedSource.Types
-local BaseModules = PlaywooEngine.BaseModules
-local GameModules = ServerSource.GameModules
-local BaseServices = PlaywooEngine.BaseServices
-local GameServices = ServerSource.GameServices
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
+local ReplicatedPlaywooEngine = ReplicatedSource:WaitForChild("PlaywooEngine")
+local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
+local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
+local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
+local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
--- Modulescripts -------------------------------------------------------------------
-local HumanoidManager = require(BaseModules.HumanoidManager)
+-- Modules -------------------------------------------------------------------
+local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
+local Ports = require(script:WaitForChild("Ports"))
 
--- KnitServices --------------------------------------------------------------------
+-- Handlers ----------------------------------------------------------------
+
+-- Types ---------------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
-PlayerConfigs.AUTO_RESPAWN = game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby
-PlayerConfigs.AUTO_RESPAWN_DELAY = 3
-
-PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
-
--- Types ---------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
 
@@ -52,13 +41,11 @@ PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerConfigs.GetPlayerMaxHP(player: Player): number
-	if not player or not player:IsA("Player") then
-		return 100
-	end
-
-	return 100
+function GameHandler.Register(ports: Ports.Ports)
+	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
+
+function GameHandler.Activate() end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -67,6 +54,5 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-Players.CharacterAutoLoads = false
 
-return PlayerConfigs
+return GameHandler

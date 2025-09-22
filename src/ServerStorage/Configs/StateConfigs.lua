@@ -1,5 +1,6 @@
 local DifficultyConfigs = require(script.Parent.DifficultyConfigs)
 
+-- Updated by GameState
 local StateConfigs = {
 	HP_DECAY_RATE = 1 / DifficultyConfigs.NORMAL.DAY_TIME_LIMIT, -- 1 complete day time to decay completely
 	ENERGY_DECAY_RATE = 1 / (DifficultyConfigs.NORMAL.DAY_TIME_LIMIT * 2), -- 2 days to decay completely

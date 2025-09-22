@@ -5603,10 +5603,10 @@
 													]
 												},
 												{
-													"name": "PlayersKeysObserved",
+													"name": "PlayersKeysObservers",
 													"className": "ModuleScript",
 													"filePaths": [
-														"PlaywooEngine/src/ReplicatedStorage\\BaseModules\\DataObserver\\PlayersKeysObserved.lua"
+														"PlaywooEngine/src/ReplicatedStorage\\BaseModules\\DataObserver\\PlayersKeysObservers.lua"
 													]
 												}
 											]

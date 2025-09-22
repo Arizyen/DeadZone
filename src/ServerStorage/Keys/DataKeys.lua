@@ -2,24 +2,27 @@ local Keys = {
 	-- VALUES ----------------------------------
 	numbers = {
 		"rebirths",
-
-		-- "hp", -- In Default DataKeys
-		-- "maxHp", -- In Default DataKeys
-		"energy",
-		"maxEnergy",
 	},
 	booleans = {},
 	strings = {},
 	tables = {
 		"saves",
-		"inventoryPVP",
-		"inventory",
-		"playerStatePVP",
+		"playerSavePVP",
 		"playerState", -- health, energy, thirst, position, etc.
+		"inventory",
+		"loadout",
+		"hotbar",
 	},
 
 	-- CONFIGS ----------------------------------
-	defaultValues = {},
+	defaultValues = {
+		vitals = {
+			hp = 100,
+			maxHP = 100,
+			energy = 100,
+			maxEnergy = 100,
+		},
+	},
 	onLeaveValues = {
 		inventory = {},
 	},

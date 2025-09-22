@@ -57,10 +57,18 @@ local function StartUpdateTimer()
 	updateTimerRunning = true
 
 	task.spawn(function()
+		local last = os.clock()
+		local elapsed = 0
+
 		while updateTimerRunning do
 			task.wait(5)
+
+			local now = os.clock()
+			elapsed = now - last
+			last = now
+
 			for _, stateManager in pairs(stateManagers) do
-				stateManager:Update(nil, 5)
+				stateManager:Update(nil, elapsed)
 			end
 		end
 	end)
@@ -71,7 +79,7 @@ local function Deserialize(player: Player, playerState: SaveTypes.PlayerState): 
 	local playerGamepasses = PlayerDataHandler.GetKeyValue(player.UserId, "gamepasses") or {} :: { [string]: boolean }
 
 	return {
-		health = playerState.health or StateConfigs.MAX_HP,
+		hp = playerState.hp or StateConfigs.MAX_HP,
 		energy = playerState.energy or StateConfigs.MAX_ENERGY * (playerGamepasses["x2Energy"] and 2 or 1),
 		position = type(playerState.position) == "string" and Vector3.new(unpack(string.split(playerState.position)))
 			or playerState.position,
@@ -96,8 +104,8 @@ function StateManager.new(player: Player, playerState: SaveTypes.PlayerState?)
 
 	-- Metatables
 	self.statsResolver = PlayerStatsResolver.GetStatsResolver(player)
-	self._hp = HP.new(self)
-	self._energy = Energy.new(self)
+	self._hp = HP.new(player, self)
+	self._energy = Energy.new(player, self)
 
 	self:_Init()
 
@@ -105,8 +113,8 @@ function StateManager.new(player: Player, playerState: SaveTypes.PlayerState?)
 end
 
 function StateManager:_Init()
+	stateManagers[self._player.UserId] = self
 	StartUpdateTimer()
-	self:Update()
 end
 
 function StateManager:Destroy()
@@ -114,6 +122,11 @@ function StateManager:Destroy()
 		return
 	end
 	self._destroyed = true
+
+	stateManagers[self._player.UserId] = nil
+
+	self._hp:Destroy()
+	self._energy:Destroy()
 
 	Utils.Connections.DisconnectKeyConnections(self)
 end
@@ -127,7 +140,7 @@ function StateManager:Update(playerState: SaveTypes.PlayerState?, elapsedTime: n
 		self._state = Deserialize(self._player, playerState)
 	end
 
-	elapsedTime = elapsedTime or 1
+	elapsedTime = elapsedTime or 0
 
 	self._hp:Update(elapsedTime)
 	self._energy:Update(elapsedTime)

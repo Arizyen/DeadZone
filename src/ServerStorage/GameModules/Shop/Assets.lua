@@ -31,12 +31,8 @@ function Assets:PlayerBoughtAsset(player, assetId, isPurchased)
 		return
 	end
 
-	if not self.PlayerDataHandler.GetKeyValue(player.UserId, "assetsOwned", tostring(assetId)) then
-		self.PlayerDataHandler.SetKeyIndexValue(player.UserId, "assetsOwnedList", nil, tostring(assetId))
-	end
-
-	self.PlayerDataHandler.SetKeyIndexValue(player.UserId, "assetsOwned", tostring(assetId), true)
-	self.PlayerDataHandler.SetKeyIndexValue(player.UserId, "assetsOwnedRobux", tostring(assetId), true, true)
+	self.PlayerDataHandler.SetPathValue(player.UserId, { "assetsOwned", tostring(assetId) }, true)
+	self.PlayerDataHandler.SetPathValue(player.UserId, { "assetsOwnedRobux", tostring(assetId) }, true, true)
 
 	self.MessageHandler.SendMessageToPlayer(
 		player,

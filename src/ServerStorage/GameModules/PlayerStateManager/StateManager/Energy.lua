@@ -35,10 +35,12 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local StateConfigs = require(Configs.StateConfigs)
 
 -- Variables -----------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
+local energyManagers = {} :: { [number]: typeof(Energy) } -- Key is player UserId
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -48,11 +50,17 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Energy.new(stateManager)
+function Energy.new(player: Player, stateManager)
 	local self = setmetatable({}, Energy)
 
 	-- Booleans
 	self._destroyed = false
+
+	-- Numbers
+	self._maxEnergy = StateConfigs.MAX_ENERGY
+
+	-- Instances
+	self._player = player
 
 	-- Metatables
 	self.stateManager = stateManager
@@ -63,6 +71,7 @@ function Energy.new(stateManager)
 end
 
 function Energy:_Init()
+	energyManagers[self._player.UserId] = self
 	self:Update()
 end
 

@@ -31,9 +31,12 @@ local SaveTypes = require(ReplicatedTypes.Save)
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local DifficultiesInfo = require(ReplicatedInfo.DifficultiesInfo)
 
 -- Configs -------------------------------------------------------------------------
 local MapConfigs = require(ReplicatedConfigs.MapConfigs)
+local StateConfigs = require(Configs.StateConfigs)
+local DifficultyConfigs = require(Configs.DifficultyConfigs)
 
 -- Variables -----------------------------------------------------------------------
 local lastInitTime = os.time()
@@ -55,6 +58,17 @@ local gameState = {
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+-- Updates game configs based on current game state (e.g. difficulty)
+local function UpdateGameConfigs()
+	-- Update StateConfigs based on difficulty
+	local difficultyKey = DifficultiesInfo.allKeys[gameState.difficulty] or "NORMAL"
+	difficultyKey = string.upper(difficultyKey)
+
+	-- Apply difficulty-based config updates
+	StateConfigs.HP_DECAY_RATE = 1 / DifficultyConfigs[difficultyKey].DAY_TIME_LIMIT
+	StateConfigs.ENERGY_DECAY_RATE = 1 / (DifficultyConfigs[difficultyKey].DAY_TIME_LIMIT * 2)
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
@@ -62,8 +76,16 @@ local gameState = {
 function GameState.Init(saveInfo: SaveTypes.SaveInfo?)
 	Utils.Table.Dictionary.merge(gameState, saveInfo or {})
 	lastInitTime = os.time()
+
+	UpdateGameConfigs()
 end
 
+-- Returns a serialized copy of the game state (for saving)
+function GameState.Serialize()
+	return Utils.Table.Dictionary.deepCopy(GameState.Get())
+end
+
+-- Returns value for key if provided, else returns full game state
 function GameState.Get(key: string?)
 	if key then
 		return gameState[key]

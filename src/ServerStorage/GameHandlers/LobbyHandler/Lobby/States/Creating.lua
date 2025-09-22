@@ -139,7 +139,7 @@ function Creating:Create(playerFired: Player, lobbySettings: LobbyTypes.LobbySet
 	-- Get save data if saveId is provided
 	local saveInfo
 	if lobbySettings.saveId then
-		saveInfo = PlayerDataHandler.GetKeyValue(playerFired.UserId, "saves", lobbySettings.saveId)
+		saveInfo = PlayerDataHandler.GetPathValue(playerFired.UserId, { "saves", lobbySettings.saveId })
 		if not saveInfo then
 			MessageHandler.SendMessageToPlayer(playerFired, "Error: could not find the save.", "Error")
 			warn(

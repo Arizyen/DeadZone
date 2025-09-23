@@ -67,7 +67,8 @@ local function LoadPlayer(player: Player, playerSave: SaveTypes.PlayerSave?)
 	if MapConfigs.IS_PVE_PLACE then
 		PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
 	else
-		playerSave = PlayerDataHandler.GetKeyValue(player.UserId, "playerStatePVP") :: SaveTypes.PlayerState?
+		playerSave =
+			PlayerDataHandler.GetPathValue(player.UserId, { "profile", "playerSavePVP" }) :: SaveTypes.PlayerSave?
 		PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
 	end
 

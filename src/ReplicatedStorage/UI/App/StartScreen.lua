@@ -70,7 +70,7 @@ local windowsWithCameraAnimation = {
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
 	window = { "windowShown" },
-	data = { "newPlayer", "savedGameMode" },
+	data = { { "profile", "newPlayer" }, "savedGameMode" },
 })
 
 ------------------------------------------------------------------------------------------------------------------------

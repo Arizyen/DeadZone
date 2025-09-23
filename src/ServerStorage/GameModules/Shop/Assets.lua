@@ -31,8 +31,8 @@ function Assets:PlayerBoughtAsset(player, assetId, isPurchased)
 		return
 	end
 
-	self.PlayerDataHandler.SetPathValue(player.UserId, { "assetsOwned", tostring(assetId) }, true)
-	self.PlayerDataHandler.SetPathValue(player.UserId, { "assetsOwnedRobux", tostring(assetId) }, true, true)
+	self.PlayerDataHandler.SetPathValue(player.UserId, { "avatarAssets", "owned", tostring(assetId) }, true)
+	self.PlayerDataHandler.SetPathValue(player.UserId, { "avatarAssets", "purchased", tostring(assetId) }, true, true)
 
 	self.MessageHandler.SendMessageToPlayer(
 		player,

@@ -116,28 +116,32 @@ function HP:_Init()
 	Utils.Connections.Add(
 		self,
 		"HPChanged",
-		PlayerDataHandler.ObservePlayerKey(self._player.UserId, "vitals", function(newVitals: number, oldVitals: number)
-			if newVitals.hp == oldVitals.hp then
-				return
-			end
+		PlayerDataHandler.ObservePlayerPath(
+			self._player.UserId,
+			{ "vitals", "hp" },
+			function(newHP: number, oldHP: number)
+				if newHP == oldHP then
+					return
+				end
 
-			if newVitals.hp < oldVitals.hp then
-				self._lastDamageReceivedTime = os.clock()
-				self:_StartHPRegain()
+				if newHP < oldHP then
+					self._lastDamageReceivedTime = os.clock()
+					self:_StartHPRegain()
+				end
 			end
-		end)
+		)
 	)
 
 	-- On player maxHP change
 	Utils.Connections.Add(
 		self,
 		"MaxHPChanged",
-		PlayerDataHandler.ObservePlayerKey(self._player.UserId, "vitals", function(newVitals, oldVitals)
-			if newVitals.maxHP == oldVitals.maxHP then
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "vitals", "maxHP" }, function(newMaxHP, oldMaxHP)
+			if newMaxHP == oldMaxHP then
 				return
 			end
 
-			if newVitals.maxHP > oldVitals.maxHP then
+			if newMaxHP > oldMaxHP then
 				self:_StartHPRegain()
 			end
 		end)

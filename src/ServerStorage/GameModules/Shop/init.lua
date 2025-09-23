@@ -64,9 +64,9 @@ function Shop:PlayerSpentRobux(player, amount)
 	if PlayersData.sortedData["robux"].allTime[player.UserId] then
 		PlayersData.sortedData["robux"].allTime[player.UserId] += amount
 		self.PlayerDataHandler.SavePlayerData(player.UserId, LeaderboardHandler.GetDataStore("robux", true))
-		self.PlayerDataHandler.SetKeyValue(
+		self.PlayerDataHandler.SetPathValue(
 			player.UserId,
-			"robux",
+			{ "statistics", "robuxAllTime" },
 			PlayersData.sortedData["robux"].allTime[player.UserId]
 		)
 	end
@@ -74,9 +74,9 @@ function Shop:PlayerSpentRobux(player, amount)
 	if PlayersData.sortedData["robux"].weekly[player.UserId] then
 		PlayersData.sortedData["robux"].weekly[player.UserId] += amount
 		self.PlayerDataHandler.SavePlayerData(player.UserId, LeaderboardHandler.GetDataStore("robux", false))
-		self.PlayerDataHandler.SetKeyValue(
+		self.PlayerDataHandler.SetPathValue(
 			player.UserId,
-			"weeklyRobux",
+			{ "statistics", "robuxWeekly" },
 			PlayersData.sortedData["robux"].weekly[player.UserId]
 		)
 	end

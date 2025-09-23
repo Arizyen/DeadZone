@@ -7,11 +7,11 @@ local LeaderboardConfigs = {
 	PODIUM_RANKS = 3,
 	TOP_COLORS = { Color3.fromRGB(255, 215, 0), Color3.fromRGB(192, 192, 192), Color3.fromRGB(205, 127, 50) },
 	UPDATE_INTERVAL = 60, -- seconds
-	KEYS = {
-		"rank",
-		-- "xp",
-		"wins",
-		"robux",
+	KEYS_PATH = {
+		daysSurvivedEasy = { "statistics", "daysSurvivedEasy" },
+		daysSurvivedMid = { "statistics", "daysSurvivedMid" },
+		daysSurvivedHard = { "statistics", "daysSurvivedHard" },
+		robux = { "statistics", "robux" },
 	},
 	DANCE_ANIMATION_IDS = {
 		"rbxassetid://7740530956",

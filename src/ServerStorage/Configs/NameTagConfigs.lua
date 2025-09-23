@@ -42,17 +42,17 @@ NameTagConfigs.PLAYER_INSTANCES_UPDATER = {
 		instance.Text = player.DisplayName
 	end,
 	TextLabelLevel = function(player, instance)
-		local level = PlayerDataHandler.GetKeyValue(player.UserId, "level")
+		local level = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "level" })
 
 		local updateFunction = function(newValue)
 			instance.Text = type(newValue) == "number" and Utils.Number.Spaced(newValue) or "???"
 		end
 		updateFunction(level)
 
-		NameTagConfigs.CreateInstanceConnection(player, "level", instance, updateFunction)
+		NameTagConfigs.CreateInstanceConnection(player, { "stats", "level" }, instance, updateFunction)
 	end,
 	ImageLabelLevel = function(player, instance)
-		local level = PlayerDataHandler.GetKeyValue(player.UserId, "level")
+		local level = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "level" })
 		level = type(level) == "number" and level or 1
 
 		local updateFunction = function(newValue)
@@ -60,7 +60,7 @@ NameTagConfigs.PLAYER_INSTANCES_UPDATER = {
 		end
 		updateFunction(level)
 
-		NameTagConfigs.CreateInstanceConnection(player, "level", instance, updateFunction)
+		NameTagConfigs.CreateInstanceConnection(player, { "stats", "level" }, instance, updateFunction)
 	end,
 }
 
@@ -81,11 +81,12 @@ NameTagConfigs.DUMMY_INSTANCES_UPDATER = {
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-function NameTagConfigs.CreateInstanceConnection(player, key, instance, updateFunction: ((newValue: any) -> nil)?)
+
+function NameTagConfigs.CreateInstanceConnection(player, path, instance, updateFunction: ((newValue: any) -> nil)?)
 	Utils.Connections.Add(
 		player,
 		"NameTag_" .. instance.Name,
-		PlayerDataHandler.ObservePlayerKey(player.UserId, key, function(newValue)
+		PlayerDataHandler.ObservePlayerPath(player.UserId, path, function(newValue)
 			if not instance.Parent then
 				Utils.Connections.DisconnectKeyConnection(player, "NameTag_" .. instance.Name)
 				return

@@ -42,7 +42,7 @@ function Gamepasses:PlayerPurchasedGamePass(player, gamePassId, success)
 		self.Utils.Signals.Fire("GamepassPurchased", player, gamepassKey)
 
 		if gamepassKey == "vip" then
-			self.PlayerDataHandler.SetKeyValue(player.UserId, "rainbowNametagEnabled", true)
+			self.PlayerDataHandler.SetPathValue(player.UserId, { "settings", "rainbowNametagEnabled" }, true)
 			self.NameTag.GiveEntityNameTag(player, player.Character)
 		end
 
@@ -75,7 +75,7 @@ function Shop:IsValid(gamepassKey)
 end
 
 function Shop:CanPurchase(player, gamepassKey)
-	if self.PlayerDataHandler.OwnsGamepass(player, gamepassKey) then
+	if self.PlayerDataHandler.OwnsGamepass(player.UserId, gamepassKey) then
 		self.MessageHandler.SendMessageToPlayer(
 			player,
 			string.format("You already own the %s gamepass", self.GamepassesInfo.byKey[gamepassKey].name),

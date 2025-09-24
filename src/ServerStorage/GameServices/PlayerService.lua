@@ -11,7 +11,6 @@ local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
-local ReplicatedKeys = ReplicatedSource.Keys
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules

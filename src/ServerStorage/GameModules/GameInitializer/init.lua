@@ -42,6 +42,12 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+local function LoadInPlayer(player: Player)
+	GameLoader.GetJoinData(player)
+	GameLoader.LoadPlayer(player)
+	Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
+end
+
 local function Init()
 	if not table.find(MapConfigs.PVE_PLACE_IDS, game.PlaceId) then
 		return
@@ -54,9 +60,11 @@ local function Init()
 	map.Parent = game.Workspace
 
 	-- Load in players
+	for _, player in pairs(game.Players:GetPlayers()) do
+		task.spawn(LoadInPlayer, player)
+	end
 	Utils.Signals.Connect("PlayerLoaded", function(player)
-		GameLoader.GetJoinData(player)
-		GameLoader.LoadPlayer(player)
+		LoadInPlayer(player)
 	end)
 end
 
@@ -67,10 +75,6 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-Utils.Signals.Connect("PlayerLoaded", function(player)
-	Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
-end)
-
 Utils.Signals.Connect("KnitStarted", Init)
 
 ------------------------------------------------------------------------------------------------------------------------

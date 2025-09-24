@@ -84,8 +84,6 @@ local DataConfigs = {
 			level = 1,
 			xp = 0,
 			maxXP = 1000,
-			energy = 100,
-			maxEnergy = 100,
 			rebirths = 0,
 			playerState = {} :: SaveTypes.PlayerState,
 		},
@@ -118,12 +116,6 @@ local DataConfigs = {
 			daysSurvivedMidWeekly = 0,
 			daysSurvivedHard = 0,
 			daysSurvivedHardWeekly = 0,
-		},
-		vitals = {
-			hp = 100,
-			maxHP = 100,
-			energy = 100,
-			maxEnergy = 100,
 		},
 	},
 

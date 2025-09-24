@@ -1,4 +1,0 @@
-return {
-	"coins",
-	"rebirthPoints",
-}

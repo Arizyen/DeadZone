@@ -29,6 +29,7 @@ local HumanoidManager = require(BaseModules.HumanoidManager)
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 
 -- Variables -----------------------------------------------------------------------
 
@@ -38,9 +39,15 @@ local HumanoidManager = require(BaseModules.HumanoidManager)
 -- FUNCTIONS -----------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function LoadPlayer(player: Player)
+local function SpawnPlayer(player: Player)
 	if not player or not player:IsA("Player") then
 		return false
+	end
+
+	if MapConfigs.IS_LOBBY_PLACE then
+		-- In lobby, load default character
+		player:LoadCharacter()
+		return true
 	end
 
 	local hDesc = HumanoidManager.GetPlayerHumanoidDescription(player.UserId)
@@ -59,17 +66,17 @@ local function LoadPlayer(player: Player)
 	hDesc:SetEmotes({})
 	hDesc:SetEquippedEmotes({})
 
-	-- Clear clothing
-	hDesc.GraphicTShirt = 0
-	hDesc.Shirt = 0
-	hDesc.Pants = 0
-
 	-- Clear body parts
 	hDesc.LeftArm = 0
 	hDesc.RightArm = 0
 	hDesc.LeftLeg = 0
 	hDesc.RightLeg = 0
 	hDesc.Torso = 0
+
+	-- Add clothing
+	hDesc.GraphicTShirt = 0
+	hDesc.Shirt = 359780198
+	hDesc.Pants = 359780361
 
 	--TODO: Update humanoid description based on player data (clothing, accessories, etc.)
 
@@ -83,4 +90,4 @@ local function LoadPlayer(player: Player)
 	return true
 end
 
-return LoadPlayer
+return SpawnPlayer

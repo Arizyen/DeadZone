@@ -1,0 +1,6 @@
+return {
+	allKeys = {
+		"coins",
+		"rebirthPoints",
+	},
+}

@@ -81,11 +81,11 @@ function PlayerHandler.Freeze(player: Player, state: boolean)
 end
 
 function PlayerHandler.Spawn(player: Player): boolean
-	return PlayerManager.Player.Spawn(player)
+	return PlayerManager.Spawn(player)
 end
 
 function PlayerHandler.Reset(player: Player)
-	PlayerManager.Player.Reset(player)
+	PlayerManager.Reset(player)
 end
 
 -- STATE MANAGEMENT ----------------------------------------------------------------------------------------------------

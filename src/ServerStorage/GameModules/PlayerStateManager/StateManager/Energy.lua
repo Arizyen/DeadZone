@@ -25,6 +25,7 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
+local PlayerManager = require(BaseModules.PlayerManager)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -40,7 +41,6 @@ local StateConfigs = require(Configs.StateConfigs)
 -- Variables -----------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
-local energyManagers = {} :: { [number]: typeof(Energy) } -- Key is player UserId
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ function Energy.new(player: Player, stateManager)
 	self._destroyed = false
 
 	-- Numbers
-	self._maxEnergy = StateConfigs.MAX_ENERGY
+	self._energyMax = StateConfigs.ENERGY_MAX
 
 	-- Instances
 	self._player = player
@@ -71,7 +71,37 @@ function Energy.new(player: Player, stateManager)
 end
 
 function Energy:_Init()
-	energyManagers[self._player.UserId] = self
+	-- Connections
+	-- On player energy change
+	Utils.Connections.Add(
+		self,
+		"energyChanged",
+		self._player:GetAttributeChangedSignal("energy"):Connect(function()
+			local newEnergy = self._player:GetAttribute("energy") :: number
+			local currentEnergy = self.stateManager.state.energy
+
+			if newEnergy == currentEnergy then
+				return
+			end
+
+			self.stateManager.state.energy = math.clamp(newEnergy, 0, self._energyMax)
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"energyMaxChanged",
+		self._player:GetAttributeChangedSignal("energyMax"):Connect(function()
+			local newMaxEnergy = self._player:GetAttribute("energyMax") :: number
+
+			if newMaxEnergy == self._energyMax then
+				return
+			end
+
+			self._energyMax = newMaxEnergy
+		end)
+	)
+
 	self:Update()
 end
 
@@ -84,7 +114,20 @@ function Energy:Destroy()
 	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function Energy:Update(elapsedTime: number?) end
+function Energy:Update(elapsedTime: number?)
+	if self._destroyed then
+		return
+	end
+
+	if not elapsedTime or elapsedTime <= 0 then
+		PlayerManager.SetMaxVital(self._player, "energy", self._energyMax)
+		PlayerManager.SetVital(self._player, "energy", self.stateManager.state.energy)
+		return
+	end
+
+	-- Decay the player's energy over time
+	self:Increment(-(StateConfigs.ENERGY_DECAY_RATE * elapsedTime))
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
@@ -93,6 +136,20 @@ function Energy:Update(elapsedTime: number?) end
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function Energy:GetStartingEnergy(): number
+	local currentEnergy = self.stateManager.state.energy
+
+	return currentEnergy > 0 and currentEnergy or self._energyMax
+end
+
+function Energy:GetMaxEnergy(): number
+	return self._energyMax
+end
+
+function Energy:Increment(amount: number)
+	return PlayerManager.IncrementVital(self._player, "energy", amount)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

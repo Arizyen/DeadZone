@@ -61,7 +61,7 @@ function PlayerStateManager.Create(player: Player, playerState: SaveTypes.Player
 end
 
 -- Retrieves the StateManager for a player, creating it if it doesn't exist
-function PlayerStateManager.GetStateManager(player: Player): typeof(StateManager)
+function PlayerStateManager.Get(player: Player): typeof(StateManager)
 	if playersStateManager[player.UserId] then
 		return playersStateManager[player.UserId]
 	end

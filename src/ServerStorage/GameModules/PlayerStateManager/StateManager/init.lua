@@ -79,8 +79,8 @@ local function Deserialize(player: Player, playerState: SaveTypes.PlayerState): 
 	local playerGamepasses = PlayerDataHandler.GetKeyValue(player.UserId, "gamepasses") or {} :: { [string]: boolean }
 
 	return {
-		hp = playerState.hp or StateConfigs.MAX_HP,
-		energy = playerState.energy or StateConfigs.MAX_ENERGY * (playerGamepasses["x2Energy"] and 2 or 1),
+		hp = playerState.hp or StateConfigs.HP_MAX,
+		energy = playerState.energy or StateConfigs.ENERGY_MAX * (playerGamepasses["x2Energy"] and 2 or 1),
 		position = type(playerState.position) == "string" and Vector3.new(unpack(string.split(playerState.position)))
 			or playerState.position,
 	}
@@ -137,7 +137,7 @@ function StateManager:Update(playerState: SaveTypes.PlayerState?, elapsedTime: n
 	end
 
 	if playerState then
-		self._state = Deserialize(self._player, playerState)
+		self.state = Deserialize(self._player, playerState)
 	end
 
 	elapsedTime = elapsedTime or 0
@@ -153,6 +153,32 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+-- HP ----------------------------------------------------------------------------------------------------
+function StateManager:GetStartingHP(): number
+	return self._hp:GetStartingHP()
+end
+
+function StateManager:GetMaxHP(): number
+	return self._hp:GetMaxHP()
+end
+
+function StateManager:IncrementHP(amount: number)
+	return self._hp:Increment(amount)
+end
+
+-- ENERGY ----------------------------------------------------------------------------------------------------
+function StateManager:GetStartingEnergy(): number
+	return self._energy:GetStartingEnergy()
+end
+
+function StateManager:GetMaxEnergy(): number
+	return self._energy:GetMaxEnergy()
+end
+
+function StateManager:IncrementEnergy(amount: number)
+	return self._energy:Increment(amount)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

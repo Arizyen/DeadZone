@@ -15,5 +15,6 @@ MapConfigs.PVE_PLACE_IDS = {
 }
 
 MapConfigs.IS_PVE_PLACE = table.find(MapConfigs.PVE_PLACE_IDS, game.PlaceId) ~= nil
+MapConfigs.IS_LOBBY_PLACE = game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby
 
 return MapConfigs

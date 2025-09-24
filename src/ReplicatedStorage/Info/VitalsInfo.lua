@@ -1,0 +1,3 @@
+return {
+	allKeys = { "hp", "energy" },
+}

@@ -78,7 +78,7 @@ local function LoadPlayer(player: Player, playerSave: SaveTypes.PlayerSave?)
 	else
 		-- Initialize player as new player
 		local spawnLocation = GetSpawnLocation()
-		PlayerManager.Player.Spawn(player, spawnLocation)
+		PlayerManager.Spawn(player, spawnLocation)
 	end
 end
 

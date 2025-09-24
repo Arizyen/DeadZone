@@ -25,6 +25,7 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
+local PlayerManager = require(BaseModules.PlayerManager)
 
 -- Handlers --------------------------------------------------------------------
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
@@ -69,7 +70,7 @@ local function StartHPRegainTimer()
 
 					-- If the player has not taken damage in the last HP_REGAIN_WAIT seconds, regain HP
 					if now - hpManager._lastDamageReceivedTime >= StateConfigs.HP_REGAIN_WAIT then
-						hpManager:Regain(StateConfigs.HP_REGAIN_RATE)
+						hpManager:Increment(StateConfigs.HP_REGAIN_RATE)
 					end
 				else
 					hpManagersRegainBag[userId] = nil
@@ -94,7 +95,7 @@ function HP.new(player: Player, stateManager)
 	self._destroyed = false
 
 	-- Numbers
-	self._maxHP = StateConfigs.MAX_HP
+	self._hpMax = StateConfigs.HP_MAX
 	self._lastDamageReceivedTime = 0
 
 	-- Instances
@@ -115,35 +116,39 @@ function HP:_Init()
 	-- On player hp change
 	Utils.Connections.Add(
 		self,
-		"HPChanged",
-		PlayerDataHandler.ObservePlayerPath(
-			self._player.UserId,
-			{ "vitals", "hp" },
-			function(newHP: number, oldHP: number)
-				if newHP == oldHP then
-					return
-				end
+		"hpChanged",
+		self._player:GetAttributeChangedSignal("hp"):Connect(function()
+			local newHP = self._player:GetAttribute("hp") :: number
+			local currentHP = self.stateManager.state.hp
 
-				if newHP < oldHP then
-					self._lastDamageReceivedTime = os.clock()
-					self:_StartHPRegain()
-				end
+			if newHP == currentHP then
+				return
 			end
-		)
+
+			if newHP >= self._hpMax then
+				hpManagersRegainBag[self._player.UserId] = nil
+			elseif newHP < currentHP and newHP < self._hpMax then
+				self._lastDamageReceivedTime = os.clock()
+				self:_StartHPRegain()
+			end
+
+			self.stateManager.state.hp = math.clamp(newHP, 0, self._hpMax)
+		end)
 	)
 
 	-- On player maxHP change
 	Utils.Connections.Add(
 		self,
-		"MaxHPChanged",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "vitals", "maxHP" }, function(newMaxHP, oldMaxHP)
-			if newMaxHP == oldMaxHP then
+		"hpMaxChanged",
+		self._player:GetAttributeChangedSignal("hpMax"):Connect(function()
+			local newMaxHP = self._player:GetAttribute("hpMax") :: number
+			if newMaxHP == self._hpMax then
 				return
-			end
-
-			if newMaxHP > oldMaxHP then
+			elseif newMaxHP > self._hpMax then
 				self:_StartHPRegain()
 			end
+
+			self._hpMax = newMaxHP
 		end)
 	)
 
@@ -168,14 +173,15 @@ function HP:Update(elapsedTime: number?)
 		return
 	end
 
-	elapsedTime = elapsedTime or 0
+	if not elapsedTime or elapsedTime <= 0 then
+		PlayerManager.SetMaxVital(self._player, "hp", self._hpMax)
+		PlayerManager.SetVital(self._player, "hp", self.stateManager.state.hp)
+		return
+	end
 
 	-- If the player's energy is at 0, decay HP
 	if self.stateManager.state.energy <= 0 then
-		local currentHP = self.stateManager.state.hp
-		if currentHP > 0 then
-			self:Remove(StateConfigs.HP_DECAY_RATE * elapsedTime)
-		end
+		self:Increment(-(StateConfigs.HP_DECAY_RATE * elapsedTime))
 	end
 end
 
@@ -192,43 +198,18 @@ end
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
--- Returns false if the player has reached max HP
--- Returns true if the player can still regain more HP
-function HP:Regain(amount: number): boolean
+function HP:GetStartingHP(): number
 	local currentHP = self.stateManager.state.hp
-	local maxHP = self._maxHP
 
-	if currentHP >= maxHP then
-		hpManagersRegainBag[self._player.UserId] = nil
-		return false
-	end
-
-	self._player:SetAttribute("AddHP", amount)
-
-	if currentHP + amount >= maxHP then
-		hpManagersRegainBag[self._player.UserId] = nil
-		return false
-	end
-
-	return true
+	return currentHP > 0 and currentHP or self._hpMax
 end
 
--- Returns false if the player has reached 0 HP (is dead)
--- Returns true if the player is still alive
-function HP:Remove(amount: number): boolean
-	local currentHP = self.stateManager.state.hp
+function HP:GetMaxHP(): number
+	return self._hpMax
+end
 
-	if currentHP <= 0 then
-		return false
-	end
-
-	self._player:SetAttribute("RemoveHP", amount)
-
-	if currentHP - amount <= 0 then
-		return false
-	end
-
-	return true
+function HP:Increment(amount: number)
+	return PlayerManager.IncrementVital(self._player, "hp", amount)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

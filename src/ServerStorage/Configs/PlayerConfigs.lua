@@ -22,7 +22,7 @@ local BaseServices = PlaywooEngine.BaseServices
 local GameServices = ServerSource.GameServices
 
 -- Modulescripts -------------------------------------------------------------------
-local HumanoidManager = require(BaseModules.HumanoidManager)
+local PlayerStateManager
 
 -- KnitServices --------------------------------------------------------------------
 
@@ -48,16 +48,48 @@ PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+local function GetPSM(player: Player)
+	if not player or not player:IsA("Player") then
+		return nil
+	end
+
+	if not PlayerStateManager then
+		PlayerStateManager = require(GameModules.PlayerStateManager)
+	end
+
+	return PlayerStateManager.Get(player)
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerConfigs.GetPlayerMaxHP(player: Player): number
+function PlayerConfigs.GetStartingVital(player: Player, vitalKey: string): number
 	if not player or not player:IsA("Player") then
-		return 100
+		return 0
 	end
 
-	return 100
+	if vitalKey == "hp" then
+		return GetPSM(player):GetStartingHP()
+	elseif vitalKey == "energy" then
+		return GetPSM(player):GetStartingEnergy()
+	end
+
+	return 0
+end
+
+function PlayerConfigs.GetMaxVital(player: Player, vitalKey: string): number
+	if not player or not player:IsA("Player") then
+		return 0
+	end
+
+	if vitalKey == "hp" then
+		return GetPSM(player):GetMaxHP()
+	elseif vitalKey == "energy" then
+		return GetPSM(player):GetMaxEnergy()
+	end
+
+	return 0
 end
 
 ------------------------------------------------------------------------------------------------------------------------

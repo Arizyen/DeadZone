@@ -71,8 +71,6 @@ function PlayerConfigs.GetStartingVital(player: Player, vitalKey: string): numbe
 
 	if vitalKey == "hp" then
 		return GetPSM(player):GetStartingHP()
-	elseif vitalKey == "energy" then
-		return GetPSM(player):GetStartingEnergy()
 	end
 
 	return 0
@@ -85,8 +83,6 @@ function PlayerConfigs.GetMaxVital(player: Player, vitalKey: string): number
 
 	if vitalKey == "hp" then
 		return GetPSM(player):GetMaxHP()
-	elseif vitalKey == "energy" then
-		return GetPSM(player):GetMaxEnergy()
 	end
 
 	return 0

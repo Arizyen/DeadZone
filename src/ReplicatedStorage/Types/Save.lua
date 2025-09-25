@@ -18,13 +18,12 @@ export type SaveInfo = {
 
 export type PlayerState = {
 	hp: number,
-	energy: number,
 	position: Vector3?,
 }
 
 export type PlayerSave = {
 	userId: number, -- Player UserId
-	state: PlayerState, -- Player state (hp, energy, position, etc.)
+	state: PlayerState, -- Player state (hp, position, etc.)
 	inventory: table, -- Player inventory
 	loadout: table, -- Player equipped items
 	hotbar: table, -- Player hotbar items

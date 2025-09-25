@@ -1,7 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
 local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
+local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+
 local SaveTypes = require(ReplicatedTypes:WaitForChild("Save"))
+local MovementConfigs = require(ReplicatedConfigs:WaitForChild("MovementConfigs"))
 
 local DataConfigs = {
 	-- Default data is set on each player data load if the key does not exist
@@ -86,6 +89,7 @@ local DataConfigs = {
 			maxXP = 1000,
 			rebirths = 0,
 			playerState = {} :: SaveTypes.PlayerState,
+			maxStamina = MovementConfigs.STAMINA,
 		},
 		statistics = {
 			-- Playtime statistics

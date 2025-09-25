@@ -25,7 +25,7 @@ local GameHandlers = ServerSource.GameHandlers
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local PlayerStatsResolver = require(GameModules.PlayerStatsResolver)
 local HP = require(script.HP)
-local Energy = require(script.Energy)
+local Stamina = require(script.Stamina)
 
 -- Handlers --------------------------------------------------------------------
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
@@ -105,7 +105,7 @@ function StateManager.new(player: Player, playerState: SaveTypes.PlayerState?)
 	-- Metatables
 	self.statsResolver = PlayerStatsResolver.GetStatsResolver(player)
 	self._hp = HP.new(player, self)
-	self._energy = Energy.new(player, self)
+	self._stamina = Stamina.new(player)
 
 	self:_Init()
 
@@ -126,7 +126,7 @@ function StateManager:Destroy()
 	stateManagers[self._player.UserId] = nil
 
 	self._hp:Destroy()
-	self._energy:Destroy()
+	self._stamina:Destroy()
 
 	Utils.Connections.DisconnectKeyConnections(self)
 end
@@ -143,7 +143,6 @@ function StateManager:Update(playerState: SaveTypes.PlayerState?, elapsedTime: n
 	elapsedTime = elapsedTime or 0
 
 	self._hp:Update(elapsedTime)
-	self._energy:Update(elapsedTime)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -167,18 +166,7 @@ function StateManager:IncrementHP(amount: number)
 	return self._hp:Increment(amount)
 end
 
--- ENERGY ----------------------------------------------------------------------------------------------------
-function StateManager:GetStartingEnergy(): number
-	return self._energy:GetStartingEnergy()
-end
-
-function StateManager:GetMaxEnergy(): number
-	return self._energy:GetMaxEnergy()
-end
-
-function StateManager:IncrementEnergy(amount: number)
-	return self._energy:Increment(amount)
-end
+-- STAMINA ----------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

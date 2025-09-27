@@ -41,6 +41,7 @@ local LobbyNew = require(script:WaitForChild("LobbyNew"))
 local HUDLobby = require(script:WaitForChild("HUDLobby"))
 local HUDLobbyRightSide = require(script:WaitForChild("HUDLobbyRightSide"))
 local Teleporting = require(script:WaitForChild("Teleporting"))
+local Stamina = require(script:WaitForChild("Stamina"))
 
 -- Configs
 
@@ -94,6 +95,7 @@ local function App(props)
 		return {
 			Messages = e(Messages),
 			Teleporting = e(Teleporting),
+			Stamina = e(Stamina),
 		}
 	end
 end

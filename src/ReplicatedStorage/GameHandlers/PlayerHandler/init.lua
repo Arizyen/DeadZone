@@ -16,6 +16,7 @@ local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Ports = require(script.Ports)
+local SprintManager = require(script:WaitForChild("SprintManager"))
 
 -- Handlers ----------------------------------------------------------------
 
@@ -29,6 +30,7 @@ local Ports = require(script.Ports)
 
 -- Variables -----------------------------------------------------------------------
 local localPlayer = game:GetService("Players").LocalPlayer
+local sprintManager = SprintManager.new()
 
 -- Tables --------------------------------------------------------------------------
 
@@ -62,6 +64,10 @@ function PlayerHandler.Freeze(state)
 		humanoid.WalkSpeed = 0
 		humanoid.JumpPower = 0
 	end
+end
+
+function PlayerHandler.AddStamina(amount: number)
+	sprintManager:AddStamina(amount)
 end
 
 -- TELEPORTATION -------------------------------------------------------------------------------------------------------

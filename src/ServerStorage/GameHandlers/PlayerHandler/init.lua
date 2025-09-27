@@ -77,7 +77,7 @@ end
 -- CHARACTER MANAGEMENT ------------------------------------------------------------------------------------------------
 
 function PlayerHandler.Freeze(player: Player, state: boolean)
-	player:SetAttribute("frozen", state)
+	PlayerManager.Freeze(player, state)
 end
 
 function PlayerHandler.Spawn(player: Player): boolean
@@ -86,6 +86,10 @@ end
 
 function PlayerHandler.Reset(player: Player)
 	PlayerManager.Reset(player)
+end
+
+function PlayerHandler.AddStamina(player: Player, amount: number)
+	Ports.AddStamina(player, amount)
 end
 
 -- STATE MANAGEMENT ----------------------------------------------------------------------------------------------------

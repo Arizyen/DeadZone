@@ -90,7 +90,10 @@ local DataConfigs = {
 			rebirths = 0,
 			playerState = {} :: SaveTypes.PlayerState,
 			maxStamina = MovementConfigs.STAMINA,
+			staminaConsumptionRate = MovementConfigs.STAMINA_CONSUMPTION_RATE,
+			sprintSpeed = MovementConfigs.MAX_WALK_SPEED,
 		},
+		perks = {} :: { [string]: boolean }, -- perkName = true
 		statistics = {
 			-- Playtime statistics
 			gameStartTime = function()

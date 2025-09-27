@@ -26,7 +26,7 @@ local PlayerHandler = require(GameHandlers.PlayerHandler)
 -- KnitServices
 local PlayerService = Knit.CreateService({
 	Name = "Player",
-	Client = { Teleport = Knit.CreateSignal() },
+	Client = { Teleport = Knit.CreateSignal(), AddStamina = Knit.CreateSignal() },
 })
 
 -- Instances
@@ -50,6 +50,9 @@ function PlayerService:KnitInit()
 	PlayerHandler.Register({
 		Teleport = function(player: Player, cframe: CFrame)
 			self.Client.Teleport:Fire(player, cframe)
+		end,
+		AddStamina = function(player: Player, amount: number)
+			self.Client.AddStamina:Fire(player, amount)
 		end,
 	})
 end

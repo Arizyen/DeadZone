@@ -29,6 +29,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 
 -- Handlers --------------------------------------------------------------------
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
+local PlayerHandler = require(GameHandlers.PlayerHandler)
 
 -- Types ---------------------------------------------------------------------------
 
@@ -41,7 +42,7 @@ local MovementConfigs = require(ReplicatedConfigs:WaitForChild("MovementConfigs"
 local CHECK_PER_SECOND = 4
 local MAX_SPEEDS_SECONDS_TRACKED = 1
 local EPSILON = 3 -- Tolerance over max speed to apply speed strike
-local SPEED_STRIKE_KICK = CHECK_PER_SECOND * 3 -- Number of strikes before kick
+local SPEED_STRIKE_KICK = CHECK_PER_SECOND * 5 -- Number of strikes before kick
 local STAMINA_STRIKE_KICK = CHECK_PER_SECOND * 5 -- Number of strikes before kick
 
 -- Variables -----------------------------------------------------------------------
@@ -67,11 +68,15 @@ function Stamina.new(player: Player)
 	self._lastPosition = nil :: Vector3?
 
 	-- Numbers
-	self._maxStamina = MovementConfigs.STAMINA
-		* (PlayerDataHandler.GetPathValue(player.UserId, { "gamepasses", "x2Stamina" }) and 2 or 1)
+	self._sprintSpeed = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "sprintSpeed" })
+		or MovementConfigs.MAX_WALK_SPEED
+	self._maxStamina = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "maxStamina" })
+		or MovementConfigs.STAMINA
 	self._stamina = self._maxStamina
-	self._stamina_strikes = 0
-	self._speed_strikes = 0
+	self._staminaConsumptionRate = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "staminaConsumptionRate" })
+		or MovementConfigs.STAMINA_CONSUMPTION_RATE
+	self._staminaStrikes = 0
+	self._speedStrikes = 0
 
 	-- Tables
 	self._speeds = {} :: { number } -- To get the average speed over time (to save past MAX_SPEEDS_SECONDS_TRACKED seconds of speeds)
@@ -84,9 +89,17 @@ end
 function Stamina:_Init()
 	Utils.Connections.Add(
 		self,
-		"x2StaminaChanged",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "gamepasses", "x2Stamina" }, function(newValue)
-			self._maxStamina = MovementConfigs.STAMINA * (newValue and 2 or 1)
+		"sprintSpeedChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "stats", "sprintSpeed" }, function(newValue)
+			self._sprintSpeed = newValue
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"maxStaminaChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "stats", "maxStamina" }, function(newValue)
+			self._maxStamina = newValue
 			self._stamina = math.min(self._stamina, self._maxStamina)
 		end)
 	)
@@ -138,8 +151,8 @@ function Stamina:Update() end
 
 function Stamina:_Reset()
 	self._lastPosition = nil
-	self._stamina_strikes = 0
-	self._speed_strikes = 0
+	self._staminaStrikes = 0
+	self._speedStrikes = 0
 	table.clear(self._speeds)
 end
 
@@ -159,7 +172,7 @@ function Stamina:_OnCharacterAdded(character: Model)
 		"SpeedCheck",
 		RunService.Heartbeat:Connect(function(dt)
 			int = int + dt
-			if int < maxDT then
+			if int < maxDT or not primaryPart.Parent then
 				return
 			end
 			int = int % maxDT
@@ -190,38 +203,37 @@ function Stamina:_OnCharacterAdded(character: Model)
 				totalSpeed = totalSpeed + speed
 			end
 			local averageSpeed = totalSpeed / #self._speeds
-			print("Average Speed:", averageSpeed)
 
-			-- Check if sprinting
-			if averageSpeed >= MovementConfigs.MAX_WALK_SPEED - EPSILON then
+			-- Check if sprinting (check horizontalSpeed as well since the averageSpeed can take time to reduce after stopping)
+			if horizontalSpeed >= (self._sprintSpeed - EPSILON) and averageSpeed >= (self._sprintSpeed - EPSILON) then
 				-- Update stamina
-				self._stamina = self._stamina - maxDT
-				if self._stamina <= 0 then
-					print("Stamina depleted")
-					self._stamina = 0
-					self._stamina_strikes += 1
+				self._stamina = self._stamina - (maxDT * self._staminaConsumptionRate)
 
-					if self._stamina_strikes >= STAMINA_STRIKE_KICK then
+				if self._stamina < 0 then
+					self._stamina = 0
+					self._staminaStrikes += 1
+
+					if self._staminaStrikes >= STAMINA_STRIKE_KICK then
 						-- Kick player for sprinting more than allowed
 						warn("Kicking player for sprinting more than allowed")
 					end
 				end
 
 				-- Detect if player is moving faster than max speed
-				if averageSpeed > MovementConfigs.MAX_WALK_SPEED + EPSILON then
+				if horizontalSpeed > (self._sprintSpeed + EPSILON) and averageSpeed > (self._sprintSpeed + EPSILON) then
 					print("Speed is higher than max:", averageSpeed)
-					self._speed_strikes += 1
+					self._speedStrikes += 1
 
-					if self._speed_strikes >= SPEED_STRIKE_KICK then
+					if self._speedStrikes >= SPEED_STRIKE_KICK then
 						-- Kick player for speed hacking
 						warn("Kicking player for speed hacking")
 					end
 				else
-					self._speed_strikes = 0
+					self._speedStrikes = 0
 				end
 			else
-				self._stamina = math.min(self._stamina + maxDT, self._maxStamina)
-				self._stamina_strikes = 0
+				self._stamina = math.min(self._stamina + (maxDT * self._staminaConsumptionRate), self._maxStamina)
+				self._staminaStrikes = 0
 			end
 		end)
 	)
@@ -230,6 +242,11 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function Stamina:Add(amount: number)
+	self._stamina = math.clamp(self._stamina + amount, 0, self._maxStamina)
+	PlayerHandler.AddStamina(self._player, amount)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

@@ -28,6 +28,7 @@ return {
 		blackTotal = { Color3.fromRGB(0, 0, 0), Color3.fromRGB(0, 0, 0) },
 
 		blue = { Color3.fromRGB(54, 177, 255), Color3.fromRGB(28, 141, 244) },
+		blueStatic = { Color3.fromRGB(54, 177, 255), Color3.fromRGB(54, 177, 255) },
 
 		green = { Color3.fromRGB(56, 221, 111), Color3.fromRGB(50, 150, 100) },
 
@@ -114,6 +115,7 @@ return {
 		},
 
 		red = { Color3.fromRGB(255, 35, 15), Color3.fromRGB(190, 27, 12) },
+		redStatic = { Color3.fromRGB(255, 35, 15), Color3.fromRGB(255, 35, 15) },
 
 		-- CUSTOM COLORS
 		coins = { Color3.fromRGB(253, 188, 13), Color3.fromRGB(252, 149, 4) },

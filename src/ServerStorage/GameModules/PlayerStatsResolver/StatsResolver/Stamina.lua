@@ -1,5 +1,5 @@
-local StatsResolver = {}
-StatsResolver.__index = StatsResolver
+local Stamina = {}
+Stamina.__index = Stamina
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -13,8 +13,11 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
+local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -24,6 +27,7 @@ local GameHandlers = ServerSource.GameHandlers
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 
 -- Handlers --------------------------------------------------------------------
+local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
 
@@ -32,6 +36,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local MovementConfigs = require(ReplicatedConfigs:WaitForChild("MovementConfigs"))
 
 -- Variables -----------------------------------------------------------------------
 
@@ -45,8 +50,8 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function StatsResolver.new(player: Player)
-	local self = setmetatable({}, StatsResolver)
+function Stamina.new(player: Player)
+	local self = setmetatable({}, Stamina)
 
 	-- Booleans
 	self._destroyed = false
@@ -54,16 +59,31 @@ function StatsResolver.new(player: Player)
 	-- Instances
 	self._player = player :: Player
 
+	-- Numbers
+	self._staminaBoostGamepass = 0
+
 	self:_Init()
 
 	return self
 end
 
-function StatsResolver:_Init()
+function Stamina:_Init()
+	Utils.Connections.Add(
+		self,
+		"StaminaGamepass",
+		PlayerDataHandler.ObservePlayerPath(
+			self._player.UserId,
+			{ "gamepasses", "staminaBonus100" },
+			function(hasGamepass)
+				self._staminaBoostGamepass = hasGamepass and 100 or 0
+			end
+		)
+	)
+
 	self:Update()
 end
 
-function StatsResolver:Destroy()
+function Stamina:Destroy()
 	if self._destroyed then
 		return
 	end
@@ -72,7 +92,13 @@ function StatsResolver:Destroy()
 	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function StatsResolver:Update() end
+function Stamina:Update()
+	PlayerDataHandler.SetPathValue(
+		self._player.UserId,
+		{ "stats", "maxStamina" },
+		MovementConfigs.STAMINA + self._staminaBoostGamepass
+	)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
@@ -90,4 +116,4 @@ function StatsResolver:Update() end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return StatsResolver
+return Stamina

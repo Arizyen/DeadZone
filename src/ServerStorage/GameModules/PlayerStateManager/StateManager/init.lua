@@ -28,7 +28,6 @@ local HP = require(script.HP)
 local Stamina = require(script.Stamina)
 
 -- Handlers --------------------------------------------------------------------
-local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
 local SaveTypes = require(ReplicatedTypes.Save)
@@ -44,43 +43,15 @@ local StateConfigs = require(Configs.StateConfigs)
 local updateTimerRunning = false
 
 -- Tables --------------------------------------------------------------------------
-local stateManagers = {} :: { [number]: typeof(StateManager) } -- Key is player UserId
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function StartUpdateTimer()
-	if updateTimerRunning then
-		return
-	end
-	updateTimerRunning = true
-
-	task.spawn(function()
-		local last = os.clock()
-		local elapsed = 0
-
-		while updateTimerRunning do
-			task.wait(5)
-
-			local now = os.clock()
-			elapsed = now - last
-			last = now
-
-			for _, stateManager in pairs(stateManagers) do
-				stateManager:Update(nil, elapsed)
-			end
-		end
-	end)
-end
-
 -- Deserialize the player state, ensuring all fields are present and correctly typed
 local function Deserialize(player: Player, playerState: SaveTypes.PlayerState): SaveTypes.PlayerState
-	local playerGamepasses = PlayerDataHandler.GetKeyValue(player.UserId, "gamepasses") or {} :: { [string]: boolean }
-
 	return {
 		hp = playerState.hp or StateConfigs.HP_MAX,
-		energy = playerState.energy or StateConfigs.ENERGY_MAX * (playerGamepasses["x2Energy"] and 2 or 1),
 		position = type(playerState.position) == "string" and Vector3.new(unpack(string.split(playerState.position)))
 			or playerState.position,
 	}
@@ -112,10 +83,7 @@ function StateManager.new(player: Player, playerState: SaveTypes.PlayerState?)
 	return self
 end
 
-function StateManager:_Init()
-	stateManagers[self._player.UserId] = self
-	StartUpdateTimer()
-end
+function StateManager:_Init() end
 
 function StateManager:Destroy()
 	if self._destroyed then
@@ -123,15 +91,13 @@ function StateManager:Destroy()
 	end
 	self._destroyed = true
 
-	stateManagers[self._player.UserId] = nil
-
 	self._hp:Destroy()
 	self._stamina:Destroy()
 
 	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function StateManager:Update(playerState: SaveTypes.PlayerState?, elapsedTime: number?)
+function StateManager:Update(playerState: SaveTypes.PlayerState?)
 	if self._destroyed then
 		return
 	end
@@ -139,10 +105,6 @@ function StateManager:Update(playerState: SaveTypes.PlayerState?, elapsedTime: n
 	if playerState then
 		self.state = Deserialize(self._player, playerState)
 	end
-
-	elapsedTime = elapsedTime or 0
-
-	self._hp:Update(elapsedTime)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -154,6 +116,7 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 
 -- HP ----------------------------------------------------------------------------------------------------
+
 function StateManager:GetStartingHP(): number
 	return self._hp:GetStartingHP()
 end
@@ -167,6 +130,10 @@ function StateManager:IncrementHP(amount: number)
 end
 
 -- STAMINA ----------------------------------------------------------------------------------------------------
+
+function StateManager:AddStamina(amount: number)
+	self._stamina:Add(amount)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

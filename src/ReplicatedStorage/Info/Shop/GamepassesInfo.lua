@@ -7,7 +7,7 @@ local GamepassesInfo = {
 		infiniteBackpack = {
 			key = "infiniteBackpack",
 			name = "Infinite Backpack",
-			description = "Carry unlimited items in your backpack!",
+			description = "Unlimited slots backpack!",
 			price = 779,
 			id = 1265202345,
 		},
@@ -37,6 +37,7 @@ local GamepassesInfo = {
 			id = 1265202345,
 			colorSequence = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 200, 200)),
 			layoutOrder = 2,
+			value = 100,
 		},
 		x2HPRegenSpeed = {
 			key = "x2HPRegenSpeed",

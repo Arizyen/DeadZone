@@ -1,5 +1,5 @@
-local Stamina = {}
-Stamina.__index = Stamina
+local Attack = {}
+Attack.__index = Attack
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -38,7 +38,6 @@ local PerksInfo = require(ReplicatedInfo.PerksInfo)
 local GamepassesInfo = require(ReplicatedInfo.Shop.GamepassesInfo)
 
 -- Configs -------------------------------------------------------------------------
-local MovementConfigs = require(ReplicatedConfigs.MovementConfigs)
 
 -- Variables -----------------------------------------------------------------------
 
@@ -52,37 +51,39 @@ local MovementConfigs = require(ReplicatedConfigs.MovementConfigs)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Stamina.new(player: Player)
-	local self = setmetatable({}, Stamina)
+function Attack.new(player: Player)
+	local self = setmetatable({}, Attack)
 
 	-- Booleans
 	self._destroyed = false
-	self._staminaBoostGamepass = PlayerDataHandler.GetPathValue(player.UserId, { "gamepasses", "staminaBonus100" })
-		or false
-	self._enduranceTrainingPerk = PlayerDataHandler.GetPathValue(player.UserId, { "perks", "enduranceTraining" })
-		or false
-	self._ironLungsPerk = PlayerDataHandler.GetPathValue(player.UserId, { "perks", "ironLungs" }) or false
+	self._quickHandsGamepass = PlayerDataHandler.GetPathValue({ "gamepasses", "quickHands" }) or false
+	self._bluntForcePerk = PlayerDataHandler.GetPathValue({ "perks", "bluntForce" }) or false
+	self._rapidStrikesPerk = PlayerDataHandler.GetPathValue({ "perks", "rapidStrikes" }) or false
+	self._sharpshooterPerk = PlayerDataHandler.GetPathValue({ "perks", "sharpshooter" }) or false
+	self._lastStandPerk = PlayerDataHandler.GetPathValue({ "perks", "lastStand" }) or false
+	self._swiftHandsPerk = PlayerDataHandler.GetPathValue({ "perks", "swiftHands" }) or false
+
+	self._lastStandPerkInEffect = false
 
 	-- Instances
 	self._player = player :: Player
-
-	-- Numbers
 
 	self:_Init()
 
 	return self
 end
 
-function Stamina:_Init()
+function Attack:_Init()
+	-- Gamepass connections
 	Utils.Connections.Add(
 		self,
-		"StaminaGamepass",
+		"quickHandsGamepass",
 		PlayerDataHandler.ObservePlayerPath(
 			self._player.UserId,
-			{ "gamepasses", "staminaBonus100" },
-			function(hasGamepass)
-				self._staminaBoostGamepass = hasGamepass
-				self:_UpdateMaxStamina()
+			{ "gamepasses", "quickHands" },
+			function(value: boolean)
+				self._quickHandsGamepass = value or false
+				self:_UpdateReloadSpeed()
 			end
 		)
 	)
@@ -90,27 +91,77 @@ function Stamina:_Init()
 	-- Perks connections
 	Utils.Connections.Add(
 		self,
-		"enduranceTrainingPerk",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "enduranceTraining" }, function(value)
-			self._enduranceTrainingPerk = value
-			self:_UpdateConsumptionRate()
+		"bluntForcePerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "bluntForce" }, function(value: boolean)
+			self._bluntForcePerk = value or false
+			self:_UpdateDamage()
 		end)
 	)
 
 	Utils.Connections.Add(
 		self,
-		"ironLungsPerk",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "ironLungs" }, function(value)
-			self._ironLungsPerk = value
-			self:_UpdateMaxStamina()
+		"rapidStrikesPerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "rapidStrikes" }, function(value: boolean)
+			self._rapidStrikesPerk = value or false
+			self:_UpdateAttackSpeed()
 		end)
 	)
 
-	self:_UpdateMaxStamina()
-	self:_UpdateConsumptionRate()
+	Utils.Connections.Add(
+		self,
+		"sharpshooterPerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "sharpshooter" }, function(value: boolean)
+			self._sharpshooterPerk = value or false
+			self:_UpdateDamage()
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"lastStandPerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "lastStand" }, function(value: boolean)
+			self._lastStandPerk = value or false
+			self:_UpdateDamage()
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"swiftHandsPerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "swiftHands" }, function(value: boolean)
+			self._swiftHandsPerk = value or false
+			self:_UpdateReloadSpeed()
+		end)
+	)
+
+	-- HP connection for Last Stand perk
+	Utils.Connections.Add(
+		self,
+		"lastStandHP",
+		self._player:GetAttributeChangedSignal("hp"):Connect(function()
+			if self._lastStandPerk then
+				local playerHP = self._player:GetAttribute("hp")
+				if type(playerHP) == "number" and playerHP <= 20 then
+					if not self._lastStandPerkInEffect then
+						self._lastStandPerkInEffect = true
+						self:_UpdateDamage()
+					end
+				else
+					if self._lastStandPerkInEffect then
+						self._lastStandPerkInEffect = false
+						self:_UpdateDamage()
+					end
+				end
+			end
+		end)
+	)
+
+	self:_UpdateDamage()
+	self:_UpdateReloadSpeed()
+	self:_UpdateAttackSpeed()
 end
 
-function Stamina:Destroy()
+function Attack:Destroy()
 	if self._destroyed then
 		return
 	end
@@ -123,30 +174,58 @@ end
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Stamina:_UpdateMaxStamina()
-	local maxStamina = MovementConfigs.STAMINA
+function Attack:_UpdateDamage()
+	local meleeDamageFactor = 1
+	local rangedDamageFactor = 1
 
-	if self._staminaBoostGamepass then
-		local gamepassInfo = GamepassesInfo.byKey.staminaBonus100
-		maxStamina += gamepassInfo.value
+	if self._bluntForcePerk then
+		local bluntForceInfo = PerksInfo.byKey.bluntForce
+		meleeDamageFactor += bluntForceInfo.value
 	end
 
-	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "maxStamina" }, maxStamina)
+	if self._sharpshooterPerk then
+		local sharpshooterInfo = PerksInfo.byKey.sharpshooter
+		rangedDamageFactor += sharpshooterInfo.value
+	end
+
+	if self._lastStandPerk then
+		local playerHP = self._player:GetAttribute("hp")
+		if type(playerHP) == "number" and playerHP <= 20 then
+			local lastStandInfo = PerksInfo.byKey.lastStand
+			meleeDamageFactor += lastStandInfo.value
+			rangedDamageFactor += lastStandInfo.value
+		end
+	end
+
+	PlayerDataHandler.SetPathValue({ "stats", "meleeDamageFactor" }, meleeDamageFactor)
+	PlayerDataHandler.SetPathValue({ "stats", "rangedDamageFactor" }, rangedDamageFactor)
 end
 
-function Stamina:_UpdateConsumptionRate()
-	local drainingPercentageFactor = 1
+function Attack:_UpdateReloadSpeed()
+	local reloadSpeedFactor = 1
 
-	if self._enduranceTrainingPerk then
-		local enduranceTrainingPerkInfo = PerksInfo.byKey.enduranceTraining
-		drainingPercentageFactor -= enduranceTrainingPerkInfo.value
+	if self._quickHandsGamepass then
+		local quickHandsInfo = GamepassesInfo.quickHands
+		reloadSpeedFactor += quickHandsInfo.value
 	end
 
-	PlayerDataHandler.SetPathValue(
-		self._player.UserId,
-		{ "stats", "staminaConsumptionRate" },
-		MovementConfigs.STAMINA_CONSUMPTION_RATE * drainingPercentageFactor
-	)
+	if self._swiftHandsPerk then
+		local swiftHandsInfo = PerksInfo.byKey.swiftHands
+		reloadSpeedFactor += swiftHandsInfo.value
+	end
+
+	PlayerDataHandler.SetPathValue({ "stats", "reloadSpeedFactor" }, reloadSpeedFactor)
+end
+
+function Attack:_UpdateAttackSpeed()
+	local meleeSpeedFactor = 1
+
+	if self._rapidStrikesPerk then
+		local rapidStrikesInfo = PerksInfo.byKey.rapidStrikes
+		meleeSpeedFactor += rapidStrikesInfo.value
+	end
+
+	PlayerDataHandler.SetPathValue({ "stats", "meleeSpeedFactor" }, meleeSpeedFactor)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -161,4 +240,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return Stamina
+return Attack

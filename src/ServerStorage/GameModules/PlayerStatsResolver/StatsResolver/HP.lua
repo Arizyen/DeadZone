@@ -1,5 +1,5 @@
-local StatsResolver = {}
-StatsResolver.__index = StatsResolver
+local HP = {}
+HP.__index = HP
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -13,8 +13,11 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
+local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -22,8 +25,6 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Stamina = require(script.Stamina)
-local Attack = require(script.Attack)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -47,38 +48,34 @@ local Attack = require(script.Attack)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function StatsResolver.new(player: Player)
-	local self = setmetatable({}, StatsResolver)
+function HP.new(player)
+	local self = setmetatable({}, HP)
 
 	-- Booleans
 	self._destroyed = false
 
 	-- Instances
 	self._player = player :: Player
-	self._stamina = Stamina.new(player)
-	self._attack = Attack.new(player)
 
 	self:_Init()
 
 	return self
 end
 
-function StatsResolver:_Init()
+function HP:_Init()
 	self:Update()
 end
 
-function StatsResolver:Destroy()
+function HP:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
 
 	Utils.Connections.DisconnectKeyConnections(self)
-
-	self._stamina:Destroy()
 end
 
-function StatsResolver:Update() end
+function HP:Update() end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
@@ -96,4 +93,4 @@ function StatsResolver:Update() end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return StatsResolver
+return HP

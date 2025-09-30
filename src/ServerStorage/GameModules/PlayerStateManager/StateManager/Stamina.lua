@@ -36,6 +36,7 @@ local PlayerHandler = require(GameHandlers.PlayerHandler)
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local PerksInfo = require(ReplicatedInfo:WaitForChild("PerksInfo"))
 
 -- Configs -------------------------------------------------------------------------
 local MovementConfigs = require(ReplicatedConfigs:WaitForChild("MovementConfigs"))
@@ -62,6 +63,7 @@ function Stamina.new(player: Player)
 
 	-- Booleans
 	self._destroyed = false
+	self._adrenalineMeleePerk = false
 
 	-- Instances
 	self._player = player
@@ -130,6 +132,17 @@ function Stamina:_Init()
 			end
 		end)
 	)
+
+	-- Perks connections
+	Utils.Connections.Add(
+		self,
+		"adrenalineMelee",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "adrenalineMelee" }, function(value)
+			self._adrenalineMeleePerk = value
+			self:_AdrenalineMeleeConnection()
+		end)
+	)
+	self:_AdrenalineMeleeConnection()
 
 	self:Update()
 end
@@ -236,6 +249,29 @@ function Stamina:_OnCharacterAdded(character: Model)
 				self._staminaStrikes = 0
 			end
 		end)
+	)
+end
+
+function Stamina:_AdrenalineMeleeConnection()
+	if not self._adrenalineMeleePerk then
+		return
+	end
+
+	local adrenalineMeleeInfo = PerksInfo.byKey.adrenalineMelee
+	local staminaAdd = adrenalineMeleeInfo.value
+
+	Utils.Connections.Add(
+		self,
+		"meleeKillsChanged",
+		PlayerDataHandler.ObservePlayerPath(
+			self._player.UserId,
+			{ "statistics", "meleeKills" },
+			function(newValue, oldValue)
+				if newValue > oldValue then
+					self:Add(staminaAdd)
+				end
+			end
+		)
 	)
 end
 

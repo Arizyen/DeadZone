@@ -89,9 +89,22 @@ local DataConfigs = {
 			maxXP = 1000,
 			rebirths = 0,
 			playerState = {} :: SaveTypes.PlayerState,
+
+			-- Stamina
 			maxStamina = MovementConfigs.STAMINA,
 			staminaConsumptionRate = MovementConfigs.STAMINA_CONSUMPTION_RATE,
+
+			-- HP
+			hpRegenFactor = 1, -- Multiplier (1 = normal regen)
+
+			-- Speed
 			sprintSpeed = MovementConfigs.MAX_WALK_SPEED,
+			reloadSpeedFactor = 1, -- Multiplier (1 = normal speed)
+			meleeSpeedFactor = 1, -- Multiplier (1 = normal speed)
+
+			-- Attack
+			meleeDamageFactor = 1, -- Multiplier (1 = normal damage)
+			rangedDamageFactor = 1, -- Multiplier (1 = normal damage)
 		},
 		perks = {} :: { [string]: boolean }, -- perkName = true
 		statistics = {
@@ -123,6 +136,11 @@ local DataConfigs = {
 			daysSurvivedMidWeekly = 0,
 			daysSurvivedHard = 0,
 			daysSurvivedHardWeekly = 0,
+
+			-- Combat statistics
+			zombiesKilled = 0,
+			meleeKills = 0,
+			rangedKills = 0,
 		},
 	},
 

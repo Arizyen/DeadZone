@@ -61,46 +61,85 @@ return {
 	byKey = {
 		-- Combat perks
 		adrenalineMelee = { name = "Adrenaline Melee", type = "combat", description = "Gain 20 stamina on melee kill" },
-		bluntForce = { name = "Blunt Force", type = "combat", description = "Melee weapons deal 15% more damage" },
-		rapidStrikes = { name = "Rapid Strikes", type = "combat", description = "Melee attacks are 15% faster" },
+		bluntForce = {
+			name = "Blunt Force",
+			type = "combat",
+			description = "Melee weapons deal 15% more damage",
+			value = 0.15,
+		},
+		rapidStrikes = {
+			name = "Rapid Strikes",
+			type = "combat",
+			description = "Melee attacks are 15% faster",
+			value = 0.15,
+		},
 		enduranceTraining = {
 			name = "Endurance Training",
 			type = "combat",
 			description = "Sprinting drains 10% less stamina",
+			value = 0.1,
 		},
 		sharpshooter = {
 			name = "Zombie Slayer",
 			type = "combat",
 			description = "Afflict +10% ranged damage to zombies",
+			value = 0.1,
 		},
 
 		-- Survival perks
-		ironLungs = { name = "Iron Lungs", type = "survival", description = "+20 stamina" },
-		hpRegen = { name = "HP Regen", type = "survival", description = "+10% HP regeneration speed" },
-		thickSkin = { name = "Thick Skin", type = "survival", description = "Reduce incoming damage by 5%" },
+		ironLungs = { name = "Iron Lungs", type = "survival", description = "+20 stamina", value = 20 },
+		hpRegen = { name = "HP Regen", type = "survival", description = "+10% HP regeneration speed", value = 0.1 },
+		thickSkin = {
+			name = "Thick Skin",
+			type = "survival",
+			description = "Reduce incoming damage by 5%",
+			value = 0.05,
+		},
 		painTolerance = {
 			name = "Pain Tolerance",
 			type = "survival",
 			description = "50% less fall damage taken",
+			value = 0.5,
 		},
-		lastStand = { name = "Last Stand", type = "survival", description = "Deal 20% more damage when below 20% HP" },
+		lastStand = {
+			name = "Last Stand",
+			type = "survival",
+			description = "Deal 20% more damage when below 20% HP",
+			value = 0.2,
+		},
 
 		-- Resource perks
-		efficientMiner = { name = "Efficient Miner", type = "resource", description = "Mine 15% faster" },
-		efficientLumberjack = { name = "Efficient Lumberjack", type = "resource", description = "Chop 15% faster" },
+		efficientMiner = { name = "Efficient Miner", type = "resource", description = "Mine 15% faster", value = 0.15 },
+		efficientLumberjack = {
+			name = "Efficient Lumberjack",
+			type = "resource",
+			description = "Chop 15% faster",
+			value = 0.15,
+		},
 		efficientCrafter = {
 			name = "Efficient Crafter",
 			type = "resource",
 			description = "Crafting costs 20% less resources",
+			value = 0.2,
 		},
-		lightweight = { name = "Lightweight", type = "resource", description = "+10 inventory slots" },
-		ammoSaver = { name = "Ammo Saver", type = "resource", description = "5% chance of not consuming ammo" },
+		lightweight = { name = "Lightweight", type = "resource", description = "+10 inventory slots", value = 10 },
+		ammoSaver = {
+			name = "Ammo Saver",
+			type = "resource",
+			description = "5% chance of not consuming ammo",
+			value = 0.05,
+		},
 
 		-- Utility perks
-		packRat = { name = "Pack Rat", type = "utility", description = "+3 hotbar slots" },
-		quickFeet = { name = "Quick Feet", type = "utility", description = "+15% movement speed" },
-		swiftHands = { name = "Swift Hands", type = "utility", description = "+15% reload speed" },
-		medicTraining = { name = "Medic Training", type = "utility", description = "Revive teammates 40% faster" },
-		quickLearner = { name = "Quick Learner", type = "utility", description = "Gain 10% more XP" },
+		packRat = { name = "Pack Rat", type = "utility", description = "+3 hotbar slots", value = 3 },
+		quickFeet = { name = "Quick Feet", type = "utility", description = "+15% movement speed", value = 0.15 },
+		swiftHands = { name = "Swift Hands", type = "utility", description = "+15% reload speed", value = 0.15 },
+		medicTraining = {
+			name = "Medic Training",
+			type = "utility",
+			description = "Revive teammates 40% faster",
+			value = 0.4,
+		},
+		quickLearner = { name = "Quick Learner", type = "utility", description = "Gain 10% more XP", value = 0.1 },
 	},
 }

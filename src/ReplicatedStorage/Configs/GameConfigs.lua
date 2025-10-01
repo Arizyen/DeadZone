@@ -15,6 +15,8 @@ local GameConfigs = {}
 -- Configs
 
 -- Variables
+GameConfigs.INVENTORY_SLOTS = 20
+GameConfigs.HOTBAR_SLOTS = 6
 
 -- Tables
 

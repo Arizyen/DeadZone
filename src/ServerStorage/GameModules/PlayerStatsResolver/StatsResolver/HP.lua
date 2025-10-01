@@ -27,12 +27,15 @@ local GameHandlers = ServerSource.GameHandlers
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 
 -- Handlers --------------------------------------------------------------------
+local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local GamepassesInfo = require(ReplicatedInfo.Shop.GamepassesInfo)
+local PerksInfo = require(ReplicatedInfo.PerksInfo)
 
 -- Configs -------------------------------------------------------------------------
 
@@ -53,6 +56,10 @@ function HP.new(player)
 
 	-- Booleans
 	self._destroyed = false
+	self._x2HPRegenGamepass = PlayerDataHandler.GetPathValue(player.UserId, { "gamepasses", "x2HPRegen" }) or false
+	self._hpRegenPerk = PlayerDataHandler.GetPathValue(player.UserId, { "perks", "hpRegen" }) or false
+	self._ironSkinGamepass = PlayerDataHandler.GetPathValue(player.UserId, { "gamepasses", "ironSkin" }) or false
+	self._thickSkinPerk = PlayerDataHandler.GetPathValue(player.UserId, { "perks", "thickSkin" }) or false
 
 	-- Instances
 	self._player = player :: Player
@@ -63,7 +70,36 @@ function HP.new(player)
 end
 
 function HP:_Init()
-	self:Update()
+	-- Connections
+	Utils.Connections.Add(
+		self,
+		"x2HPRegenGamepassChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "gamepasses", "x2HPRegen" }, function(newValue)
+			self._x2HPRegenGamepass = newValue or false
+			self:_UpdateHPRegenSpeed()
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"hpRegenPerkChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "hpRegen" }, function(newValue)
+			self._hpRegenPerk = newValue or false
+			self:_UpdateHPRegenSpeed()
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"thickSkinPerkChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "thickSkin" }, function(newValue)
+			self._thickSkinPerk = newValue or false
+			self:_UpdateDamageFactor()
+		end)
+	)
+
+	self:_UpdateHPRegenSpeed()
+	self:_UpdateDamageFactor()
 end
 
 function HP:Destroy()
@@ -75,11 +111,41 @@ function HP:Destroy()
 	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function HP:Update() end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function HP:_UpdateHPRegenSpeed()
+	local hpRegenFactor = 1
+
+	if self._x2HPRegenGamepass then
+		local gamepassInfo = GamepassesInfo.byKey.x2HPRegen
+		hpRegenFactor += gamepassInfo.value
+	end
+
+	if self._hpRegenPerk then
+		local perkInfo = PerksInfo.byKey.hpRegen
+		hpRegenFactor += perkInfo.value
+	end
+
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "hpRegenFactor" }, hpRegenFactor)
+end
+
+function HP:_UpdateDamageFactor()
+	local damageFactor = 1
+
+	if self._ironSkinGamepass then
+		local gamepassInfo = GamepassesInfo.byKey.ironSkin
+		damageFactor -= gamepassInfo.value
+	end
+
+	if self._thickSkinPerk then
+		local perkInfo = PerksInfo.byKey.thickSkin
+		damageFactor -= perkInfo.value
+	end
+
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "damageFactor" }, damageFactor)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------

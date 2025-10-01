@@ -26,6 +26,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 local PlayerStatsResolver = require(GameModules.PlayerStatsResolver)
 local HP = require(script.HP)
 local Stamina = require(script.Stamina)
+local FallDamage = require(script.FallDamage)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -77,6 +78,7 @@ function StateManager.new(player: Player, playerState: SaveTypes.PlayerState?)
 	self.statsResolver = PlayerStatsResolver.GetStatsResolver(player)
 	self._hp = HP.new(player, self)
 	self._stamina = Stamina.new(player)
+	self._fallDamage = FallDamage.new(player, self)
 
 	self:_Init()
 

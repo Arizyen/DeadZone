@@ -50,6 +50,7 @@ function SprintManager.new()
 
 	-- Booleans
 	self._destroyed = false
+	self._isDead = false
 	self._isSprinting = false
 	self._isHoldingSprint = false
 
@@ -66,6 +67,10 @@ function SprintManager.new()
 end
 
 function SprintManager:_Init()
+	if not self._humanoid then
+		self._isDead = true
+	end
+
 	-- Sprint speed change
 	Utils.Connections.Add(
 		self,
@@ -84,6 +89,7 @@ function SprintManager:_Init()
 		"characterAdded",
 		localPlayer.CharacterAdded:Connect(function(character)
 			local humanoid = character:WaitForChild("Humanoid")
+			self._isDead = false
 			self._humanoid = humanoid
 		end)
 	)
@@ -92,7 +98,9 @@ function SprintManager:_Init()
 		self,
 		"characterRemoving",
 		localPlayer.CharacterRemoving:Connect(function()
+			self._isDead = true
 			self._humanoid = nil
+			self:HoldSprint(false)
 		end)
 	)
 
@@ -182,7 +190,7 @@ function SprintManager:Sprint(state: boolean): boolean
 end
 
 function SprintManager:HoldSprint(state: boolean)
-	if self._isHoldingSprint == state then
+	if self._isHoldingSprint == state or self._isDead and state then
 		return
 	end
 	self._isHoldingSprint = state

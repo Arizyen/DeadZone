@@ -5,6 +5,7 @@ local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
 
 local SaveTypes = require(ReplicatedTypes:WaitForChild("Save"))
 local MovementConfigs = require(ReplicatedConfigs:WaitForChild("MovementConfigs"))
+local GameConfigs = require(ReplicatedConfigs:WaitForChild("GameConfigs"))
 
 local DataConfigs = {
 	-- Default data is set on each player data load if the key does not exist
@@ -96,6 +97,8 @@ local DataConfigs = {
 
 			-- HP
 			hpRegenFactor = 1, -- Multiplier (1 = normal regen)
+			damageFactor = 1, -- Multiplier (1 = normal damage taken)
+			fallDamageFactor = 1, -- Multiplier (1 = normal fall damage)
 
 			-- Speed
 			sprintSpeed = MovementConfigs.MAX_WALK_SPEED,
@@ -105,6 +108,22 @@ local DataConfigs = {
 			-- Attack
 			meleeDamageFactor = 1, -- Multiplier (1 = normal damage)
 			rangedDamageFactor = 1, -- Multiplier (1 = normal damage)
+
+			-- XP
+			xpFactor = 1, -- Multiplier (1 = normal xp gain)
+
+			-- Resource
+			miningSpeedFactor = 1, -- Multiplier (1 = normal speed)
+			choppingSpeedFactor = 1, -- Multiplier (1 = normal speed)
+			craftingCostFactor = 1, -- Multiplier (1 = normal cost)
+
+			-- Inventory
+			inventorySlots = GameConfigs.INVENTORY_SLOTS, -- Number of inventory slots unlocked
+			hotbarSlots = GameConfigs.HOTBAR_SLOTS, -- Number of hotbar slots unlocked
+
+			-- Miscellaneous
+			revivalTimeFactor = 1, -- Multiplier (1 = normal speed)
+			ammoSaveLuck = 0, -- Percentage (0 = normal chance)
 		},
 		perks = {} :: { [string]: boolean }, -- perkName = true
 		statistics = {

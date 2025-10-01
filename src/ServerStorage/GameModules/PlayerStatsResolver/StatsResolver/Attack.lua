@@ -40,6 +40,7 @@ local GamepassesInfo = require(ReplicatedInfo.Shop.GamepassesInfo)
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
+local rng = Random.new()
 
 -- Tables --------------------------------------------------------------------------
 
@@ -61,12 +62,16 @@ function Attack.new(player: Player)
 	self._rapidStrikesPerk = PlayerDataHandler.GetPathValue({ "perks", "rapidStrikes" }) or false
 	self._sharpshooterPerk = PlayerDataHandler.GetPathValue({ "perks", "sharpshooter" }) or false
 	self._lastStandPerk = PlayerDataHandler.GetPathValue({ "perks", "lastStand" }) or false
+	self._ammoSaverPerk = PlayerDataHandler.GetPathValue({ "perks", "ammoSaver" }) or false
 	self._swiftHandsPerk = PlayerDataHandler.GetPathValue({ "perks", "swiftHands" }) or false
 
 	self._lastStandPerkInEffect = false
 
 	-- Instances
 	self._player = player :: Player
+
+	-- Numbers
+	self._ammoSaveLuck = 0
 
 	self:_Init()
 
@@ -122,6 +127,15 @@ function Attack:_Init()
 		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "lastStand" }, function(value: boolean)
 			self._lastStandPerk = value or false
 			self:_UpdateDamage()
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"ammoSaverPerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "ammoSaver" }, function(value: boolean)
+			self._ammoSaverPerk = value or false
+			self:_UpdateAmmoSaveLuck()
 		end)
 	)
 
@@ -228,9 +242,28 @@ function Attack:_UpdateAttackSpeed()
 	PlayerDataHandler.SetPathValue({ "stats", "meleeSpeedFactor" }, meleeSpeedFactor)
 end
 
+function Attack:_UpdateAmmoSaveLuck()
+	local ammoSaveLuck = 0
+
+	if self._ammoSaverPerk then
+		local ammoSaverInfo = PerksInfo.byKey.ammoSaver
+		ammoSaveLuck += ammoSaverInfo.value
+	end
+
+	self._ammoSaveLuck = ammoSaveLuck
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function Attack:_CanSaveAmmo(): boolean
+	if self._ammoSaveLuck <= 0 then
+		return false
+	end
+
+	return rng:NextNumber() <= self._ammoSaveLuck
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

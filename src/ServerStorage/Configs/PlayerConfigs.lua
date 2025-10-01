@@ -36,7 +36,7 @@ PlayerConfigs.DEFAULT_COLLISION_GROUP = "PlayersNoCollide"
 PlayerConfigs.AUTO_RESPAWN = game.PlaceId == MapConfigs.MAPS_PLACE_ID.Lobby
 PlayerConfigs.AUTO_RESPAWN_DELAY = 3
 
-PlayerConfigs.RIG_TYPE = "R6" -- R6 or R15
+PlayerConfigs.RIG_TYPE = "R15" -- R6 or R15
 
 -- Types ---------------------------------------------------------------------------
 

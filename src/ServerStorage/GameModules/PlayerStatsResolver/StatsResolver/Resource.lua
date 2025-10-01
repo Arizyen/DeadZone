@@ -1,5 +1,5 @@
-local StatsResolver = {}
-StatsResolver.__index = StatsResolver
+local Resource = {}
+Resource.__index = Resource
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -13,8 +13,11 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
+local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -22,20 +25,16 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Stamina = require(script.Stamina)
-local Attack = require(script.Attack)
-local HP = require(script.HP)
-local XP = require(script.XP)
-local Inventory = require(script.Inventory)
-local Resource = require(script.Resource)
 
 -- Handlers --------------------------------------------------------------------
+local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local PerksInfo = require(ReplicatedInfo.PerksInfo)
 
 -- Configs -------------------------------------------------------------------------
 
@@ -51,58 +50,106 @@ local Resource = require(script.Resource)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function StatsResolver.new(player: Player)
-	local self = setmetatable({}, StatsResolver)
+function Resource.new(player: Player)
+	local self = setmetatable({}, Resource)
 
 	-- Booleans
 	self._destroyed = false
+	self._efficientMinerPerk = false
+	self._efficientLumberjackPerk = false
+	self._efficientCrafterPerk = false
 
 	-- Instances
 	self._player = player :: Player
-	self._stamina = Stamina.new(player)
-	self._attack = Attack.new(player)
-	self._hp = HP.new(player)
-	self._xp = XP.new(player)
-	self._inventory = Inventory.new(player)
-	self._resource = Resource.new(player)
 
 	self:_Init()
 
 	return self
 end
 
-function StatsResolver:_Init() end
+function Resource:_Init()
+	-- Connections
+	Utils.Connections.Add(
+		self,
+		"efficientMinerPerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "efficientMiner" }, function(newValue)
+			self._efficientMinerPerk = newValue or false
+			self:_UpdateMiningSpeed()
+		end)
+	)
 
-function StatsResolver:Destroy()
+	Utils.Connections.Add(
+		self,
+		"efficientLumberjackPerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "efficientLumberjack" }, function(newValue)
+			self._efficientLumberjackPerk = newValue or false
+			self:_UpdateChoppingSpeed()
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"efficientCrafterPerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "efficientCrafter" }, function(newValue)
+			self._efficientCrafterPerk = newValue or false
+			self:_UpdateCraftingCost()
+		end)
+	)
+
+	self:_UpdateMiningSpeed()
+	self:_UpdateChoppingSpeed()
+	self:_UpdateCraftingCost()
+end
+
+function Resource:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
 
 	Utils.Connections.DisconnectKeyConnections(self)
-
-	self._stamina:Destroy()
-	self._attack:Destroy()
-	self._hp:Destroy()
-	self._xp:Destroy()
-	self._inventory:Destroy()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+function Resource:_UpdateMiningSpeed()
+	local miningSpeedFactor = 1
+
+	if self._efficientMinerPerk then
+		local efficientMinerPerkInfo = PerksInfo.byKey.efficientMiner
+		miningSpeedFactor += efficientMinerPerkInfo.value
+	end
+
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "miningSpeedFactor" }, miningSpeedFactor)
+end
+
+function Resource:_UpdateChoppingSpeed()
+	local choppingSpeedFactor = 1
+
+	if self._efficientLumberjackPerk then
+		local efficientLumberjackPerkInfo = PerksInfo.byKey.efficientLumberjack
+		choppingSpeedFactor += efficientLumberjackPerkInfo.value
+	end
+
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "choppingSpeedFactor" }, choppingSpeedFactor)
+end
+
+function Resource:_UpdateCraftingCost()
+	local craftingCostFactor = 1
+
+	if self._efficientCrafterPerk then
+		local efficientCrafterPerkInfo = PerksInfo.byKey.efficientCrafter
+		craftingCostFactor += efficientCrafterPerkInfo.value
+	end
+
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "craftingCostFactor" }, craftingCostFactor)
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-
-function StatsResolver:AddXP(amount: number)
-	self._xp:Add(amount)
-end
-
-function StatsResolver:CanSaveAmmo(): boolean
-	return self._attack:CanSaveAmmo()
-end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -112,4 +159,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return StatsResolver
+return Resource

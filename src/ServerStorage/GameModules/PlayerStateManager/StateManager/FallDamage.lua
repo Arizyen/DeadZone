@@ -1,5 +1,5 @@
-local HP = {}
-HP.__index = HP
+local FallDamage = {}
+FallDamage.__index = FallDamage
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -25,7 +25,6 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local PlayerManager = require(BaseModules.PlayerManager)
 
 -- Handlers --------------------------------------------------------------------
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
@@ -35,142 +34,102 @@ local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local PerksInfo = require(ReplicatedInfo.PerksInfo)
 
 -- Configs -------------------------------------------------------------------------
-local StateConfigs = require(Configs.StateConfigs)
+local SAFE_FALL_HEIGHT = 12
+local EXPONENT = 1.27
+local MATERIAL_MULTIPLIER = {
+	[Enum.Material.Plastic] = 1.0,
+	[Enum.Material.Grass] = 0.9,
+	[Enum.Material.Ground] = 0.95,
+	[Enum.Material.Wood] = 1.0,
+	[Enum.Material.Metal] = 1.1,
+	[Enum.Material.Concrete] = 1.15,
+	[Enum.Material.Sand] = 0.85,
+	[Enum.Material.Snow] = 0.8,
+	[Enum.Material.Ice] = 1.05,
+	[Enum.Material.Water] = 0.25, -- splash landings hurt way less
+}
 
 -- Variables -----------------------------------------------------------------------
-local hpRegainTimerRunning = false
 
 -- Tables --------------------------------------------------------------------------
-local hpManagers = {} :: { [number]: typeof(HP) } -- Key is player UserId, value is HP manager
-local hpManagersRegenBag = {} :: { [number]: boolean } -- Key is player UserId, value is whether the player is in the regain HP phase
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function StartHPRegenTimer()
-	if hpRegainTimerRunning or not next(hpManagersRegenBag) then
-		return
-	end
-	hpRegainTimerRunning = true
-
-	task.spawn(function()
-		while next(hpManagersRegenBag) ~= nil do
-			for userId, _ in pairs(hpManagersRegenBag) do
-				local hpManager = hpManagers[userId]
-				if hpManager then
-					hpManager:Regenerate()
-				else
-					hpManagersRegenBag[userId] = nil
-				end
-			end
-
-			task.wait(1)
-		end
-
-		hpRegainTimerRunning = false
-	end)
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function HP.new(player: Player, stateManager)
-	local self = setmetatable({}, HP)
+function FallDamage.new(player: Player, stateManager: table)
+	local self = setmetatable({}, FallDamage)
 
 	-- Booleans
 	self._destroyed = false
-
-	-- Numbers
-	self._hpMax = StateConfigs.HP_MAX
-	self._lastDamageReceivedTime = 0
-	self._hpRegenFactor = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "hpRegenFactor" }) or 1
-	self._damageFactor = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "damageFactor" }) or 1
+	self._painTolerancePerk = PlayerDataHandler.GetPathValue(player.UserId, { "perks", "painTolerance" }) or false
 
 	-- Instances
 	self._player = player
+	self._stateManager = stateManager
 
-	-- Metatables
-	self.stateManager = stateManager
+	-- Numbers
+	self._fallDamageFactor = 1
+
+	-- Vector3
+	self._fallStartPosition = nil :: Vector3?
 
 	self:_Init()
 
 	return self
 end
 
-function HP:_Init()
-	hpManagers[self._player.UserId] = self
-
-	-- Connections
-	-- On player hp change
+function FallDamage:_Init()
+	-- Add connections
 	Utils.Connections.Add(
 		self,
-		"hpChanged",
-		self._player:GetAttributeChangedSignal("hp"):Connect(function()
-			local newHP = self._player:GetAttribute("hp") :: number
-			local currentHP = self.stateManager.state.hp
-			self.stateManager.state.hp = math.clamp(newHP, 0, self._hpMax)
-
-			if newHP == currentHP then
-				return
-			end
-
-			if newHP >= self._hpMax then
-				hpManagersRegenBag[self._player.UserId] = nil
-			elseif newHP < currentHP and newHP < self._hpMax then
-				self:_StartHPRegen()
-			end
-		end)
-	)
-
-	-- On player maxHP change
-	Utils.Connections.Add(
-		self,
-		"hpMaxChanged",
-		self._player:GetAttributeChangedSignal("hpMax"):Connect(function()
-			local newMaxHP = self._player:GetAttribute("hpMax") :: number
-			if newMaxHP == self._hpMax then
-				return
-			elseif newMaxHP > self._hpMax then
-				self:_StartHPRegen()
-			end
-
-			self._hpMax = newMaxHP
-		end)
-	)
-
-	-- Stats change
-	Utils.Connections.Add(
-		self,
-		"hpRegenFactorChanged",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "stats", "hpRegenFactor" }, function(newFactor)
-			self._hpRegenFactor = newFactor or 1
+		"painToleranceChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "painTolerance" }, function(newValue)
+			self._painTolerancePerk = newValue or false
+			self:_UpdateFallDamageFactor()
 		end)
 	)
 
 	Utils.Connections.Add(
 		self,
-		"damageFactorChanged",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "stats", "damageFactor" }, function(newFactor)
-			self._damageFactor = newFactor or 1
+		"teleported",
+		self._player:GetAttributeChangedSignal("teleported"):Connect(function()
+			self._fallStartPosition = nil
 		end)
 	)
 
-	PlayerManager.SetMaxVital(self._player, "hp", self._hpMax)
-	PlayerManager.SetVital(self._player, "hp", self.stateManager.state.hp)
+	Utils.Connections.Add(
+		self,
+		"characterAdded",
+		self._player.CharacterAdded:Connect(function(character)
+			self:_CharacterAdded(character)
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"characterRemoving",
+		self._player.CharacterRemoving:Connect(function()
+			self:_CharacterAdded(nil)
+		end)
+	)
+
+	self:_UpdateFallDamageFactor()
+	self:_CharacterAdded(self._player.Character)
 end
 
-function HP:Destroy()
+function FallDamage:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
-
-	hpManagers[self._player.UserId] = nil
-	hpManagersRegenBag[self._player.UserId] = nil
 
 	Utils.Connections.DisconnectKeyConnections(self)
 end
@@ -179,46 +138,63 @@ end
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function HP:_StartHPRegen()
-	if self.stateManager.state.hp >= self._hpMax then
+function FallDamage:_UpdateFallDamageFactor()
+	local fallDamageFactor = 1
+
+	if self._painTolerancePerk then
+		local painTolerancePerkInfo = PerksInfo.byKey.painTolerance
+		fallDamageFactor -= painTolerancePerkInfo.value
+	end
+
+	self._fallDamageFactor = fallDamageFactor
+end
+
+function FallDamage:_CharacterAdded(character: Model?)
+	if not character or not character.Parent then
+		Utils.Connections.DisconnectKeyConnection(self, "humanoidStateChanged")
+		self._fallStartPosition = nil
 		return
 	end
 
-	self._lastDamageReceivedTime = os.clock()
-	hpManagersRegenBag[self._player.UserId] = true
-	StartHPRegenTimer()
+	local humanoid = character:WaitForChild("Humanoid")
+
+	Utils.Connections.Add(
+		self,
+		"humanoidStateChanged",
+		humanoid.StateChanged:Connect(function(oldState, newState)
+			if self._player:GetAttribute("teleported") then
+				self._fallStartPosition = nil
+				return
+			end
+
+			if newState == Enum.HumanoidStateType.Freefall then
+				self._fallStartPosition = humanoid.RootPart.Position
+			elseif
+				(
+					newState == Enum.HumanoidStateType.Landed
+					or newState == Enum.HumanoidStateType.Running
+					or newState == Enum.HumanoidStateType.RunningNoPhysics
+				) and self._fallStartPosition
+			then
+				local fallEndPosition = humanoid.RootPart.Position
+				local fallDistance = self._fallStartPosition.Y - fallEndPosition.Y
+
+				if fallDistance > SAFE_FALL_HEIGHT then
+					local floorMaterial = humanoid.FloorMaterial or Enum.Material.Plastic
+					local damage = (fallDistance - SAFE_FALL_HEIGHT) ^ EXPONENT
+						* (MATERIAL_MULTIPLIER[floorMaterial] or 1)
+					self._stateManager:IncrementHP(-damage)
+				end
+
+				self._fallStartPosition = nil
+			end
+		end)
+	)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-
-function HP:GetStartingHP(): number
-	local currentHP = self.stateManager.state.hp
-
-	return currentHP > 0 and currentHP or self._hpMax
-end
-
-function HP:GetMaxHP(): number
-	return self._hpMax
-end
-
-function HP:Regenerate()
-	-- If the player has not taken damage in the last HP_REGEN_WAIT seconds, regen HP
-	if os.clock() - self._lastDamageReceivedTime >= StateConfigs.HP_REGEN_WAIT then
-		self:Increment((StateConfigs.HP_REGEN_FACTOR * self._hpRegenFactor) * self._hpMax)
-	end
-end
-
-function HP:Increment(amount: number)
-	if amount < 0 then
-		amount = amount * self._damageFactor
-	end
-
-	amount = Utils.Math.Round(amount, 2)
-
-	return PlayerManager.IncrementVital(self._player, "hp", amount)
-end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -228,4 +204,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return HP
+return FallDamage

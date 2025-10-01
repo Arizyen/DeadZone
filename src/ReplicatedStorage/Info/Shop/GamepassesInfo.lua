@@ -27,6 +27,7 @@ local GamepassesInfo = {
 			id = 1265202345,
 			colorSequence = ColorSequence.new(Color3.fromRGB(254, 226, 38), Color3.fromRGB(253, 168, 9)),
 			layoutOrder = 1,
+			value = 0.25,
 		},
 		staminaBonus100 = {
 			key = "staminaBonus100",
@@ -39,8 +40,8 @@ local GamepassesInfo = {
 			layoutOrder = 2,
 			value = 100,
 		},
-		x2HPRegenSpeed = {
-			key = "x2HPRegenSpeed",
+		x2HPRegen = {
+			key = "x2HPRegen",
 			name = "+100% HP Regen Speed",
 			description = "Regenerate HP at double the normal rate!",
 			price = 389,
@@ -48,6 +49,7 @@ local GamepassesInfo = {
 			id = 1265202345,
 			colorSequence = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 200, 200)),
 			layoutOrder = 3,
+			value = 1,
 		},
 		quickHands = {
 			key = "quickHands",
@@ -55,6 +57,7 @@ local GamepassesInfo = {
 			description = "Reload 25% faster!",
 			price = 389,
 			id = 1265202345,
+			value = 0.25,
 		},
 		ironSkin = {
 			key = "ironSkin",
@@ -62,6 +65,7 @@ local GamepassesInfo = {
 			description = "Take 25% less damage!",
 			price = 389,
 			id = 1265202345,
+			value = 0.25,
 		},
 	},
 }

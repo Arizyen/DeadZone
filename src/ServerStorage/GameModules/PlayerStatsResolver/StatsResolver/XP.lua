@@ -1,4 +1,5 @@
-local GameLoader = {}
+local XP = {}
+XP.__index = XP
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,7 +15,9 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -22,30 +25,22 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local SaveData = require(script.SaveData)
-local PlayerManager = require(BaseModules.PlayerManager)
-local PlayerStateManager = require(GameModules.PlayerStateManager)
+local Level = require(BaseModules.Level)
 
 -- Handlers --------------------------------------------------------------------
-local GameHandler = require(GameHandlers.GameHandler)
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.Save)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local gamepassesInfo = require(ReplicatedInfo.Shop.GamepassesInfo)
+local perksInfo = require(ReplicatedInfo.PerksInfo)
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 
 -- Variables -----------------------------------------------------------------------
-local gotJoinData = false
-local gotSaveData = false
-local isSavedGame = false
-
-local chosenSpawnLocation = nil :: SpawnLocation?
 
 -- Tables --------------------------------------------------------------------------
 
@@ -53,81 +48,89 @@ local chosenSpawnLocation = nil :: SpawnLocation?
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function GetSpawnLocation()
-	if chosenSpawnLocation then
-		return chosenSpawnLocation
-	end
+------------------------------------------------------------------------------------------------------------------------
+-- CORE METHODS --------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 
-	chosenSpawnLocation = Utils.Table.Array.getRandomValue(game.Workspace.Map.SpawnLocations:GetChildren())
-	return chosenSpawnLocation
+function XP.new(player: Player)
+	local self = setmetatable({}, XP)
+
+	-- Booleans
+	self._destroyed = false
+	self._vipGamepass = PlayerDataHandler.GetPathValue(player.UserId, { "gamepasses", "vip" }) or false
+	self._quickLearnerPerk = PlayerDataHandler.GetPathValue(player.UserId, { "perks", "quickLearner" }) or false
+
+	-- Instances
+	self._player = player :: Player
+
+	-- Numbers
+	self._xpFactor = 1
+
+	self:_Init()
+
+	return self
 end
 
--- Loads a player's state and inventory based on their save data
-local function LoadPlayer(player: Player, playerSave: SaveTypes.PlayerSave?)
-	if MapConfigs.IS_PVE_PLACE then
-		PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
-	else
-		playerSave =
-			PlayerDataHandler.GetPathValue(player.UserId, { "profile", "playerSavePVP" }) :: SaveTypes.PlayerSave?
-		PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
-	end
+function XP:_Init()
+	-- Connections
+	Utils.Connections.Add(
+		self,
+		"vipGamepassChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "gamepasses", "vip" }, function(newValue)
+			self._vipGamepass = newValue or false
+			self:_UpdateXPFactor()
+		end)
+	)
 
-	if playerSave then
-		-- Set player's data based on save
-		--TODO: Load save data of player and spawn player at saved position
-	else
-		-- Initialize player as new player
-		local spawnLocation = GetSpawnLocation()
-		PlayerManager.Spawn(player, spawnLocation)
-	end
+	Utils.Connections.Add(
+		self,
+		"quickLearnerPerkChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "quickLearner" }, function(newValue)
+			self._quickLearnerPerk = newValue or false
+			self:_UpdateXPFactor()
+		end)
+	)
+
+	self:_UpdateXPFactor()
 end
 
-------------------------------------------------------------------------------------------------------------------------
--- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-function GameLoader.GetJoinData(playerJoined: Player)
-	if gotJoinData then
+function XP:Destroy()
+	if self._destroyed then
 		return
 	end
+	self._destroyed = true
 
-	gotJoinData = true
-
-	local joinData = playerJoined:GetJoinData()
-	if joinData and type(joinData.TeleportData) == "table" then
-		if joinData.TeleportData.saveInfo then
-			local saveInfo = joinData.TeleportData.saveInfo
-			if saveInfo.id then
-				isSavedGame = true
-
-				--TODO: Load save data
-
-				GameHandler.Init(SaveData.info) -- SaveData.info contains all settings of the saved game
-			else
-				GameHandler.Init(saveInfo) -- saveInfo contains settings of the new game
-			end
-		end
-	else
-		GameHandler.Init() -- New game with default settings
-	end
-
-	return joinData
+	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function GameLoader.LoadPlayer(player: Player)
-	if isSavedGame and not gotSaveData then
-		repeat
-			task.wait(0.1)
-		until gotSaveData
+------------------------------------------------------------------------------------------------------------------------
+-- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+function XP:_UpdateXPFactor()
+	local xpFactor = 1
+
+	if self._vipGamepass then
+		local gamepassInfo = gamepassesInfo.byKey.vip
+		xpFactor += gamepassInfo.value
 	end
 
-	-- Load player into game
-	if isSavedGame then
-		-- Load player based on save data
-		LoadPlayer(player, SaveData.playersSave and SaveData.playersSave[player.UserId] or nil)
-	else
-		-- Load player as new player
-		LoadPlayer(player, nil)
+	if self._quickLearnerPerk then
+		local quickLearnerPerkInfo = perksInfo.byKey.quickLearner
+		xpFactor += quickLearnerPerkInfo.value
 	end
+
+	self._xpFactor = xpFactor
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "xpFactor" }, xpFactor)
+end
+
+------------------------------------------------------------------------------------------------------------------------
+-- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+function XP:Add(amount: number)
+	amount = amount * self._xpFactor
+	Level.AddXP(self._player, amount, true)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -138,4 +141,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return GameLoader
+return XP

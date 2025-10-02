@@ -42,6 +42,7 @@ local HUDLobby = require(script:WaitForChild("HUDLobby"))
 local HUDLobbyRightSide = require(script:WaitForChild("HUDLobbyRightSide"))
 local Teleporting = require(script:WaitForChild("Teleporting"))
 local Stamina = require(script:WaitForChild("Stamina"))
+local MobileControls = require(script:WaitForChild("MobileControls"))
 
 -- Configs
 
@@ -90,12 +91,15 @@ local function App(props)
 			HUDLobby = e(HUDLobby),
 			HUDLobbyRightSide = e(HUDLobbyRightSide),
 			Teleporting = e(Teleporting),
+			Stamina = e(Stamina),
+			MobileControls = e(MobileControls),
 		}
 	else
 		return {
 			Messages = e(Messages),
 			Teleporting = e(Teleporting),
 			Stamina = e(Stamina),
+			MobileControls = e(MobileControls),
 		}
 	end
 end

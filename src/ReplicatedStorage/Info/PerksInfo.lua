@@ -87,7 +87,7 @@ return {
 		},
 
 		-- Survival perks
-		ironLungs = { name = "Iron Lungs", type = "survival", description = "+20 stamina", value = 20 },
+		ironLungs = { name = "Iron Lungs", type = "survival", description = "+25 stamina", value = 25 },
 		hpRegen = { name = "HP Regen", type = "survival", description = "+10% HP regeneration speed", value = 0.1 },
 		thickSkin = {
 			name = "Thick Skin",

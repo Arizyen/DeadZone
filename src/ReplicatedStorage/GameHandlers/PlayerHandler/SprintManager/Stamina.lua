@@ -72,7 +72,11 @@ function Stamina:_Init()
 		"maxStaminaChanged",
 		PlayerDataHandler.ObservePath({ "stats", "maxStamina" }, function(newMaxStamina)
 			self._maxStamina = newMaxStamina or MovementConfigs.STAMINA
-			self._stamina = math.clamp(self._stamina, 0, self._maxStamina)
+			-- self._stamina = math.clamp(self._stamina, 0, self._maxStamina)
+			self._stamina = self._maxStamina
+
+			self._sprintManager:UpdateUIState()
+			-- self:_Regen()
 		end)
 	)
 
@@ -97,6 +101,30 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+-- Auto-regenerate stamina when not consuming
+function Stamina:_Regen()
+	if self._isConsuming or self._stamina >= self._maxStamina then
+		return
+	end
+
+	Utils.Connections.Add(
+		self,
+		"staminaRegenHeartbeat",
+		RunService.Heartbeat:Connect(function(deltaTime)
+			if self._isConsuming then
+				return
+			end
+
+			self._stamina =
+				math.clamp(self._stamina + (MovementConfigs.STAMINA_REGENERATION_RATE * deltaTime), 0, self._maxStamina)
+
+			if self._stamina >= self._maxStamina then
+				Utils.Connections.DisconnectKeyConnection(self, "staminaRegenHeartbeat")
+			end
+		end)
+	)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
@@ -142,23 +170,7 @@ function Stamina:StopConsuming()
 
 	Utils.Connections.DisconnectKeyConnection(self, "staminaConsumeHeartbeat")
 
-	-- Auto-regenerate stamina when not consuming
-	Utils.Connections.Add(
-		self,
-		"staminaRegenHeartbeat",
-		RunService.Heartbeat:Connect(function(deltaTime)
-			if self._isConsuming then
-				return
-			end
-
-			self._stamina =
-				math.clamp(self._stamina + (MovementConfigs.STAMINA_REGENERATION_RATE * deltaTime), 0, self._maxStamina)
-
-			if self._stamina >= self._maxStamina then
-				Utils.Connections.DisconnectKeyConnection(self, "staminaRegenHeartbeat")
-			end
-		end)
-	)
+	self:_Regen()
 end
 
 function Stamina:Add(amount: number)

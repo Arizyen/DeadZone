@@ -29,20 +29,19 @@ local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- Handlers ----------------------------------------------------------------
+local PlayerHandler = require(ReplicatedGameHandlers:WaitForChild("PlayerHandler"))
 
 -- BaseComponents ----------------------------------------------------------------
-local UIAspectRatioConstraint = require(BaseComponents:WaitForChild("UIAspectRatioConstraint"))
-local UIStroke = require(BaseComponents:WaitForChild("UIStroke"))
-local TextLabel = require(BaseComponents:WaitForChild("TextLabel"))
 
 -- GlobalComponents ----------------------------------------------------------------
 
 -- AppComponents -------------------------------------------------------------------
 
 -- LocalComponents -----------------------------------------------------------------
+local ControlHold = require(script:WaitForChild("ControlHold"))
+local ControlButton = require(script:WaitForChild("ControlButton"))
 
 -- Hooks ---------------------------------------------------------------------------
-local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBinding"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {}
@@ -60,104 +59,53 @@ local e = React.createElement
 
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
-	stamina = { "stamina", "isHoldingSprint" },
-	data = { { "stats", "maxStamina" }, { "stats", "staminaConsumptionRate" } },
-	window = { "windowShown", "hideHUD" },
+	game = { "deviceType" },
+	theme = { "totalScreenSize" },
+	playerAttributes = { "isAlive" },
 })
-
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function Stamina(props: Props)
+local function MobileControls(props: Props)
 	-- SELECTORS/CONTEXTS/HOOKS --------------------------------------------------------------------------------------------
 	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
-	local motorRef =
-		React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / (storeState.maxStamina / storeState.staminaConsumptionRate)))
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
-	-- MEMOS -------------------------------------------------------------------------------------------------------------
-	local staminaTransparencyBinding = useMotorMappedBinding(motorRef, function(value)
-		return Utils.NumberSequence.CooldownSequence(1 - value)
-	end, UDim2.fromScale(1, 1), {})
-
-	local staminaColorBinding = useMotorMappedBinding(motorRef, function(value)
-		return (1 - value) * 100 > 11 and Utils.Color.Configs.colorSequences.blue
-			or Utils.Color.Configs.colorSequences.redStatic
-	end, Utils.Color.Configs.colorSequences.blue, { storeState.maxStamina })
-
-	local textStaminaBinding = useMotorMappedBinding(motorRef, function(value)
-		return string.format("%d", (1 - value) * storeState.maxStamina)
-	end, "100", { storeState.maxStamina })
+	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
-	-- Update motor
-	React.useLayoutEffect(function()
-		if storeState.windowShown or storeState.hideHUD or not storeState.isHoldingSprint then
-			motorRef.current:Stop()
-		elseif storeState.isHoldingSprint then
-			motorRef.current:Restart(
-				true,
-				1 - (storeState.stamina / storeState.maxStamina),
-				1 / (storeState.maxStamina / storeState.staminaConsumptionRate)
-			)
-		end
-	end, {
-		storeState.stamina,
-		storeState.isHoldingSprint,
-		storeState.maxStamina,
-		storeState.staminaConsumptionRate,
-		storeState.windowShown,
-		storeState.hideHUD,
-	})
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e("Frame", {
-		AnchorPoint = Vector2.new(0.5, 1),
-		BackgroundColor3 = Color3.fromRGB(150, 150, 150),
-		BackgroundTransparency = 0.8,
-		Position = UDim2.fromScale(0.5, 0.85),
-		Size = UDim2.fromScale(0.2, 0.02),
-		Visible = not storeState.windowShown and not storeState.hideHUD and storeState.isHoldingSprint,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Position = storeState.totalScreenSize >= 1350 and UDim2.new(1, -170, 1, -210) or UDim2.new(1, -95, 1, -90),
+		Size = storeState.totalScreenSize >= 1350 and UDim2.fromOffset(240, 240) or UDim2.fromOffset(140, 140),
+		Visible = storeState.isAlive and storeState.deviceType == "mobile",
 	}, {
-		UIAspectRatioConstraint = e(UIAspectRatioConstraint, {
-			size = UDim2.fromScale(0.2, 0.02),
-		}),
-		UICorner = e("UICorner", {
-			CornerRadius = UDim.new(0.5, 0),
-		}),
-		UIStroke = e(UIStroke, {
-			Color = Color3.fromRGB(240, 240, 240),
-			Thickness = 1.5,
-			Transparency = 0.25,
+		UIAspectRatioConstraint = e("UIAspectRatioConstraint", {
+			AspectRatio = 1,
 		}),
 
-		FrameProgress = e("Frame", {
-			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-			Size = UDim2.fromScale(1, 1),
-		}, {
-			UICorner = e("UICorner", {
-				CornerRadius = UDim.new(0.5, 0),
-			}),
-			UIGradient = e("UIGradient", {
-				Color = staminaColorBinding,
-				Transparency = staminaTransparencyBinding,
-			}),
-		}),
-
-		TextLabelStamina = e(TextLabel, {
+		SprintButton = e(ControlButton, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.3, 1),
-			Text = textStaminaBinding,
-			TextColor3 = Color3.fromRGB(255, 255, 255),
-			ZIndex = 2,
-			textStrokeThickness = 1,
+			Position = UDim2.fromScale(0.75, 0.22),
+			Size = UDim2.fromScale(0.5, 0.5),
+			Visible = true,
+			Image = "rbxassetid://73420895971072",
+			onActiveImage = "rbxassetid://73420895971072",
+			onActivation = function()
+				PlayerHandler.HoldSprint(true)
+			end,
+			onDeactivation = function()
+				PlayerHandler.HoldSprint(false)
+			end,
 		}),
 	})
 end
 
-return Stamina
+return MobileControls

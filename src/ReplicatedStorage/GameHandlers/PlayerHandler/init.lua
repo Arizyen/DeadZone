@@ -70,6 +70,10 @@ function PlayerHandler.AddStamina(amount: number)
 	sprintManager:AddStamina(amount)
 end
 
+function PlayerHandler.HoldSprint(state: boolean)
+	sprintManager:HoldSprint(state)
+end
+
 -- TELEPORTATION -------------------------------------------------------------------------------------------------------
 
 function PlayerHandler.Teleport(cframe)

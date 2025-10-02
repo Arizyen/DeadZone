@@ -31,6 +31,10 @@ local PlayerDataHandler = require(ReplicatedBaseHandlers:WaitForChild("PlayerDat
 
 -- Configs -------------------------------------------------------------------------
 local MovementConfigs = require(ReplicatedConfigs:WaitForChild("MovementConfigs"))
+local SPRINT_KEY_CODES = {
+	Enum.KeyCode.LeftShift,
+	Enum.KeyCode.ButtonL3,
+}
 
 -- Variables -----------------------------------------------------------------------
 local localPlayer = game.Players.LocalPlayer
@@ -113,7 +117,7 @@ function SprintManager:_Init()
 				return
 			end
 
-			if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.ButtonL3 then
+			if table.find(SPRINT_KEY_CODES, input.KeyCode) then
 				self:HoldSprint(true)
 			end
 		end)
@@ -127,7 +131,7 @@ function SprintManager:_Init()
 				return
 			end
 
-			if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.ButtonL3 then
+			if table.find(SPRINT_KEY_CODES, input.KeyCode) then
 				self:HoldSprint(false)
 			end
 		end)

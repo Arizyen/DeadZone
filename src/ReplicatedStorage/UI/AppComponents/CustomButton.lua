@@ -87,15 +87,13 @@ type Props = {
 local e = React.createElement
 
 -- Tables --------------------------------------------------------------------------
-local deviceTypeCornerRadius = {
-	pc = UDim.new(0.125, 0),
-	mobile = UDim.new(0.175, 0),
-	console = UDim.new(0.1, 0),
+local screenSizeCornerRadius = {
+	large = UDim.new(0.125, 0),
+	small = UDim.new(0.175, 0),
 }
-local deviceTypeButtonOffset = {
-	pc = -5,
-	mobile = -2,
-	console = -6,
+local screenSizeButtonOffset = {
+	large = -5,
+	small = -2,
 }
 
 -- Selectors --------------------------------------------------------------------------
@@ -105,8 +103,8 @@ local deviceTypeButtonOffset = {
 ------------------------------------------------------------------------------------------------------------------------
 local function CustomButton(props: Props)
 	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
-	local deviceType = ReactRedux.useSelector(function(state)
-		return state.game.deviceType
+	local isOnSmallScreen = ReactRedux.useSelector(function(state)
+		return state.game.isOnSmallScreen
 	end)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
@@ -115,7 +113,9 @@ local function CustomButton(props: Props)
 		props.shineAnimation and UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8) or nil
 	)
 
-	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
+	local screenSize = isOnSmallScreen and "small" or "large"
+
+	-- CALLBACKS ----------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 	local offsetMappedBinding = useMotorMappedBinding(motorRef, function(value)
@@ -182,7 +182,7 @@ local function CustomButton(props: Props)
 			end,
 		}),
 		{
-			UICorner = e("UICorner", { CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }),
+			UICorner = e("UICorner", { CornerRadius = props.cornerRadius or screenSizeCornerRadius[screenSize] }),
 			UIAspectRatioConstraint = props.aspectRatio and e("UIAspectRatioConstraint", {
 				AspectRatio = props.aspectRatio,
 			}),
@@ -198,20 +198,20 @@ local function CustomButton(props: Props)
 				BackgroundTransparency = 0.5,
 				Size = UDim2.fromScale(1, 1),
 			}, {
-				UICorner = e("UICorner", { CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }),
+				UICorner = e("UICorner", { CornerRadius = props.cornerRadius or screenSizeCornerRadius[screenSize] }),
 			}),
 
 			FrameForeground = e(
 				"Frame",
 				{
 					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					Size = UDim2.new(1, 0, 1, deviceTypeButtonOffset[deviceType] or -5),
+					Size = UDim2.new(1, 0, 1, screenSizeButtonOffset[screenSize] or -5),
 					ZIndex = 2,
 				},
 				Utils.Table.Dictionary.merge({
 					UICorner = e(
 						"UICorner",
-						{ CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }
+						{ CornerRadius = props.cornerRadius or screenSizeCornerRadius[screenSize] }
 					),
 					UIGradient = e("UIGradient", {
 						Color = props.colorSequence or Utils.Color.Configs.colorSequences["green"],
@@ -272,7 +272,7 @@ local function CustomButton(props: Props)
 					}, {
 						UICorner = e(
 							"UICorner",
-							{ CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }
+							{ CornerRadius = props.cornerRadius or screenSizeCornerRadius[screenSize] }
 						),
 					}),
 
@@ -283,7 +283,7 @@ local function CustomButton(props: Props)
 					}, {
 						UICorner = e(
 							"UICorner",
-							{ CornerRadius = props.cornerRadius or deviceTypeCornerRadius[deviceType] }
+							{ CornerRadius = props.cornerRadius or screenSizeCornerRadius[screenSize] }
 						),
 						UIGradient = e("UIGradient", {
 							Color = Utils.Color.ColorSequence({

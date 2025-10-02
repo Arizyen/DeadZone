@@ -50,6 +50,15 @@ end
 
 local function Init()
 	if not table.find(MapConfigs.PVE_PLACE_IDS, game.PlaceId) then
+		-- Is lobby
+		-- Load in players
+		for _, player in pairs(game.Players:GetPlayers()) do
+			Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
+		end
+		Utils.Signals.Connect("PlayerLoaded", function(player)
+			Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
+		end)
+
 		return
 	end
 

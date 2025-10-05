@@ -1,5 +1,5 @@
 local GamepassesInfo = {
-	allKeys = {
+	keys = {
 		"vip",
 		"x2Energy",
 	},
@@ -9,14 +9,14 @@ local GamepassesInfo = {
 			name = "Infinite Backpack",
 			description = "Unlimited slots backpack!",
 			price = 779,
-			id = 1265202345,
+			id = 1510862566,
 		},
 		saveBox = {
 			key = "saveBox",
 			name = "Save Box",
 			description = "Save your game!",
 			price = 489,
-			id = 1265202345,
+			id = 1508880173,
 		},
 		vip = {
 			key = "vip",
@@ -24,7 +24,7 @@ local GamepassesInfo = {
 			description = "Earn 25% MORE XP!<br/>Rainbow name tag!",
 			price = 389,
 			image = "rbxassetid://102219142938632",
-			id = 1265202345,
+			id = 1508158218,
 			colorSequence = ColorSequence.new(Color3.fromRGB(254, 226, 38), Color3.fromRGB(253, 168, 9)),
 			layoutOrder = 1,
 			value = 0.25,
@@ -35,7 +35,7 @@ local GamepassesInfo = {
 			description = "Increase your stamina by 100!",
 			price = 389,
 			image = "rbxassetid://102219142938632",
-			id = 1265202345,
+			id = 1507452536,
 			colorSequence = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 200, 200)),
 			layoutOrder = 2,
 			value = 100,
@@ -46,7 +46,7 @@ local GamepassesInfo = {
 			description = "Regenerate HP at double the normal rate!",
 			price = 389,
 			image = "rbxassetid://102219142938632",
-			id = 1265202345,
+			id = 1510190239,
 			colorSequence = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 200, 200)),
 			layoutOrder = 3,
 			value = 1,
@@ -56,7 +56,7 @@ local GamepassesInfo = {
 			name = "Quick Hands",
 			description = "Reload 25% faster!",
 			price = 389,
-			id = 1265202345,
+			id = 1507748546,
 			value = 0.25,
 		},
 		ironSkin = {
@@ -64,7 +64,7 @@ local GamepassesInfo = {
 			name = "Iron Skin",
 			description = "Take 25% less damage!",
 			price = 389,
-			id = 1265202345,
+			id = 1507470726,
 			value = 0.25,
 		},
 	},

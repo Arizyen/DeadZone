@@ -1,5 +1,5 @@
 return {
-	allKeys = { "common", "uncommon", "rare", "epic", "legendary", "mythic", "vip", "limited" },
+	keys = { "common", "uncommon", "rare", "epic", "legendary", "mythic", "vip", "limited" },
 	byKey = {
 		common = {
 			name = "Common",

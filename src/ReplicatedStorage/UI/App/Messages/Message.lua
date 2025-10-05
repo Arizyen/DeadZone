@@ -52,7 +52,7 @@ local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBind
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local MessageTypes = require(ReplicatedTypes:WaitForChild("Message"))
+local MessageTypes = require(ReplicatedTypes:WaitForChild("MessageTypes"))
 type Props = { LayoutOrder: number, message: MessageTypes.Message }
 
 -- Variables -----------------------------------------------------------------------

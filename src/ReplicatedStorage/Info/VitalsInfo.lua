@@ -1,3 +1,3 @@
 return {
-	allKeys = { "hp" },
+	keys = { "hp" },
 }

@@ -1,5 +1,3 @@
-local GameHandler = {}
-
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,13 +9,11 @@ local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
 local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
 local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
 local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
-local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
 local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
-local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
+local Rodux = require(Packages:WaitForChild("Rodux"))
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
-local Ports = require(script:WaitForChild("Ports"))
 
 -- Handlers ----------------------------------------------------------------
 
@@ -42,39 +38,16 @@ local GameTypes = require(ReplicatedTypes:WaitForChild("GameTypes"))
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function GameHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
-end
+local GameStateReducer = Rodux.createReducer({
+	difficulty = 1,
+	isDay = false,
+	nightsSurvived = 0,
+	zombiesLeft = 0,
+	skipVotes = 0,
+}, {
+	SetGameState = function(state, action: { value: GameTypes.GameState })
+		return Utils.Table.Dictionary.merge(state, action.value)
+	end,
+})
 
-function GameHandler.Activate()
-	-- Get current state on start
-	Ports.GetGameState():andThen(GameHandler.SetGameState)
-end
-
-function GameHandler.SetGameState(state: GameTypes.GameState)
-	if type(state) ~= "table" then
-		return
-	end
-
-	Utils.Signals.Fire("DispatchAction", {
-		type = "SetGameState",
-		value = state,
-	})
-end
-
--- CLIENT FUNCTIONS ----------------------------------------------------------------------------------------------------
-
--- Returns a promise that resolves to a boolean indicating whether the vote was successful
-function GameHandler.VoteSkipDay(): boolean
-	return Ports.VoteSkipDay()
-end
-
-------------------------------------------------------------------------------------------------------------------------
--- CONNECTIONS ---------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-------------------------------------------------------------------------------------------------------------------------
--- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-return GameHandler
+return GameStateReducer

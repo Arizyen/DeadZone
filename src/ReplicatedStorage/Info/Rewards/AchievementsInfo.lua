@@ -1,6 +1,6 @@
 local AchievementsInfo = {}
 
-AchievementsInfo.allKeys = {
+AchievementsInfo.keys = {
 	"welcome",
 	"returningPlayer",
 	"play7DaysInARow",

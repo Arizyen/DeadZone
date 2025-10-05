@@ -19,7 +19,7 @@ local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
 -- Instances -----------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local MessageTypes = require(ReplicatedTypes:WaitForChild("Message"))
+local MessageTypes = require(ReplicatedTypes:WaitForChild("MessageTypes"))
 
 -- Info ---------------------------------------------------------------------------
 

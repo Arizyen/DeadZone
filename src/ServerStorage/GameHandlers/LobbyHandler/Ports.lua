@@ -1,6 +1,6 @@
 local ReplicatedSource = game:GetService("ReplicatedStorage").Source
 local ReplicatedTypes = ReplicatedSource.Types
-local LobbyTypes = require(ReplicatedTypes.Lobby)
+local LobbyTypes = require(ReplicatedTypes.LobbyTypes)
 
 export type Ports = {
 	FireLobbyStateUpdate: (state: LobbyTypes.LobbyState, playersLobbyId: { [number]: string }) -> (),

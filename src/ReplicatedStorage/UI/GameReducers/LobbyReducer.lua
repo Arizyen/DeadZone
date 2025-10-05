@@ -24,7 +24,7 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
+local LobbyTypes = require(ReplicatedTypes:WaitForChild("LobbyTypes"))
 
 -- Variables -----------------------------------------------------------------------
 

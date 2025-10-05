@@ -1,5 +1,5 @@
 local CoinsInfo = {
-	allKeys = {
+	keys = {
 		"coins5000",
 		"coins25000",
 		"coins100000",

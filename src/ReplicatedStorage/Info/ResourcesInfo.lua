@@ -2,7 +2,7 @@ local ColorConfigs = require(script.Parent.Parent:WaitForChild("Configs"):WaitFo
 
 local ResourcesInfo = {}
 
-ResourcesInfo.allKeys = { "coins", "gems", "revives", "xp" }
+ResourcesInfo.keys = { "coins", "gems", "revives", "xp" }
 ResourcesInfo.byKey = {
 	coins = {
 		image = "rbxassetid://101542292067445",

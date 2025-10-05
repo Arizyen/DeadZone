@@ -30,6 +30,11 @@ return {
 		blue = { Color3.fromRGB(54, 177, 255), Color3.fromRGB(28, 141, 244) },
 		blueStatic = { Color3.fromRGB(54, 177, 255), Color3.fromRGB(54, 177, 255) },
 
+		gray = { Color3.fromRGB(200, 200, 200), Color3.fromRGB(149, 149, 149) },
+		gray2 = { Color3.fromRGB(170, 170, 170), Color3.fromRGB(130, 130, 130) },
+		grayMedium = { Color3.fromRGB(100, 100, 100), Color3.fromRGB(50, 50, 50) },
+		grayDark = { Color3.fromRGB(65, 65, 65), Color3.fromRGB(40, 40, 40) },
+
 		green = { Color3.fromRGB(56, 221, 111), Color3.fromRGB(50, 150, 100) },
 
 		purple = { Color3.fromRGB(119, 44, 225), Color3.fromRGB(81, 81, 225) },

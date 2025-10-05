@@ -9,14 +9,14 @@ return {
 		gems = 700,
 		special = {
 			-- skins = {
-			-- 	allKeys = {
+			-- 	keys = {
 			-- 		"skinName1",
 			-- 		"skinName2",
 			-- 	},
 			-- 	infosModuleName = "SkinsInfos",
 			-- },
 			canons = {
-				allKeys = {
+				keys = {
 					"canonName1",
 					"canonName2",
 				},

@@ -30,7 +30,7 @@ local MessageHandler = require(ReplicatedBaseHandlers:WaitForChild("MessageHandl
 local LobbyConfigs = require(ReplicatedConfigs:WaitForChild("LobbyConfigs"))
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
+local LobbyTypes = require(ReplicatedTypes:WaitForChild("LobbyTypes"))
 
 -- Variables -----------------------------------------------------------------------
 

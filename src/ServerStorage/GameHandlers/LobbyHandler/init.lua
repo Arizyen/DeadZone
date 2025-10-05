@@ -36,7 +36,7 @@ local Lobby = require(script.Lobby)
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes.Lobby)
+local LobbyTypes = require(ReplicatedTypes.LobbyTypes)
 
 -- Variables -----------------------------------------------------------------------
 

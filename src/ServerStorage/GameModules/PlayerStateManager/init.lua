@@ -27,7 +27,7 @@ local StateManager = require(script.StateManager)
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.Save)
+local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Instances -----------------------------------------------------------------------
 

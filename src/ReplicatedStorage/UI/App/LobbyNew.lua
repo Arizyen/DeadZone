@@ -89,14 +89,14 @@ local function LobbyNew(props: Props)
 	local difficultyButtons = React.useMemo(function()
 		return Utils.Table.Dictionary.map(DifficultiesInfo.byKey, function(difficultyInfo)
 			return e(CustomButton, {
-				LayoutOrder = difficultyInfo.difficultyIndex,
+				LayoutOrder = difficultyInfo.index,
 				Size = UDim2.fromScale(0.315, 0.85),
 				text = difficultyInfo.name,
-				colorSequence = difficultyIndex == difficultyInfo.difficultyIndex
+				colorSequence = difficultyIndex == difficultyInfo.index
 						and Utils.Color.Configs.colorSequences[difficultyInfo.colorName]
 					or Utils.Color.Configs.colorSequences.silver,
 				onClick = function()
-					setDifficultyIndex(difficultyInfo.difficultyIndex)
+					setDifficultyIndex(difficultyInfo.index)
 				end,
 			})
 		end)

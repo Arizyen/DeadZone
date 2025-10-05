@@ -1,12 +1,13 @@
 local SaveTypes = {}
 
 export type SaveInfo = {
-	id: string?, -- Player UserId .. _ .. save # .. _ .. save cycle id
-	chunks: number?, -- Number of data chunks --> Player USerId .. _ .. save # .. _ .. save cycle id .. _ .. chunk #
+	id: string?, -- Player UserId .. _ .. save # .. _ .. save cycle #
+	chunks: number?, -- Number of data chunks --> Player USerId .. _ .. save # .. _ .. save cycle # .. _ .. chunk #
 	name: string?,
 	placeId: number,
 	difficulty: number,
 	nightsSurvived: number?,
+	zombiesLeft: number?,
 	playtime: number?,
 	createdAt: number?,
 	updatedAt: number?,
@@ -27,6 +28,7 @@ export type PlayerSave = {
 	inventory: table, -- Player inventory
 	loadout: table, -- Player equipped items
 	hotbar: table, -- Player hotbar items
+	zombieKills: number, -- Number of zombies killed
 }
 
 export type Save = {

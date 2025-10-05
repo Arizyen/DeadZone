@@ -1,5 +1,5 @@
 return {
-	allKeys = { "isDead", "isAlive" },
+	keys = { "isDead", "isAlive" },
 	byKey = {
 		isDead = {
 			default = true,

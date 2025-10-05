@@ -56,6 +56,8 @@ end
 function PlayerController:KnitStart()
 	knitServices["Player"].Teleport:Connect(PlayerHandler.Teleport)
 	knitServices["Player"].AddStamina:Connect(PlayerHandler.AddStamina)
+
+	PlayerHandler.Activate()
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------

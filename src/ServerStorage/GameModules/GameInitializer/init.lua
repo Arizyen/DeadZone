@@ -48,20 +48,7 @@ local function LoadInPlayer(player: Player)
 	Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
 end
 
-local function Init()
-	if not table.find(MapConfigs.PVE_PLACE_IDS, game.PlaceId) then
-		-- Is lobby
-		-- Load in players
-		for _, player in pairs(game.Players:GetPlayers()) do
-			Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
-		end
-		Utils.Signals.Connect("PlayerLoaded", function(player)
-			Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
-		end)
-
-		return
-	end
-
+local function InitPVE()
 	-- Place map in workspace
 	local mapName = Utils.Table.Dictionary.getKeyByValue(MapConfigs.MAPS_PLACE_ID, game.PlaceId)
 	local map = ServerStorage.Maps[mapName]
@@ -75,6 +62,24 @@ local function Init()
 	Utils.Signals.Connect("PlayerLoaded", function(player)
 		LoadInPlayer(player)
 	end)
+end
+
+local function InitLobby()
+	-- Load in players
+	for _, player in pairs(game.Players:GetPlayers()) do
+		Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
+	end
+	Utils.Signals.Connect("PlayerLoaded", function(player)
+		Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
+	end)
+end
+
+local function Init()
+	if MapConfigs.IS_PVE_PLACE then
+		InitPVE()
+	else
+		InitLobby()
+	end
 end
 
 ------------------------------------------------------------------------------------------------------------------------

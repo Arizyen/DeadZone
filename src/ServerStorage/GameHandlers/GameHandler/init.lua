@@ -23,13 +23,13 @@ local GameHandlers = ServerSource.GameHandlers
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local Ports = require(script.Ports)
-local GameState = require(script.GameState)
-local DayManager = require(script.DayManager)
+local Game = require(script.Game)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.Save)
+local SaveTypes = require(ReplicatedTypes.SaveTypes)
+local GameTypes = require(ReplicatedTypes.GameTypes)
 
 -- Instances -----------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ local SaveTypes = require(ReplicatedTypes.Save)
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
+local game = nil :: typeof(Game)
 
 -- Tables --------------------------------------------------------------------------
 
@@ -53,11 +54,24 @@ function GameHandler.Register(ports: Ports.Ports)
 	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
 
-function GameHandler.Init(saveInfo: SaveTypes.SaveInfo?)
-	GameState.Init(saveInfo)
+function GameHandler.Init(saveInfo: SaveTypes.SaveInfo?, builds: {})
+	game = Game.new(saveInfo, builds)
+end
 
-	-- Initialize game modules based on saveInfo
-	DayManager.Start()
+function GameHandler.GetGameState(): GameTypes.GameState
+	if not game then
+		return
+	end
+
+	return game:GetGameState()
+end
+
+function GameHandler.VoteSkipDay(player: Player): boolean
+	if not game then
+		return false
+	end
+
+	return game:VoteSkipDay(player)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

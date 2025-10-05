@@ -1,11 +1,12 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
-local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
-local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+local ReplicatedSource = ReplicatedStorage.Source
+local ReplicatedTypes = ReplicatedSource.Types
+local ReplicatedConfigs = ReplicatedSource.Configs
 
-local SaveTypes = require(ReplicatedTypes:WaitForChild("Save"))
-local MovementConfigs = require(ReplicatedConfigs:WaitForChild("MovementConfigs"))
-local GameConfigs = require(ReplicatedConfigs:WaitForChild("GameConfigs"))
+local SaveTypes = require(ReplicatedTypes.SaveTypes)
+local ItemTypes = require(ReplicatedTypes.ItemTypes)
+local MovementConfigs = require(ReplicatedConfigs.MovementConfigs)
+local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 
 local DataConfigs = {
 	-- Default data is set on each player data load if the key does not exist
@@ -33,9 +34,11 @@ local DataConfigs = {
 			claimed = {} :: { [string]: number }, -- day1, day2, etc... = timestamp claimed
 		},
 		gamepasses = {} :: { [string]: boolean },
-		hotbar = {} :: { [number]: string }, -- index = itemName
-		inventory = {} :: { [string]: number }, -- itemName = amount
-		loadout = {} :: { [string]: string }, -- slotName = itemName
+		hotbar = {} :: { [string]: string }, -- slotId (slot1) = itemName
+		inventory = {} :: { ItemTypes.Items }, -- itemId = amount
+		loadout = {
+			equippedTool = nil :: ItemTypes.Tool?,
+		} :: { [string]: string }, -- slotName = itemName
 		moderation = {
 			kickedReasons = {} :: { string },
 			permanentBan = false,
@@ -43,6 +46,7 @@ local DataConfigs = {
 			-- exploitingIntV<version> = timestamp
 			playersBanned = {} :: { number: number }, -- playerUserId = timestamp
 		},
+		playerState = {} :: SaveTypes.PlayerState,
 		playTimeRewards = {
 			claimed = {} :: { [number]: boolean },
 			lastUpdatedTime = function()
@@ -63,10 +67,8 @@ local DataConfigs = {
 			dayLoggedInTimes = {},
 			-- Data store save timestamps
 			lastSavedTimes = {} :: { [string]: number }, -- dataStoreName = timestamp
-
-			playerSavePVP = nil :: SaveTypes.PlayerSave?,
 		},
-		saves = {} :: { [number]: SaveTypes.Save }, -- saveNumber = Save
+		saves = {} :: { [number]: SaveTypes.SaveInfo }, -- saveNumber = SaveInfo
 		sessionState = {
 			gameStartAt = function()
 				return os.time()
@@ -89,7 +91,6 @@ local DataConfigs = {
 			xp = 0,
 			maxXP = 1000,
 			rebirths = 0,
-			playerState = {} :: SaveTypes.PlayerState,
 
 			-- Stamina
 			maxStamina = MovementConfigs.STAMINA,
@@ -168,10 +169,10 @@ local DataConfigs = {
 		{ "_inUse" },
 		{ "sessionState", "gameStartAt" },
 		{ "statistics", "totalPlayTimeOnStart" },
-		{ "inventory" },
 		{ "hotbar" },
+		{ "inventory" },
 		{ "loadout" },
-		{ "stats", "playerState" },
+		{ "playerState" },
 	},
 
 	-- Values to set when player leaves

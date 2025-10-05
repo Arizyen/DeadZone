@@ -49,6 +49,7 @@ type Props = {}
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local WeaponsInfo = require(ReplicatedInfo:WaitForChild("WeaponsInfo"))
 
 -- Configs -------------------------------------------------------------------------
 
@@ -59,9 +60,10 @@ local e = React.createElement
 
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
-	game = { "deviceType" },
+	app = { "deviceType" },
 	theme = { "totalScreenSize" },
 	playerAttributes = { "isAlive" },
+	data = { { "loadout", "equippedTool" } },
 })
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -72,12 +74,28 @@ local function MobileControls(props: Props)
 	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
+	local hasWeaponEquippedBinding, setHasWeaponEquipped = React.useBinding(false)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
+	React.useEffect(function()
+		if storeState.equippedTool then
+			local tool = storeState.equippedTool
+
+			if tool.category == "Weapon" then
+				local weaponInfo = WeaponsInfo.byKey[tool.key]
+				if weaponInfo and weaponInfo.class.ranged then
+					setHasWeaponEquipped(true)
+					return
+				end
+			end
+		end
+
+		setHasWeaponEquipped(false)
+	end, { storeState.equippedTool })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e("Frame", {
@@ -96,14 +114,39 @@ local function MobileControls(props: Props)
 			Position = UDim2.fromScale(0.75, 0.22),
 			Size = UDim2.fromScale(0.5, 0.5),
 			Visible = true,
-			Image = "rbxassetid://73420895971072",
-			onActiveImage = "rbxassetid://73420895971072",
+			Image = "rbxassetid://73877726555771",
+			isToggle = true,
+			onActiveImage = "rbxassetid://72404599210474",
 			onActivation = function()
 				PlayerHandler.HoldSprint(true)
 			end,
 			onDeactivation = function()
 				PlayerHandler.HoldSprint(false)
 			end,
+		}),
+
+		AimButton = e(ControlHold, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.22, 0.22),
+			Size = UDim2.fromScale(0.5, 0.5),
+			Visible = hasWeaponEquippedBinding,
+			Image = "rbxassetid://95484305126311",
+			onActiveImage = "rbxassetid://78688992914092",
+			onActivation = function() end,
+			onDeactivation = function() end,
+			draggable = true,
+		}),
+
+		ReloadButton = e(ControlButton, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.22, 0.75),
+			Size = UDim2.fromScale(0.35, 0.35),
+			Visible = hasWeaponEquippedBinding,
+			Image = "rbxassetid://85265793481466",
+			onActiveImage = "rbxassetid://94491897619211",
+			onActivation = function() end,
+			onDeactivation = function() end,
+			draggable = true,
 		}),
 	})
 end

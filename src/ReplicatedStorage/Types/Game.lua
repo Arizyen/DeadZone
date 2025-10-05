@@ -1,3 +1,0 @@
-local GameTypes = {}
-
-return GameTypes

@@ -74,9 +74,9 @@ local function SpawnPlayer(player: Player)
 	hDesc.Torso = 0
 
 	-- Add clothing
-	hDesc.GraphicTShirt = 0
-	hDesc.Shirt = 359780198
-	hDesc.Pants = 359780361
+	-- hDesc.GraphicTShirt = 0
+	hDesc.Shirt = 91444869191711
+	hDesc.Pants = 133870134715559
 
 	--TODO: Update humanoid description based on player data (clothing, accessories, etc.)
 

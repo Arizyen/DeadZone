@@ -13,7 +13,7 @@ local function resolveContext(key)
 			table.insert(availableKeys, k)
 		end
 		error(
-			("%q is not a valid member of Contexts. Available allKeys: %s"):format(
+			("%q is not a valid member of Contexts. Available keys: %s"):format(
 				tostring(key),
 				table.concat(availableKeys, ", ")
 			),

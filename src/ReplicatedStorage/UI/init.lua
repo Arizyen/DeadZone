@@ -115,7 +115,7 @@ function UI.MountApp()
 	))
 
 	Utils.Signals.Fire("DispatchAction", {
-		type = "SetGameState",
+		type = "SetAppState",
 		value = {
 			gameLoading = false,
 			appEnabled = true,

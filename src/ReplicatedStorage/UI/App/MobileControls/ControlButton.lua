@@ -43,6 +43,7 @@ local usePreloadAssets = require(BaseHooks:WaitForChild("usePreloadAssets"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {
+	isToggle: boolean?,
 	onActivation: (() -> ())?,
 	onDeactivation: (() -> ())?,
 	onActiveImage: string?,
@@ -91,6 +92,14 @@ local function ControlButton(props: Props)
 						props.onActivation()
 					end
 				else
+					setIsActive(false)
+					if props.onDeactivation then
+						props.onDeactivation()
+					end
+				end
+			end,
+			[React.Event.MouseButton1Up] = function()
+				if not props.isToggle and isActive then
 					setIsActive(false)
 					if props.onDeactivation then
 						props.onDeactivation()

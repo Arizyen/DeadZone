@@ -31,7 +31,7 @@ local GameHandler = require(GameHandlers.GameHandler)
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.Save)
+local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Instances -----------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 
 -- Variables -----------------------------------------------------------------------
 local gotJoinData = false
-local gotSaveData = false
+local loadedSaveData = false
 local isSavedGame = false
 
 local chosenSpawnLocation = nil :: SpawnLocation?
@@ -64,17 +64,13 @@ end
 
 -- Loads a player's state and inventory based on their save data
 local function LoadPlayer(player: Player, playerSave: SaveTypes.PlayerSave?)
-	if MapConfigs.IS_PVE_PLACE then
-		PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
-	else
-		playerSave =
-			PlayerDataHandler.GetPathValue(player.UserId, { "profile", "playerSavePVP" }) :: SaveTypes.PlayerSave?
-		PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
-	end
+	PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
 
 	if playerSave then
 		-- Set player's data based on save
 		--TODO: Load save data of player and spawn player at saved position
+
+		SaveData.playersSave[player.UserId] = nil -- Clear loaded save data to free memory
 	else
 		-- Initialize player as new player
 		local spawnLocation = GetSpawnLocation()
@@ -101,7 +97,12 @@ function GameLoader.GetJoinData(playerJoined: Player)
 
 				--TODO: Load save data
 
-				GameHandler.Init(SaveData.info) -- SaveData.info contains all settings of the saved game
+				GameHandler.Init(SaveData.info, SaveData.builds) -- SaveData.info contains all settings of the saved game
+
+				SaveData.info = nil -- Clear loaded save data to free memory
+				SaveData.builds = nil -- Clear loaded builds data to free memory
+
+				loadedSaveData = true
 			else
 				GameHandler.Init(saveInfo) -- saveInfo contains settings of the new game
 			end
@@ -114,10 +115,10 @@ function GameLoader.GetJoinData(playerJoined: Player)
 end
 
 function GameLoader.LoadPlayer(player: Player)
-	if isSavedGame and not gotSaveData then
+	if isSavedGame and not loadedSaveData then
 		repeat
 			task.wait(0.1)
-		until gotSaveData
+		until loadedSaveData
 	end
 
 	-- Load player into game

@@ -39,7 +39,7 @@ local LobbyService = Knit.CreateService({
 local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes.Lobby)
+local LobbyTypes = require(ReplicatedTypes.LobbyTypes)
 
 -- Variables -----------------------------------------------------------------------
 local isLobby = MapConfigs.MAPS_PLACE_ID.Lobby == game.PlaceId

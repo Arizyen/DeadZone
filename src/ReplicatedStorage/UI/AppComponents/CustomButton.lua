@@ -104,7 +104,7 @@ local screenSizeButtonOffset = {
 local function CustomButton(props: Props)
 	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
 	local isOnSmallScreen = ReactRedux.useSelector(function(state)
-		return state.game.isOnSmallScreen
+		return state.theme.isOnSmallScreen
 	end)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------

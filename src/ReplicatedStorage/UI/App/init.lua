@@ -43,6 +43,7 @@ local HUDLobbyRightSide = require(script:WaitForChild("HUDLobbyRightSide"))
 local Teleporting = require(script:WaitForChild("Teleporting"))
 local Stamina = require(script:WaitForChild("Stamina"))
 local MobileControls = require(script:WaitForChild("MobileControls"))
+local GameState = require(script:WaitForChild("GameState"))
 
 -- Configs
 
@@ -63,7 +64,7 @@ local e = React.createElement
 local function App(props)
 	-- SELECTORS -----------------------------------------------------------------------------------------------------------------------------------
 	local appEnabled = ReactRedux.useSelector(function(state)
-		return state.game.appEnabled
+		return state.app.appEnabled
 	end)
 
 	-- MEMOIZE -----------------------------------------------------------------------------------------------------------------------------------
@@ -100,6 +101,7 @@ local function App(props)
 			Teleporting = e(Teleporting),
 			Stamina = e(Stamina),
 			MobileControls = e(MobileControls),
+			GameState = e(GameState),
 		}
 	end
 end

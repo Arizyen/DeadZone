@@ -40,10 +40,11 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 -- LocalComponents -----------------------------------------------------------------
 
 -- Hooks ---------------------------------------------------------------------------
+local usePreloadAssets = require(BaseHooks:WaitForChild("usePreloadAssets"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {
-	onHoldImage: string?,
+	onActiveImage: string?,
 	onActivation: (() -> ())?,
 	onDeactivation: (() -> ())?,
 	draggable: boolean?,
@@ -75,6 +76,8 @@ local function ControlHold(props: Props)
 	local inputObjectRef = React.useRef(nil :: InputObject?)
 	local connectionsManagerRef = React.useRef(Utils.ConnectionsManager.new())
 
+	usePreloadAssets({ props.Image, props.onActiveImage }, "ImageLabel")
+
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 	local function ActivateDragging(state: boolean, fnToExecute: (() -> ())?, x, y)
 		if fnToExecute then
@@ -92,7 +95,10 @@ local function ControlHold(props: Props)
 							ActivateDragging(false, props.onDeactivation)
 							return
 						end
-						if input == inputObjectRef.current then
+						if
+							input == inputObjectRef.current
+							or (inputObjectRef.current == nil and (Vector3.new(x, y) - input.Position).Magnitude <= 30)
+						then
 							ActivateDragging(false, props.onDeactivation)
 						end
 					end)
@@ -192,7 +198,7 @@ local function ControlHold(props: Props)
 					ActivateDragging(true, props.onActivation, input.Position.X, input.Position.Y)
 				end
 			end,
-			Image = isHolding and props.onHoldImage or props.Image,
+			Image = isHolding and props.onActiveImage or props.Image,
 			ScaleType = Enum.ScaleType.Fit,
 		}),
 		{

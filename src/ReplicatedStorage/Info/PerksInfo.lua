@@ -1,5 +1,5 @@
 return {
-	allKeys = {
+	keys = {
 		-- Combat perks
 		"adrenalineMelee",
 		"bluntForce",

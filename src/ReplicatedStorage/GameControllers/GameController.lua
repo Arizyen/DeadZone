@@ -26,6 +26,7 @@ local GameController = Knit.CreateController({
 })
 
 -- Types ---------------------------------------------------------------------------
+local GameTypes = require(ReplicatedTypes:WaitForChild("GameTypes"))
 
 -- Instances -----------------------------------------------------------------------
 
@@ -49,10 +50,27 @@ local knitServices = {}
 -- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
 function GameController:KnitInit()
 	knitServices["Game"] = Knit.GetService("Game")
-	GameHandler.Register({})
+	GameHandler.Register({
+		GetGameState = function(): GameTypes.GameState
+			return knitServices["Game"]:GetGameState()
+		end,
+		VoteSkipDay = function(): boolean
+			return knitServices["Game"]:VoteSkipDay()
+		end,
+	})
 end
 
 -- KnitStart() fires after all KnitInit() have been completed.
-function GameController:KnitStart() end
+function GameController:KnitStart()
+	knitServices["Game"].SetGameState:Connect(function(newState: GameTypes.GameState)
+		GameHandler.SetGameState(newState)
+	end)
+
+	GameHandler.Activate()
+end
+
+------------------------------------------------------------------------------------------------------------------------
+-- CLIENT FUNCTIONS ----------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 
 return GameController

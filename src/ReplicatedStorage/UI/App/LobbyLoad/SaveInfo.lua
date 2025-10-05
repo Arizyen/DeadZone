@@ -42,7 +42,7 @@ local TextLabel = require(BaseComponents:WaitForChild("TextLabel"))
 -- Hooks ---------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes:WaitForChild("Save"))
+local SaveTypes = require(ReplicatedTypes:WaitForChild("SaveTypes"))
 type Props = { save: SaveTypes.SaveInfo }
 
 -- Instances -----------------------------------------------------------------------
@@ -102,7 +102,7 @@ local function SaveInfo(props: Props)
 					Size = UDim2.fromScale(1, 0.3),
 					Text = props.save.difficulty or "???",
 					textStroke = true,
-					textColorSequence = Utils.Color.Configs.colorSequences[DifficultiesInfo.byKey[DifficultiesInfo.allKeys[props.save.difficulty or 2]].colorName]
+					textColorSequence = Utils.Color.Configs.colorSequences[DifficultiesInfo.byKey[DifficultiesInfo.keys[props.save.difficulty or 2]].colorName]
 						or Utils.Color.Configs.colorSequences.white,
 				}),
 				TextLabelNightsSurvived = e(TextLabel, {

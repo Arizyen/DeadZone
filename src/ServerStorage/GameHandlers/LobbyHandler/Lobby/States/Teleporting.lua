@@ -35,7 +35,7 @@ local MessageHandler = require(BaseHandlers.MessageHandler)
 local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.Save)
+local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Variables -----------------------------------------------------------------------
 

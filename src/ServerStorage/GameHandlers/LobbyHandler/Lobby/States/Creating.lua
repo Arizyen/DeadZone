@@ -36,7 +36,7 @@ local MessageHandler = require(BaseHandlers.MessageHandler)
 local LobbyConfigs = require(ReplicatedConfigs.LobbyConfigs)
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes.Lobby)
+local LobbyTypes = require(ReplicatedTypes.LobbyTypes)
 local ILobbySettings = t.strictInterface({
 	difficulty = t.number,
 	maxPlayers = t.number,

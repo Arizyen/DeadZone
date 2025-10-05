@@ -42,8 +42,8 @@ local MessageHandler = require(BaseHandlers.MessageHandler)
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes.Lobby)
-local SaveTypes = require(ReplicatedTypes.Save)
+local LobbyTypes = require(ReplicatedTypes.LobbyTypes)
+local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Variables -----------------------------------------------------------------------
 

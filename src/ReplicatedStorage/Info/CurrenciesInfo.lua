@@ -1,5 +1,5 @@
 return {
-	allKeys = {
+	keys = {
 		"coins",
 		"rebirthPoints",
 	},

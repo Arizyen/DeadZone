@@ -1,5 +1,5 @@
 return {
-	allKeys = {
+	keys = {
 		"Play900Seconds", -- 15 minutes
 		"Play3600Seconds", -- 1 hour
 		"Play14400Seconds", -- 4 hours

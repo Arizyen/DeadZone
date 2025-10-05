@@ -96,7 +96,7 @@ end
 function Starting:Update()
 	-- Update frames
 	local lobbyDifficultyInfo =
-		DifficultiesInfo.byKey[DifficultiesInfo.allKeys[self.lobby.settings and self.lobby.settings.difficulty or 1]]
+		DifficultiesInfo.byKey[DifficultiesInfo.keys[self.lobby.settings and self.lobby.settings.difficulty or 1]]
 
 	self.lobby:UpdateFrameChildren("Starting", function(frame)
 		frame.TextLabelDifficulty.Text =

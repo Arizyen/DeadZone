@@ -27,10 +27,11 @@ local GameHandler = require(GameHandlers.GameHandler)
 -- Knit Services --------------------------------------------------------------------
 local GameService = Knit.CreateService({
 	Name = "Game",
-	Client = {},
+	Client = { SetGameState = Knit.CreateSignal(), SetGameStateKey = Knit.CreateSignal() },
 })
 
 -- Types ---------------------------------------------------------------------------
+local GameTypes = require(ReplicatedTypes:WaitForChild("GameTypes"))
 
 -- Instances -----------------------------------------------------------------------
 
@@ -53,7 +54,14 @@ local GameService = Knit.CreateService({
 
 -- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
 function GameService:KnitInit()
-	GameHandler.Register({})
+	GameHandler.Register({
+		SetGameState = function(newState: GameTypes.GameState)
+			self.Client.SetGameState:FireAll(newState)
+		end,
+		SetGameStateKey = function(key: string, value: any)
+			self.Client.SetGameStateKey:FireAll(key, value)
+		end,
+	})
 end
 
 -- KnitStart() fires after all KnitInit() have been completed.
@@ -62,5 +70,23 @@ function GameService:KnitStart() end
 -------------------------------------------------------------------------------------------------------------------------
 -- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------
+
+function GameService.Client:GetGameState(playerFired: Player): GameTypes.GameState
+	if not RateLimiter.Use(playerFired, "GameService", "GetGameState") then
+		warn("Rate limit exceeded for GetGameState by player: " .. playerFired.Name)
+		return
+	end
+
+	return GameHandler.GetGameState()
+end
+
+function GameService.Client:VoteSkipDay(playerFired: Player): boolean
+	if not RateLimiter.Use(playerFired, "GameService", "VoteSkipDay") then
+		warn("Rate limit exceeded for VoteSkipDay by player: " .. playerFired.Name)
+		return false
+	end
+
+	return GameHandler.VoteSkipDay(playerFired)
+end
 
 return GameService

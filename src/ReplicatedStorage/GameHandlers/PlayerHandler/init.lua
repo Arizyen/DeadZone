@@ -46,6 +46,8 @@ function PlayerHandler.Register(ports)
 	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
 
+function PlayerHandler.Activate() end
+
 -- CHARACTER MANAGEMENT ------------------------------------------------------------------------------------------------
 
 function PlayerHandler.Spawn(): boolean

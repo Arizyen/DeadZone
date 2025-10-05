@@ -32,7 +32,7 @@ local LobbyController = Knit.CreateController({
 -- Configs -------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local LobbyTypes = require(ReplicatedTypes:WaitForChild("Lobby"))
+local LobbyTypes = require(ReplicatedTypes:WaitForChild("LobbyTypes"))
 
 -- Variables -----------------------------------------------------------------------
 
@@ -65,11 +65,9 @@ end
 
 -- KnitStart() fires after all KnitInit() have been completed.
 function LobbyController:KnitStart()
-	knitServices["Lobby"].UpdateLobbyState:Connect(
-		function(lobbyState: LobbyTypes.LobbyState, playersLobbyId: { [string]: string })
-			LobbyHandler.UpdateLobbyState(lobbyState, playersLobbyId)
-		end
-	)
+	knitServices["Lobby"].UpdateLobbyState:Connect(LobbyHandler.UpdateLobbyState)
+
+	LobbyHandler.Activate()
 end
 
 return LobbyController

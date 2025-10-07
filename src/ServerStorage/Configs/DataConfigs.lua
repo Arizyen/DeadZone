@@ -81,6 +81,8 @@ local DataConfigs = {
 			musicVolume = 55,
 			soundEffectsVolume = 100,
 			rainbowNametagEnabled = true,
+			hideOthersNametag = false,
+			hideLocalNametag = true,
 		},
 		specialRewards = {
 			groupRewardClaimed = false,

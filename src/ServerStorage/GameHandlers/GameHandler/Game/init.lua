@@ -113,6 +113,14 @@ function Game:_Init()
 
 	Utils.Connections.Add(
 		self,
+		"dayStarted",
+		self.dayManager.dayStarted:Connect(function()
+			self:_FireGameState()
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
 		"votesChanged",
 		self.dayManager.votesChanged:Connect(function()
 			self:_FireGameState()

@@ -143,15 +143,19 @@ local function GameState(props: Props)
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0.5, 0, 0, 10),
-		Size = UDim2.fromScale(0.4, 0.075),
+		Size = UDim2.fromScale(0.4, 0.065),
 		Visible = not storeState.hideHUD and not storeState.windowShown,
 	}, {
+		UIAspectRatioConstraint = e(UIAspectRatioConstraint, {
+			size = UDim2.fromScale(0.4, 0.065),
+		}),
+
 		TextLabelNights = e(TextLabel, {
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.fromScale(0.5, 0),
 			Size = UDim2.fromScale(1, 0.55),
 			RichText = true,
-			Text = string.format("Night <font color ='rgb(255,0,0)'>%d</font>", storeState.nightsSurvived),
+			Text = string.format("Nights Survived: <font color ='rgb(255,0,0)'>%d</font>", storeState.nightsSurvived),
 		}),
 
 		FrameDay = e(
@@ -165,9 +169,6 @@ local function GameState(props: Props)
 					Position = UDim2.fromScale(0.5, 0.65),
 					Size = UDim2.fromScale(0.5, 0.35),
 				}, {
-					UIAspectRatioConstraint = e(UIAspectRatioConstraint, {
-						size = UDim2.fromScale(0.2, 0.02),
-					}),
 					UICorner = e("UICorner", {
 						CornerRadius = UDim.new(0.5, 0),
 					}),

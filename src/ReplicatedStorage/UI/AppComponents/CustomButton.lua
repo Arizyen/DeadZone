@@ -109,7 +109,7 @@ local function CustomButton(props: Props)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
 	local isHoveringBinding, setIsHovering = React.useBinding(false)
-	local motorRef = React.useRef(
+	local shineMotorRef = React.useRef(
 		props.shineAnimation and UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8) or nil
 	)
 
@@ -118,44 +118,44 @@ local function CustomButton(props: Props)
 	-- CALLBACKS ----------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
-	local offsetMappedBinding = useMotorMappedBinding(motorRef, function(value)
+	local offsetMappedBinding = useMotorMappedBinding(shineMotorRef, function(value)
 		return Vector2.new(Utils.Math.Lerp(-0.6, 0.6, value), 0)
-	end, Vector2.new(-0.6, 0), { motorRef.current })
+	end, Vector2.new(-0.6, 0), { shineMotorRef.current })
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	-- Cleanup
 	React.useEffect(function()
 		return function()
-			if motorRef.current then
-				motorRef.current:Destroy()
+			if shineMotorRef.current then
+				shineMotorRef.current:Destroy()
 			end
 		end
 	end, {})
 
-	-- Update motorRef
+	-- Update shineMotorRef
 	React.useLayoutEffect(function()
 		-- If shineAnimation is false, destroy motor if it exists
 		if not props.shineAnimation then
-			if motorRef.current then
-				motorRef.current:Destroy()
-				motorRef.current = nil
+			if shineMotorRef.current then
+				shineMotorRef.current:Destroy()
+				shineMotorRef.current = nil
 			end
 			return
 		end
 
 		-- Create motor if it doesn't exist
-		if not motorRef.current then
-			motorRef.current = UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8)
+		if not shineMotorRef.current then
+			shineMotorRef.current = UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8)
 		end
 
 		-- Update velocity
-		motorRef.current:SetVelocity(props.shineAnimationVelocity or 0.8)
+		shineMotorRef.current:SetVelocity(props.shineAnimationVelocity or 0.8)
 		-- Update motor state based on visibility
 		local isVisible = props.Visible == nil or props.Visible
 		if isVisible then
-			motorRef.current:Start()
+			shineMotorRef.current:Start()
 		else
-			motorRef.current:Stop()
+			shineMotorRef.current:Stop()
 		end
 	end, { props.shineAnimation, props.shineAnimationVelocity, props.Visible })
 
@@ -205,7 +205,7 @@ local function CustomButton(props: Props)
 				"Frame",
 				{
 					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					Size = UDim2.new(1, 0, 1, screenSizeButtonOffset[screenSize] or -5),
+					Size = UDim2.fromScale(1, 0.95),
 					ZIndex = 2,
 				},
 				Utils.Table.Dictionary.merge({

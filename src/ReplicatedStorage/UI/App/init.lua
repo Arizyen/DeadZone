@@ -22,7 +22,6 @@ local GlobalComponents = PlaywooEngineUI:WaitForChild("GlobalComponents")
 local React = require(Packages:WaitForChild("React"))
 local ReactRedux = require(Packages:WaitForChild("ReactRedux"))
 -- local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
--- local CameraManager = require(ReplicatedBaseModules:WaitForChild("CameraManager"))
 
 -- KnitControllers
 

@@ -27,7 +27,6 @@ local UIUtils = require(ReplicatedPlaywooEngine:WaitForChild("UIUtils"))
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
-local CameraManager = require(ReplicatedBaseModules:WaitForChild("CameraManager"))
 local GameConfigs = require(ReplicatedConfigs:WaitForChild("GameConfigs"))
 
 -- Handlers ----------------------------------------------------------------
@@ -116,7 +115,7 @@ local function StartScreen(props: Props)
 		end
 
 		if not windowsWithCameraAnimation[storeState.windowShown] then
-			CameraManager.DisconnectConnections()
+			--TODO Reset Camera
 		end
 	end, { storeState.windowShown })
 

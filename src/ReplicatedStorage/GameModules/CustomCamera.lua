@@ -145,7 +145,7 @@ function CustomCamera:Update()
 		fade = (dist - FADE_END) / math.max(1e-3, (FADE_START - FADE_END))
 	end
 
-	self._humanoid.CameraOffset = CAMERA_OFFSET * fade
+	self._humanoid.CameraOffset = (self._isRagdolled and Vector3.new() or CAMERA_OFFSET) * fade
 
 	-- Auto transition first-person / third-person
 	if not self._transitioning then

@@ -1,5 +1,5 @@
-local CustomCamera = {}
-CustomCamera.__index = CustomCamera
+local PlayerAxesAnimator = {}
+PlayerAxesAnimator.__index = PlayerAxesAnimator
 
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -29,15 +29,10 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local CAMERA_OFFSET = Vector3.new(2, 0.2, 0)
-local FADE_START = 5
-local FADE_END = 0.5
-local EPS = 0.1
-local TWEEN_TIME = 0.3
+local MAX_YAW = math.rad(75) -- left/right
 
 -- Variables -----------------------------------------------------------------------
 local localPlayer = game.Players.LocalPlayer
-local camera = game.Workspace.CurrentCamera
 
 -- Tables --------------------------------------------------------------------------
 
@@ -45,43 +40,44 @@ local camera = game.Workspace.CurrentCamera
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function GetZoomDistance()
-	return (camera.CFrame.Position - camera.Focus.Position).Magnitude
-end
+local Lerp = Utils.Math.Lerp
+local Smoothstep = Utils.Math.Smoothstep
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function CustomCamera.new()
-	local self = setmetatable({}, CustomCamera)
+function PlayerAxesAnimator.new(player: Player)
+	local self = setmetatable({}, PlayerAxesAnimator)
 
 	-- Booleans
 	self._destroyed = false
-	self._active = false
-	self._inFirstPerson = false
-	self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
-	self._transitioning = false
+	self._activated = false
+	self._toolEquipped = player:GetAttribute("toolEquipped") or false
+	self._inRange = player == localPlayer
 
-	-- Numbers
-	self._origMinZoomDistance = 0
-	self._origMaxZoomDistance = 0
+	-- Instances
+	self._player = player
+	self._character = player.Character
+	self._upperTorso = nil
+	self._waistMotor6D = nil
+	self._neckMotor6D = nil
 
-	-- Instance
-	self._character = localPlayer.Character
-	self._humanoid = self._character and self._character:FindFirstChildOfClass("Humanoid")
+	-- CFrame
+	self._waistC0Base = nil
+	self._neckC0Base = nil
 
 	self:_Init()
 
 	return self
 end
 
-function CustomCamera:_Init()
+function PlayerAxesAnimator:_Init()
 	-- Connections
 	Utils.Connections.Add(
 		self,
 		"CharacterAdded",
-		localPlayer.CharacterAdded:Connect(function(character)
+		self._player.CharacterAdded:Connect(function(character)
 			self._character = character
 			self:_Activate()
 		end)
@@ -90,7 +86,7 @@ function CustomCamera:_Init()
 	Utils.Connections.Add(
 		self,
 		"CharacterRemoving",
-		localPlayer.CharacterRemoving:Connect(function()
+		self._player.CharacterRemoving:Connect(function()
 			self._character = nil
 			self:_Deactivate()
 		end)
@@ -98,139 +94,119 @@ function CustomCamera:_Init()
 
 	Utils.Connections.Add(
 		self,
-		"isRagdolled",
-		localPlayer:GetAttributeChangedSignal("isRagdolled"):Connect(function()
-			self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
+		"ToolEquippedChanged",
+		self._player:GetAttributeChangedSignal("toolEquipped"):Connect(function()
+			self._toolEquipped = self._player:GetAttribute("toolEquipped") or false
 		end)
 	)
 
-	if self._character then
+	if self._player == localPlayer then
 		self:_Activate()
 	end
 end
 
-function CustomCamera:Destroy()
+function PlayerAxesAnimator:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
 
 	self:_Deactivate()
-	Utils.Connections.DisconnectKeyConnections(self)
 
-	self._character = nil
+	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function CustomCamera:Update()
-	if not self._character or not self._character.PrimaryPart then
+function PlayerAxesAnimator:Update(pitchRad: number, yawRad: number)
+	if not self._activated or not self._character then
 		return
 	end
 
-	-- Make character face camera direction
-	if not self._inFirstPerson and not self._isRagdolled then
-		-- In first-person, the character rotates automatically with the camera
-		local root = self._character.PrimaryPart
-		local _, yaw = camera.CFrame:ToEulerAnglesYXZ()
-
-		self._character:PivotTo(CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0))
-	end
-
-	-- Fade out as we approach first-person
-	local dist = GetZoomDistance()
-
-	local fade = 1.0
-	if dist <= FADE_END then
-		fade = 0
-	elseif dist < FADE_START then
-		fade = (dist - FADE_END) / math.max(1e-3, (FADE_START - FADE_END))
-	end
-
-	self._humanoid.CameraOffset = (self._isRagdolled and Vector3.new() or CAMERA_OFFSET) * fade
-
-	-- Auto transition first-person / third-person
-	if not self._transitioning then
-		if not self._inFirstPerson and dist <= FADE_START - EPS and dist > FADE_END + EPS then
-			self:_StartTransition(FADE_END, TWEEN_TIME)
-			self._inFirstPerson = true
-		elseif self._inFirstPerson and dist > FADE_END + EPS then
-			self:_StartTransition(FADE_START, TWEEN_TIME)
-			self._inFirstPerson = false
-		end
-	end
+	self._waistMotor6D.C0 = self._waistC0Base
+		* CFrame.Angles(pitchRad * 0.7, self._toolEquipped and 0 or yawRad * 0.4, 0)
+	self._neckMotor6D.C0 = self._neckC0Base * CFrame.Angles(pitchRad * 0.3, self._toolEquipped and 0 or yawRad * 0.6, 0)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function CustomCamera:_Activate()
-	if self._active then
+function PlayerAxesAnimator:_Activate()
+	if self._destroyed or self._activated or not self._inRange or not self._character then
 		return
 	end
-	self._active = true
+	self._activated = true
+	print("Activating pitch animator for", self._player.Name)
 
-	-- local humanoid = self._character:WaitForChild("Humanoid")
-	-- self._humanoid = humanoid
+	-- Get parts
+	local upperTorso = self._character:WaitForChild("UpperTorso", 10)
+	local head = self._character:WaitForChild("Head", 10)
 
-	-- humanoid.CameraOffset = CAMERA_OFFSET
-	-- humanoid.AutoRotate = false
-
-	-- camera.CameraType = Enum.CameraType.Custom
-	-- camera.CameraSubject = humanoid
-
-	-- RunService:BindToRenderStep("CustomCamera", Enum.RenderPriority.Camera.Value + 1, function()
-	-- 	self:Update()
-	-- end)
-end
-
-function CustomCamera:_Deactivate()
-	if not self._active then
+	if not upperTorso or not head then
+		self:_Deactivate()
 		return
 	end
-	self._active = false
 
-	RunService:UnbindFromRenderStep("CustomCamera")
+	self._upperTorso = upperTorso :: BasePart
+
+	-- Get Motor6Ds
+	self._waistMotor6D = upperTorso:WaitForChild("Waist", 5) :: Motor6D
+	self._neckMotor6D = head:WaitForChild("Neck", 5) :: Motor6D
+	if not self._waistMotor6D or not self._neckMotor6D then
+		self:_Deactivate()
+		return
+	end
+
+	self._waistC0Base = self._waistMotor6D.C0
+	self._neckC0Base = self._neckMotor6D.C0
+
+	if self._player == localPlayer then
+		self:_LocalAnimate()
+	end
 end
 
-function CustomCamera:_StartTransition(distance: number, duration: number)
-	if self._transitioning then
-		RunService:UnbindFromRenderStep("ThirdPersonCameraTransition")
+function PlayerAxesAnimator:_Deactivate()
+	if not self._activated then
+		return
 	end
-	self._transitioning = true
+	self._activated = false
 
-	self._origMinZoomDistance = localPlayer.CameraMinZoomDistance
-	self._origMaxZoomDistance = localPlayer.CameraMaxZoomDistance
+	Utils.Connections.DisconnectKeyConnection(self, "RenderStepped")
+	RunService:UnbindFromRenderStep("ApplyAimPitch")
 
-	local zoomFrom = GetZoomDistance()
-	local zoomTo = distance
-	local startTime = os.clock()
+	self._upperTorso = nil
+	self._waistMotor6D = nil
+	self._neckMotor6D = nil
+	self._waistC0Base = nil
+	self._neckC0Base = nil
+end
 
-	RunService:BindToRenderStep("ThirdPersonCameraTransition", Enum.RenderPriority.Camera.Value + 2, function()
-		if not self._transitioning then
-			return
-		end
+function PlayerAxesAnimator:_LocalAnimate()
+	local camera = game.Workspace.CurrentCamera
 
-		local elapsed = os.clock() - startTime
-		local alpha = math.clamp(elapsed / duration, 0, 1)
-		local zoom = zoomFrom + (zoomTo - zoomFrom) * alpha
+	RunService:BindToRenderStep("ApplyAimPitch", Enum.RenderPriority.Last.Value, function()
+		if self._activated then
+			local camLookVector = camera.CFrame.LookVector
 
-		if zoomTo < zoomFrom then
-			-- Write to min first
-			localPlayer.CameraMinZoomDistance = zoom
-			localPlayer.CameraMaxZoomDistance = zoom
-		else
-			-- Write to max first
-			localPlayer.CameraMaxZoomDistance = zoom
-			localPlayer.CameraMinZoomDistance = zoom
-		end
+			local charFace = self._upperTorso.CFrame.LookVector
+			charFace = Vector3.new(charFace.X, 0, charFace.Z).Unit
+			local camFace = Vector3.new(camLookVector.X, 0, camLookVector.Z).Unit
 
-		if alpha >= 1 then
-			RunService:UnbindFromRenderStep("ThirdPersonCameraTransition")
-			task.delay(0.2, function()
-				localPlayer.CameraMinZoomDistance = self._origMinZoomDistance
-				localPlayer.CameraMaxZoomDistance = self._origMaxZoomDistance
-				self._transitioning = false
-			end)
+			if charFace.Magnitude < 1e-6 or camFace.Magnitude < 1e-6 then
+				return
+			end
+
+			local facingDot = charFace:Dot(camFace)
+			local t = Smoothstep((1 - facingDot) * 0.5)
+
+			local localLook = self._upperTorso.CFrame:VectorToObjectSpace(camLookVector).Unit
+			local zBlended = Lerp(-localLook.Z, localLook.Z, t)
+
+			local yawTarget = -math.atan2(localLook.X, zBlended)
+			yawTarget = math.clamp(yawTarget, -MAX_YAW, MAX_YAW)
+
+			local pitch = math.asin(camLookVector.Y)
+
+			self:Update(pitch, yawTarget)
 		end
 	end)
 end
@@ -238,6 +214,19 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function PlayerAxesAnimator:SetInRange(inRange: boolean)
+	if self._inRange == inRange then
+		return
+	end
+	self._inRange = inRange
+
+	if inRange then
+		self:_Activate()
+	else
+		self:_Deactivate()
+	end
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -247,4 +236,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return CustomCamera.new() :: typeof(CustomCamera)
+return PlayerAxesAnimator

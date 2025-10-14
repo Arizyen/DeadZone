@@ -33,6 +33,8 @@ local UPDATE_RATE = 2 -- Times per second
 
 -- Variables -----------------------------------------------------------------------
 local timerRunning = false
+local localPlayer = game.Players.LocalPlayer
+local camera = game.Workspace.CurrentCamera
 
 -- Tables --------------------------------------------------------------------------
 local playersZoneTracker = {} :: { [number]: typeof(PlayerZoneTracker) }
@@ -67,10 +69,15 @@ function PlayerZoneTracker.new(player: Player)
 
 	-- Booleans
 	self._destroyed = false
+	self._activated = false
+	self._isLocalPlayer = player == localPlayer
 
 	-- Instances
 	self._player = player
 	self._character = player.Character
+
+	-- Strings
+	self._zoneKey = "" -- Current zone key (x,y,z)
 
 	self:_Init()
 
@@ -84,8 +91,7 @@ function PlayerZoneTracker:_Init()
 		"CharacterAdded",
 		self._player.CharacterAdded:Connect(function(character)
 			self._character = character
-			playersZoneTracker[self._player.UserId] = self
-			StartTimer()
+			self:_Activate()
 		end)
 	)
 
@@ -94,9 +100,13 @@ function PlayerZoneTracker:_Init()
 		"CharacterRemoving",
 		self._player.CharacterRemoving:Connect(function()
 			self._character = nil
-			playersZoneTracker[self._player.UserId] = nil
+			self:_Deactivate()
 		end)
 	)
+
+	if self._character or self._isLocalPlayer then
+		self:_Activate()
+	end
 end
 
 function PlayerZoneTracker:Destroy()
@@ -107,18 +117,57 @@ function PlayerZoneTracker:Destroy()
 
 	Utils.Connections.DisconnectKeyConnections(self)
 
-	playersZoneTracker[self._player.UserId] = nil
+	self:_Deactivate()
 end
 
-function PlayerZoneTracker:Update() end
+function PlayerZoneTracker:Update()
+	local root = self._isLocalPlayer and camera.CFrame or self._character and self._character.PrimaryPart
+	if not root then
+		return
+	end
+
+	local rootPosition = root.Position
+	local x, y, z =
+		math.floor(rootPosition.X / RANGE), math.floor(rootPosition.Y / RANGE), math.floor(rootPosition.Z / RANGE)
+
+	self:_UpdateZoneKey(tostring(x) .. "," .. tostring(y) .. "," .. tostring(z))
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+function PlayerZoneTracker:_Activate()
+	self:Update()
+	playersZoneTracker[self._player.UserId] = self
+	StartTimer()
+end
+
+function PlayerZoneTracker:_Deactivate()
+	if self._isLocalPlayer then
+		-- Keep it running for the local player
+		return
+	end
+
+	playersZoneTracker[self._player.UserId] = nil
+	self:_UpdateZoneKey()
+end
+
+function PlayerZoneTracker:_UpdateZoneKey(zoneKey: string?)
+	if zoneKey ~= self._zoneKey then
+		self._zoneKey = zoneKey
+		-- Fire signal
+		Utils.Signals.Fire("PlayerZoneChanged", self._player, zoneKey)
+	end
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function PlayerZoneTracker:GetZoneKey(): string
+	return self._zoneKey
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

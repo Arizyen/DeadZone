@@ -52,38 +52,39 @@ local function SpawnPlayer(player: Player)
 
 	local hDesc = HumanoidManager.GetPlayerHumanoidDescription(player.UserId)
 
-	-- Clear ALL classic accessory categories
-	hDesc.BackAccessory = ""
-	hDesc.FaceAccessory = ""
-	hDesc.FrontAccessory = ""
-	-- hDesc.HairAccessory = ""
-	hDesc.HatAccessory = ""
-	hDesc.NeckAccessory = ""
-	hDesc.ShouldersAccessory = ""
-	hDesc.WaistAccessory = ""
-
-	-- Clear ALL emotes
-	hDesc:SetEmotes({})
-	hDesc:SetEquippedEmotes({})
-
-	-- Clear body parts
-	hDesc.LeftArm = 0
-	hDesc.RightArm = 0
-	hDesc.LeftLeg = 0
-	hDesc.RightLeg = 0
-	hDesc.Torso = 0
-
-	-- Add clothing
-	-- hDesc.GraphicTShirt = 0
-	hDesc.Shirt = 91444869191711
-	hDesc.Pants = 133870134715559
-
-	--TODO: Update humanoid description based on player data (clothing, accessories, etc.)
-
 	if not hDesc then
 		warn("No humanoid description found for player: " .. player.Name)
 		player:LoadCharacter()
 	else
+		-- Clear ALL classic accessory categories
+		hDesc.BackAccessory = ""
+		hDesc.FaceAccessory = ""
+		hDesc.FrontAccessory = ""
+		-- hDesc.HairAccessory = ""
+		hDesc.HatAccessory = ""
+		hDesc.NeckAccessory = ""
+		hDesc.ShouldersAccessory = ""
+		hDesc.WaistAccessory = ""
+
+		-- Clear ALL emotes
+		hDesc:SetEmotes({})
+		hDesc:SetEquippedEmotes({})
+
+		-- Clear body parts
+		hDesc.LeftArm = 0
+		hDesc.RightArm = 0
+		hDesc.LeftLeg = 0
+		hDesc.RightLeg = 0
+		hDesc.Torso = 0
+
+		-- Add clothing
+		-- hDesc.GraphicTShirt = 0
+		hDesc.Shirt = 91444869191711
+		hDesc.Pants = 133870134715559
+
+		--TODO: Update humanoid description based on player data (clothing, accessories, etc.)
+
+		-- Load character with updated humanoid description
 		player:LoadCharacterWithHumanoidDescription(hDesc)
 	end
 

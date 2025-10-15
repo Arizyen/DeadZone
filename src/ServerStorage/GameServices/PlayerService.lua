@@ -26,7 +26,11 @@ local PlayerHandler = require(GameHandlers.PlayerHandler)
 -- KnitServices
 local PlayerService = Knit.CreateService({
 	Name = "Player",
-	Client = { Teleport = Knit.CreateSignal(), AddStamina = Knit.CreateSignal() },
+	Client = {
+		Teleport = Knit.CreateSignal(),
+		AddStamina = Knit.CreateSignal(),
+		ReplicatePlayerAxes = Knit.CreateSignal(),
+	},
 })
 
 -- Instances
@@ -53,6 +57,9 @@ function PlayerService:KnitInit()
 		end,
 		AddStamina = function(player: Player, amount: number)
 			self.Client.AddStamina:Fire(player, amount)
+		end,
+		ReplicatePlayerAxes = function(player: Player, pitchRad: number, yawRad: number)
+			self.Client.ReplicatePlayerAxes:FireExcept(player, player, pitchRad, yawRad)
 		end,
 	})
 end
@@ -97,6 +104,14 @@ function PlayerService.Client:KnitLoaded(playerFired)
 	end
 
 	PlayerHandler.KnitLoaded(playerFired)
+end
+
+function PlayerService.Client:ReplicateAxes(playerFired, pitchRad: number, yawRad: number)
+	if not RateLimiter.Use(playerFired, "PlayerService", "ReplicateAxes", 10, 20) then
+		return
+	end
+
+	PlayerHandler.ReplicateAxes(playerFired, pitchRad, yawRad)
 end
 
 return PlayerService

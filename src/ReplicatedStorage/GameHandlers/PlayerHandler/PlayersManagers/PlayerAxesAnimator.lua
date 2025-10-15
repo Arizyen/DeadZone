@@ -19,6 +19,7 @@ local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
+local Ports = require(script.Parent.Parent:WaitForChild("Ports"))
 
 -- Handlers --------------------------------------------------------------------
 
@@ -30,6 +31,11 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 
 -- Configs -------------------------------------------------------------------------
 local MAX_YAW = math.rad(75) -- left/right
+local REPLICATION_RATE = 10 -- Times per second
+local WAIST_PITCH_RAD_FACTOR = 0.6
+local NECK_PITCH_RAD_FACTOR = 0.4
+local WAIST_YAW_RAD_FACTOR = 0.4
+local NECK_YAW_RAD_FACTOR = 0.6
 
 -- Variables -----------------------------------------------------------------------
 local localPlayer = game.Players.LocalPlayer
@@ -42,6 +48,13 @@ local localPlayer = game.Players.LocalPlayer
 
 local Lerp = Utils.Math.Lerp
 local Smoothstep = Utils.Math.Smoothstep
+local Round = Utils.Math.Round
+
+local function AngleDiff(a, b)
+	-- returns (b - a) wrapped to [-π, π]
+	local d = (b - a + math.pi) % (2 * math.pi) - math.pi
+	return d
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
@@ -53,8 +66,10 @@ function PlayerAxesAnimator.new(player: Player)
 	-- Booleans
 	self._destroyed = false
 	self._activated = false
+	self._isLocalPlayer = player == localPlayer
 	self._toolEquipped = player:GetAttribute("toolEquipped") or false
-	self._inRange = player == localPlayer
+	self._isRagdolled = player:GetAttribute("isRagdolled") or false
+	self._inRange = self._isLocalPlayer or player:GetAttribute("isInRange") or false
 
 	-- Instances
 	self._player = player
@@ -66,6 +81,16 @@ function PlayerAxesAnimator.new(player: Player)
 	-- CFrame
 	self._waistC0Base = nil
 	self._neckC0Base = nil
+
+	-- Numbers
+	self._previousPitchRad = 0
+	self._previousYawRad = 0
+	self._targetPitchRad = 0
+	self._targetYawRad = 0
+	self._pitchRad = 0
+	self._yawRad = 0
+	self._lastReplicationTime = 0
+	self._lastUpdateTime = 0
 
 	self:_Init()
 
@@ -94,13 +119,34 @@ function PlayerAxesAnimator:_Init()
 
 	Utils.Connections.Add(
 		self,
-		"ToolEquippedChanged",
+		"toolEquipped",
 		self._player:GetAttributeChangedSignal("toolEquipped"):Connect(function()
 			self._toolEquipped = self._player:GetAttribute("toolEquipped") or false
 		end)
 	)
 
-	if self._player == localPlayer then
+	Utils.Connections.Add(
+		self,
+		"isRagdolled",
+		self._player:GetAttributeChangedSignal("isRagdolled"):Connect(function()
+			self._isRagdolled = self._player:GetAttribute("isRagdolled") or false
+			if self._isRagdolled then
+				self:_Deactivate()
+			else
+				self:_Activate()
+			end
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"isInRange",
+		self._player:GetAttributeChangedSignal("isInRange"):Connect(function()
+			self:SetInRange(self._player:GetAttribute("isInRange") or false)
+		end)
+	)
+
+	if self._isLocalPlayer then
 		self:_Activate()
 	end
 end
@@ -117,13 +163,42 @@ function PlayerAxesAnimator:Destroy()
 end
 
 function PlayerAxesAnimator:Update(pitchRad: number, yawRad: number)
-	if not self._activated or not self._character then
+	if not self._activated or not self._character or self._isRagdolled then
 		return
 	end
 
-	self._waistMotor6D.C0 = self._waistC0Base
-		* CFrame.Angles(pitchRad * 0.7, self._toolEquipped and 0 or yawRad * 0.4, 0)
-	self._neckMotor6D.C0 = self._neckC0Base * CFrame.Angles(pitchRad * 0.3, self._toolEquipped and 0 or yawRad * 0.6, 0)
+	if self._isLocalPlayer then
+		-- Fire server to replicate to other players
+		if
+			math.abs(pitchRad - self._previousPitchRad) > math.rad(1)
+			or math.abs(yawRad - self._previousYawRad) > math.rad(1)
+		then
+			if os.clock() - self._lastReplicationTime >= 1 / REPLICATION_RATE then
+				Ports.ReplicateAxes(Round(pitchRad, 3), Round(yawRad, 3))
+				self._lastReplicationTime = os.clock()
+			end
+		end
+
+		self._previousPitchRad = pitchRad
+		self._previousYawRad = yawRad
+	end
+
+	local waistPitchRad = pitchRad * WAIST_PITCH_RAD_FACTOR
+	local neckPitchRad = pitchRad * NECK_PITCH_RAD_FACTOR
+	local waistYawRad = self._toolEquipped and 0 or yawRad * WAIST_YAW_RAD_FACTOR
+	local neckYawRad = self._toolEquipped and 0 or yawRad * NECK_YAW_RAD_FACTOR
+
+	if self._isLocalPlayer then
+		self._waistMotor6D.C0 = self._waistC0Base * CFrame.Angles(waistPitchRad, waistYawRad, 0)
+		self._neckMotor6D.C0 = self._neckC0Base * CFrame.Angles(neckPitchRad, neckYawRad, 0)
+	else
+		self._targetPitchRad = pitchRad
+		self._targetYawRad = yawRad
+
+		self._lastUpdateTime = os.clock()
+
+		self:_Animate()
+	end
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -131,11 +206,10 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 
 function PlayerAxesAnimator:_Activate()
-	if self._destroyed or self._activated or not self._inRange or not self._character then
+	if self._destroyed or self._activated or not self._inRange or not self._character or self._isRagdolled then
 		return
 	end
 	self._activated = true
-	print("Activating pitch animator for", self._player.Name)
 
 	-- Get parts
 	local upperTorso = self._character:WaitForChild("UpperTorso", 10)
@@ -156,10 +230,11 @@ function PlayerAxesAnimator:_Activate()
 		return
 	end
 
-	self._waistC0Base = self._waistMotor6D.C0
-	self._neckC0Base = self._neckMotor6D.C0
+	-- Get base C0
+	self._waistC0Base = self._waistC0Base or self._waistMotor6D.C0
+	self._neckC0Base = self._neckC0Base or self._neckMotor6D.C0
 
-	if self._player == localPlayer then
+	if self._isLocalPlayer then
 		self:_LocalAnimate()
 	end
 end
@@ -170,8 +245,26 @@ function PlayerAxesAnimator:_Deactivate()
 	end
 	self._activated = false
 
-	Utils.Connections.DisconnectKeyConnection(self, "RenderStepped")
-	RunService:UnbindFromRenderStep("ApplyAimPitch")
+	if self._isLocalPlayer then
+		RunService:UnbindFromRenderStep("ApplyAimAxes")
+	else
+		Utils.Connections.DisconnectKeyConnection(self, "Animate")
+	end
+
+	-- Reset C0
+	if self._character and not self._isRagdolled then
+		if self._waistMotor6D and self._waistC0Base then
+			self._waistMotor6D.C0 = self._waistC0Base
+		end
+
+		if self._neckMotor6D and self._neckC0Base then
+			self._neckMotor6D.C0 = self._neckC0Base
+		end
+	end
+
+	-- Reset variables
+	self._pitchRad = 0
+	self._yawRad = 0
 
 	self._upperTorso = nil
 	self._waistMotor6D = nil
@@ -183,32 +276,60 @@ end
 function PlayerAxesAnimator:_LocalAnimate()
 	local camera = game.Workspace.CurrentCamera
 
-	RunService:BindToRenderStep("ApplyAimPitch", Enum.RenderPriority.Last.Value, function()
+	RunService:BindToRenderStep("ApplyAimAxes", Enum.RenderPriority.Last.Value, function()
 		if self._activated then
-			local camLookVector = camera.CFrame.LookVector
+			local camLook = camera.CFrame.LookVector
 
-			local charFace = self._upperTorso.CFrame.LookVector
-			charFace = Vector3.new(charFace.X, 0, charFace.Z).Unit
-			local camFace = Vector3.new(camLookVector.X, 0, camLookVector.Z).Unit
+			local charLook = self._character.PrimaryPart.CFrame.LookVector
+			charLook = Vector3.new(charLook.X, 0, charLook.Z).Unit
+			local camFace = Vector3.new(camLook.X, 0, camLook.Z).Unit
 
-			if charFace.Magnitude < 1e-6 or camFace.Magnitude < 1e-6 then
+			if charLook.Magnitude < 1e-6 or camFace.Magnitude < 1e-6 then
 				return
 			end
 
-			local facingDot = charFace:Dot(camFace)
+			local facingDot = charLook:Dot(camFace)
 			local t = Smoothstep((1 - facingDot) * 0.5)
 
-			local localLook = self._upperTorso.CFrame:VectorToObjectSpace(camLookVector).Unit
+			local localLook = self._character.PrimaryPart.CFrame:VectorToObjectSpace(camLook).Unit
 			local zBlended = Lerp(-localLook.Z, localLook.Z, t)
 
 			local yawTarget = -math.atan2(localLook.X, zBlended)
 			yawTarget = math.clamp(yawTarget, -MAX_YAW, MAX_YAW)
 
-			local pitch = math.asin(camLookVector.Y)
+			local pitch = math.asin(camLook.Y)
 
 			self:Update(pitch, yawTarget)
 		end
 	end)
+end
+
+function PlayerAxesAnimator:_Animate()
+	if not self._activated or Utils.Connections.GetKeyConnection(self, "Animate") then
+		return
+	end
+
+	Utils.Connections.Add(
+		self,
+		"Animate",
+		RunService.Heartbeat:Connect(function(dt)
+			local alpha = math.clamp((os.clock() - self._lastUpdateTime) / (1 / REPLICATION_RATE), 0, 1)
+			if alpha >= 1 then
+				Utils.Connections.DisconnectKeyConnection(self, "Animate")
+			end
+
+			self._pitchRad = self._pitchRad + AngleDiff(self._pitchRad, self._targetPitchRad) * alpha
+			self._yawRad = self._yawRad + AngleDiff(self._yawRad, self._targetYawRad) * alpha
+
+			local waistPitchRad = self._pitchRad * WAIST_PITCH_RAD_FACTOR
+			local neckPitchRad = self._pitchRad * NECK_PITCH_RAD_FACTOR
+			local waistYawRad = self._toolEquipped and 0 or self._yawRad * WAIST_YAW_RAD_FACTOR
+			local neckYawRad = self._toolEquipped and 0 or self._yawRad * NECK_YAW_RAD_FACTOR
+
+			self._waistMotor6D.C0 = self._waistC0Base * CFrame.Angles(waistPitchRad, waistYawRad, 0)
+			self._neckMotor6D.C0 = self._neckC0Base * CFrame.Angles(neckPitchRad, neckYawRad, 0)
+		end)
+	)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

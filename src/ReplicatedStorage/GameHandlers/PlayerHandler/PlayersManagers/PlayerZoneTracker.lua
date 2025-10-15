@@ -121,8 +121,10 @@ function PlayerZoneTracker:Destroy()
 end
 
 function PlayerZoneTracker:Update()
-	local root = self._isLocalPlayer and camera.CFrame or self._character and self._character.PrimaryPart
-	if not root then
+	local root = self._character and self._character.PrimaryPart
+	if not root and self._isLocalPlayer then
+		root = camera.CFrame
+	elseif not root then
 		return
 	end
 

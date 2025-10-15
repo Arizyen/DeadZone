@@ -3,15 +3,9 @@ export type Ports = {
 	Freeze: (state: boolean) -> (),
 	Spawn: () -> boolean,
 	Reset: () -> (),
+	ReplicateAxes: (pitchRad: number, yawRad: number) -> (),
 }
 
-local Ports = {
-	KnitLoaded = function() end,
-	Freeze = function(_) end,
-	Spawn = function()
-		return false
-	end,
-	Reset = function() end,
-} :: Ports
+local Ports = {} :: Ports
 
 return Ports

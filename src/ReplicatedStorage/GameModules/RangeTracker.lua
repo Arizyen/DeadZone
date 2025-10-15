@@ -1,5 +1,5 @@
-local PlayersInRangeTracker = {}
-PlayersInRangeTracker.__index = PlayersInRangeTracker
+local RangeTracker = {}
+RangeTracker.__index = RangeTracker
 
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,7 +18,7 @@ local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
-local PlayerManagers = require(ReplicatedGameModules:WaitForChild("PlayerManagers"))
+local PlayersManagers = require(ReplicatedGameHandlers:WaitForChild("PlayerHandler"):WaitForChild("PlayersManagers"))
 
 -- Handlers --------------------------------------------------------------------
 
@@ -43,14 +43,14 @@ local localPlayer = game.Players.LocalPlayer
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayersInRangeTracker.new()
-	local self = setmetatable({}, PlayersInRangeTracker)
+function RangeTracker.new()
+	local self = setmetatable({}, RangeTracker)
 
 	-- Booleans
 	self._destroyed = false
 
 	-- Strings
-	self._zoneKey = PlayerManagers.GetPlayerZoneKey(localPlayer.UserId)
+	self._zoneKey = PlayersManagers.GetPlayerZoneKey(localPlayer.UserId)
 
 	-- Tables
 	self._playersInRange = {} :: { [number]: boolean }
@@ -62,7 +62,7 @@ function PlayersInRangeTracker.new()
 	return self
 end
 
-function PlayersInRangeTracker:_Init()
+function RangeTracker:_Init()
 	-- Connections
 	Utils.Connections.Add(
 		self,
@@ -87,7 +87,7 @@ function PlayersInRangeTracker:_Init()
 	)
 end
 
-function PlayersInRangeTracker:Destroy()
+function RangeTracker:Destroy()
 	if self._destroyed then
 		return
 	end
@@ -100,7 +100,7 @@ end
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayersInRangeTracker:_PlayerZoneChanged(player: Player, newZoneKey: string?)
+function RangeTracker:_PlayerZoneChanged(player: Player, newZoneKey: string?)
 	self._playersZoneKey[player.UserId] = newZoneKey
 
 	local prevInRange = self._playersInRange[player.UserId]
@@ -136,7 +136,7 @@ function PlayersInRangeTracker:_PlayerZoneChanged(player: Player, newZoneKey: st
 	end
 end
 
-function PlayersInRangeTracker:_UpdatePlayersInRange()
+function RangeTracker:_UpdatePlayersInRange()
 	if not self._zoneKey then
 		return
 	end
@@ -156,7 +156,7 @@ function PlayersInRangeTracker:_UpdatePlayersInRange()
 
 	for userId, zoneKey in pairs(self._playersZoneKey) do
 		local player = game.Players:GetPlayerByUserId(userId)
-		if player then
+		if player and player ~= localPlayer then
 			local inRange = table.find(inRangeZoneKeys, zoneKey) ~= nil
 
 			if self._playersInRange[userId] ~= (inRange or nil) then
@@ -167,15 +167,15 @@ function PlayersInRangeTracker:_UpdatePlayersInRange()
 	end
 end
 
-function PlayersInRangeTracker:_PlayerInRangeChanged(player: Player, inRange: boolean)
-	print(player.Name .. " is " .. (inRange and "in" or "out of") .. " range")
+function RangeTracker:_PlayerInRangeChanged(player: Player, inRange: boolean)
+	player:SetAttribute("isInRange", inRange)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayersInRangeTracker:IsPositionInRange(position: Vector3): boolean
+function RangeTracker:IsPositionInRange(position: Vector3): boolean
 	if not position or not self._zoneKey then
 		return false
 	end
@@ -193,4 +193,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return PlayersInRangeTracker.new()
+return RangeTracker.new()

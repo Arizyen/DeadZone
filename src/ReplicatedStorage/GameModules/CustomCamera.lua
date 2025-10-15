@@ -30,7 +30,7 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 
 -- Configs -------------------------------------------------------------------------
 local CAMERA_OFFSET = Vector3.new(2, 0.2, 0)
-local FADE_START = 5
+local FADE_START = 3
 local FADE_END = 0.5
 local EPS = 0.1
 local TWEEN_TIME = 0.3
@@ -60,8 +60,9 @@ function CustomCamera.new()
 	self._destroyed = false
 	self._active = false
 	self._inFirstPerson = false
-	self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
 	self._transitioning = false
+	self._toolEquipped = localPlayer:GetAttribute("toolEquipped") or false
+	self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
 
 	-- Numbers
 	self._origMinZoomDistance = 0
@@ -98,6 +99,13 @@ function CustomCamera:_Init()
 
 	Utils.Connections.Add(
 		self,
+		"toolEquipped",
+		localPlayer:GetAttributeChangedSignal("toolEquipped"):Connect(function()
+			self._toolEquipped = localPlayer:GetAttribute("toolEquipped") or false
+		end)
+	)
+	Utils.Connections.Add(
+		self,
 		"isRagdolled",
 		localPlayer:GetAttributeChangedSignal("isRagdolled"):Connect(function()
 			self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
@@ -127,7 +135,7 @@ function CustomCamera:Update()
 	end
 
 	-- Make character face camera direction
-	if not self._inFirstPerson and not self._isRagdolled then
+	if not self._inFirstPerson and self._toolEquipped and not self._isRagdolled then
 		-- In first-person, the character rotates automatically with the camera
 		local root = self._character.PrimaryPart
 		local _, yaw = camera.CFrame:ToEulerAnglesYXZ()
@@ -145,7 +153,9 @@ function CustomCamera:Update()
 		fade = (dist - FADE_END) / math.max(1e-3, (FADE_START - FADE_END))
 	end
 
-	self._humanoid.CameraOffset = (self._isRagdolled and Vector3.new() or CAMERA_OFFSET) * fade
+	self._humanoid.CameraOffset = ((self._isRagdolled or not self._toolEquipped) and Vector3.new() or CAMERA_OFFSET)
+		* fade
+	self._humanoid.AutoRotate = self._inFirstPerson or self._isRagdolled or not self._toolEquipped
 
 	-- Auto transition first-person / third-person
 	if not self._transitioning then
@@ -169,18 +179,15 @@ function CustomCamera:_Activate()
 	end
 	self._active = true
 
-	-- local humanoid = self._character:WaitForChild("Humanoid")
-	-- self._humanoid = humanoid
+	local humanoid = self._character:WaitForChild("Humanoid")
+	self._humanoid = humanoid
 
-	-- humanoid.CameraOffset = CAMERA_OFFSET
-	-- humanoid.AutoRotate = false
+	camera.CameraType = Enum.CameraType.Custom
+	camera.CameraSubject = humanoid
 
-	-- camera.CameraType = Enum.CameraType.Custom
-	-- camera.CameraSubject = humanoid
-
-	-- RunService:BindToRenderStep("CustomCamera", Enum.RenderPriority.Camera.Value + 1, function()
-	-- 	self:Update()
-	-- end)
+	RunService:BindToRenderStep("CustomCamera", Enum.RenderPriority.Camera.Value + 1, function()
+		self:Update()
+	end)
 end
 
 function CustomCamera:_Deactivate()
@@ -190,6 +197,11 @@ function CustomCamera:_Deactivate()
 	self._active = false
 
 	RunService:UnbindFromRenderStep("CustomCamera")
+
+	if self._humanoid and self._humanoid.Parent then
+		self._humanoid.CameraOffset = Vector3.new()
+		self._humanoid.AutoRotate = true
+	end
 end
 
 function CustomCamera:_StartTransition(distance: number, duration: number)

@@ -50,12 +50,16 @@ function PlayerController:KnitInit()
 		Reset = function()
 			knitServices["Player"]:Reset()
 		end,
+		ReplicateAxes = function(pitchRad: number, yawRad: number)
+			knitServices["Player"]:ReplicateAxes(pitchRad, yawRad)
+		end,
 	})
 end
 
 function PlayerController:KnitStart()
 	knitServices["Player"].Teleport:Connect(PlayerHandler.Teleport)
 	knitServices["Player"].AddStamina:Connect(PlayerHandler.AddStamina)
+	knitServices["Player"].ReplicatePlayerAxes:Connect(PlayerHandler.ReplicatePlayerAxes)
 
 	PlayerHandler.Activate()
 end

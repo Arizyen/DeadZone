@@ -17,6 +17,7 @@ local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Ports = require(script.Ports)
 local SprintManager = require(script:WaitForChild("SprintManager"))
+local PlayersManagers = require(script:WaitForChild("PlayersManagers"))
 
 -- Handlers ----------------------------------------------------------------
 
@@ -74,6 +75,14 @@ end
 
 function PlayerHandler.HoldSprint(state: boolean)
 	sprintManager:HoldSprint(state)
+end
+
+function PlayerHandler.ReplicateAxes(pitchRad: number, yawRad: number)
+	Ports.ReplicateAxes(pitchRad, yawRad)
+end
+
+function PlayerHandler.ReplicatePlayerAxes(player: Player, pitchRad: number, yawRad: number)
+	PlayersManagers.UpdatePlayerAxes(player.UserId, pitchRad, yawRad)
 end
 
 -- TELEPORTATION -------------------------------------------------------------------------------------------------------

@@ -92,6 +92,10 @@ function PlayerHandler.AddStamina(player: Player, amount: number)
 	Ports.AddStamina(player, amount)
 end
 
+function PlayerHandler.ReplicateAxes(player: Player, pitchRad: number, yawRad: number)
+	Ports.ReplicatePlayerAxes(player, pitchRad, yawRad)
+end
+
 -- STATE MANAGEMENT ----------------------------------------------------------------------------------------------------
 
 function PlayerHandler.KnitLoaded(player: Player)

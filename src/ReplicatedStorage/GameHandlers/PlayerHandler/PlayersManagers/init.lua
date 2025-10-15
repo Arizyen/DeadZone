@@ -1,4 +1,4 @@
-local PlayerManagers = {}
+local PlayersManagers = {}
 
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,7 +19,7 @@ local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local PlayerZoneTracker = require(script:WaitForChild("PlayerZoneTracker"))
-local PlayerPitchAnimator = require(script:WaitForChild("PlayerPitchAnimator"))
+local PlayerAxesAnimator = require(script:WaitForChild("PlayerAxesAnimator"))
 
 -- Handlers ------------------------------------------------------------------
 
@@ -39,10 +39,10 @@ local MapConfigs = require(ReplicatedConfigs:WaitForChild("MapConfigs"))
 -- Tables --------------------------------------------------------------------------
 local playersAdded = {} :: { [number]: boolean }
 local playersZoneTracker = {}
-local playersPitchAnimator = {}
+local playersAxesAnimator = {}
 local playersManagerList = {
 	PlayerZoneTracker = playersZoneTracker,
-	PlayerPitchAnimator = playersPitchAnimator,
+	PlayerAxesAnimator = playersAxesAnimator,
 }
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -55,8 +55,13 @@ local function AddPlayer(player: Player)
 	end
 	playersAdded[player.UserId] = true
 
+	-- All place managers
 	playersZoneTracker[player.UserId] = PlayerZoneTracker.new(player)
-	playersPitchAnimator[player.UserId] = PlayerPitchAnimator.new(player)
+	playersAxesAnimator[player.UserId] = PlayerAxesAnimator.new(player)
+
+	-- Game place only managers
+	if MapConfigs.IS_PVE_PLACE then
+	end
 end
 
 local function RemovePlayer(player: Player)
@@ -90,7 +95,7 @@ end
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerManagers.GetPlayerZoneKey(userId: number): string?
+function PlayersManagers.GetPlayerZoneKey(userId: number): string?
 	if not userId then
 		return nil
 	end
@@ -101,16 +106,24 @@ function PlayerManagers.GetPlayerZoneKey(userId: number): string?
 	return zoneTracker:GetZoneKey()
 end
 
+function PlayersManagers.UpdatePlayerAxes(userId: number, pitchRad: number, yawRad: number)
+	if not userId then
+		return
+	end
+	local axesAnimator = playersAxesAnimator[userId]
+	if not axesAnimator then
+		return
+	end
+	axesAnimator:Update(pitchRad, yawRad)
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-if MapConfigs.IS_PVE_PLACE then
-	Activate()
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+Activate()
 
-return PlayerManagers
+return PlayersManagers

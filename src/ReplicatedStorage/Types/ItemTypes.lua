@@ -1,6 +1,7 @@
 local ItemTypes = {}
 
 export type Item = {
+	id: string,
 	key: string,
 	type: "item",
 	category: "Material" | "Consumable" | "Clothing" | "Accessory" | "Other",
@@ -8,12 +9,13 @@ export type Item = {
 }
 
 export type Tool = {
+	id: string,
 	key: string,
 	type: "tool",
 	category: "Weapon" | "Harvesting" | "Utility",
 	ammo: number?,
 }
 
-export type Items = Item | Tool
+export type Object = Item | Tool
 
 return ItemTypes

@@ -89,6 +89,10 @@ end
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 function UI.MountApp()
+	Utils.Signals.Fire("DispatchAction", {
+		type = "SetCameraViewportSize",
+	})
+
 	local screenGUI = Instance.new("ScreenGui")
 	screenGUI.Name = "MainGui"
 	screenGUI.Enabled = false

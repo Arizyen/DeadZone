@@ -43,6 +43,8 @@ local Teleporting = require(script:WaitForChild("Teleporting"))
 local Stamina = require(script:WaitForChild("Stamina"))
 local MobileControls = require(script:WaitForChild("MobileControls"))
 local GameState = require(script:WaitForChild("GameState"))
+local Crosshair = require(script:WaitForChild("Crosshair"))
+local Hotbar = require(script:WaitForChild("Hotbar"))
 
 -- Configs
 
@@ -101,6 +103,8 @@ local function App(props)
 			Stamina = e(Stamina),
 			MobileControls = e(MobileControls),
 			GameState = e(GameState),
+			Crosshair = e(Crosshair),
+			Hotbar = e(Hotbar),
 		}
 	end
 end

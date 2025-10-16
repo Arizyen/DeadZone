@@ -34,10 +34,12 @@ local DataConfigs = {
 			claimed = {} :: { [string]: number }, -- day1, day2, etc... = timestamp claimed
 		},
 		gamepasses = {} :: { [string]: boolean },
-		hotbar = {} :: { [string]: string }, -- slotId (slot1) = itemName
-		inventory = {} :: { ItemTypes.Items }, -- itemId = amount
+		hotbar = {} :: { [string]: string }, -- slotId (slot1) = objectId
+		inventory = {} :: { [string]: string }, -- slotId (slot1) = objectId
+		objects = {} :: { [string]: ItemTypes.Object }, -- objectId = object
+		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
 		loadout = {
-			equippedTool = nil :: ItemTypes.Tool?,
+			equippedObjectId = nil :: string?,
 		} :: { [string]: string }, -- slotName = itemName
 		moderation = {
 			kickedReasons = {} :: { string },

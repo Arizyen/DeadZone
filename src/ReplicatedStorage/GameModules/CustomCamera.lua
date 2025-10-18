@@ -29,7 +29,8 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local CAMERA_OFFSET = Vector3.new(2, 0.2, 0)
+local CAMERA_OFFSET = Vector3.new(2.7, 1.25, 0)
+local CAMERA_OFFSET_SPEED = 1 / 4
 local FADE_START = 3
 local FADE_END = 0.5
 local EPS = 0.1
@@ -60,13 +61,14 @@ function CustomCamera.new()
 	self._destroyed = false
 	self._active = false
 	self._inFirstPerson = false
-	self._transitioning = false
+	self._transitioningZoom = false
 	self._toolEquipped = localPlayer:GetAttribute("toolEquipped") or false
 	self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
 
 	-- Numbers
 	self._origMinZoomDistance = 0
 	self._origMaxZoomDistance = 0
+	self._offsetAlpha = 0
 
 	-- Instance
 	self._character = localPlayer.Character
@@ -134,36 +136,47 @@ function CustomCamera:Update()
 		return
 	end
 
+	local zoomDistance = GetZoomDistance()
+
 	-- Make character face camera direction
 	if not self._inFirstPerson and self._toolEquipped and not self._isRagdolled then
 		-- In first-person, the character rotates automatically with the camera
 		local root = self._character.PrimaryPart
-		local _, yaw = camera.CFrame:ToEulerAnglesYXZ()
+		-- local _, yaw = camera.CFrame:ToEulerAnglesYXZ()
+		local yaw = Utils.Math.YawToTarget(root.CFrame, camera.CFrame * CFrame.new(0, 0, -(zoomDistance + 50)))
 
 		self._character:PivotTo(CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0))
 	end
 
 	-- Fade out as we approach first-person
-	local dist = GetZoomDistance()
-
 	local fade = 1.0
-	if dist <= FADE_END then
+	if zoomDistance <= FADE_END then
 		fade = 0
-	elseif dist < FADE_START then
-		fade = (dist - FADE_END) / math.max(1e-3, (FADE_START - FADE_END))
+	elseif zoomDistance < FADE_START then
+		fade = (zoomDistance - FADE_END) / math.max(1e-3, (FADE_START - FADE_END))
 	end
 
-	self._humanoid.CameraOffset = ((self._isRagdolled or not self._toolEquipped) and Vector3.new() or CAMERA_OFFSET)
-		* fade
+	-- Update offset as tool is equipped/unequipped
+	local targetAlpha = self._toolEquipped and 1 or 0
+
+	if self._offsetAlpha ~= targetAlpha then
+		if math.abs(self._offsetAlpha - targetAlpha) < 1e-3 then
+			self._offsetAlpha = targetAlpha
+		else
+			self._offsetAlpha += (targetAlpha - self._offsetAlpha) * CAMERA_OFFSET_SPEED
+		end
+	end
+
+	self._humanoid.CameraOffset = (CAMERA_OFFSET * self._offsetAlpha) * fade
 	self._humanoid.AutoRotate = self._inFirstPerson or self._isRagdolled or not self._toolEquipped
 
 	-- Auto transition first-person / third-person
-	if not self._transitioning then
-		if not self._inFirstPerson and dist <= FADE_START - EPS and dist > FADE_END + EPS then
-			self:_StartTransition(FADE_END, TWEEN_TIME)
+	if not self._transitioningZoom then
+		if not self._inFirstPerson and zoomDistance <= FADE_START - EPS and zoomDistance > FADE_END + EPS then
+			self:_StartTransitionZoom(FADE_END, TWEEN_TIME)
 			self._inFirstPerson = true
-		elseif self._inFirstPerson and dist > FADE_END + EPS then
-			self:_StartTransition(FADE_START, TWEEN_TIME)
+		elseif self._inFirstPerson and zoomDistance > FADE_END + EPS then
+			self:_StartTransitionZoom(FADE_START, TWEEN_TIME)
 			self._inFirstPerson = false
 		end
 	end
@@ -204,11 +217,11 @@ function CustomCamera:_Deactivate()
 	end
 end
 
-function CustomCamera:_StartTransition(distance: number, duration: number)
-	if self._transitioning then
+function CustomCamera:_StartTransitionZoom(distance: number, duration: number)
+	if self._transitioningZoom then
 		RunService:UnbindFromRenderStep("ThirdPersonCameraTransition")
 	end
-	self._transitioning = true
+	self._transitioningZoom = true
 
 	self._origMinZoomDistance = localPlayer.CameraMinZoomDistance
 	self._origMaxZoomDistance = localPlayer.CameraMaxZoomDistance
@@ -218,7 +231,7 @@ function CustomCamera:_StartTransition(distance: number, duration: number)
 	local startTime = os.clock()
 
 	RunService:BindToRenderStep("ThirdPersonCameraTransition", Enum.RenderPriority.Camera.Value + 2, function()
-		if not self._transitioning then
+		if not self._transitioningZoom then
 			return
 		end
 
@@ -241,7 +254,7 @@ function CustomCamera:_StartTransition(distance: number, duration: number)
 			task.delay(0.2, function()
 				localPlayer.CameraMinZoomDistance = self._origMinZoomDistance
 				localPlayer.CameraMaxZoomDistance = self._origMaxZoomDistance
-				self._transitioning = false
+				self._transitioningZoom = false
 			end)
 		end
 	end)

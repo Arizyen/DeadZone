@@ -29,6 +29,7 @@ local Contexts = require(UI:WaitForChild("Contexts"))
 local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- Handlers ----------------------------------------------------------------
+local ToolHandler = require(ReplicatedGameHandlers:WaitForChild("ToolHandler"))
 
 -- BaseComponents ----------------------------------------------------------------
 
@@ -40,6 +41,7 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 local Slot = require(script:WaitForChild("Slot"))
 
 -- Hooks ---------------------------------------------------------------------------
+local usePrevious = require(BaseHooks:WaitForChild("usePrevious"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {}
@@ -73,11 +75,14 @@ local function Hotbar(props: Props)
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
 	local selectedSlotNumber, setSelectedSlotNumber = React.useState(0)
 
+	local prevEquippedObjectId = usePrevious(storeState.equippedObjectId)
+
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 	local setSelected = React.useCallback(function(slotNumber: number, objectId: string, state: boolean)
-		-- TODO: Equip new object
 		if state then
+			ToolHandler.Equip(objectId)
 		else
+			ToolHandler.Unequip()
 		end
 
 		setSelectedSlotNumber(state and slotNumber or 0)
@@ -92,17 +97,29 @@ local function Hotbar(props: Props)
 			slots["slot" .. i] = e(Slot, {
 				object = storeState.objects[objectId],
 				equipped = (
-					storeState.equippedObjectId == objectId and (selectedSlotNumber == nil or selectedSlotNumber == i)
+					storeState.equippedObjectId == objectId
+					and (selectedSlotNumber == nil or selectedSlotNumber == i)
 				) or selectedSlotNumber == i,
-				onPC = storeState.deviceType == "pc",
 				setSelected = setSelected,
 				LayoutOrder = i,
 			})
 		end
 		return slots
-	end, { storeState.hotbarSlots, storeState.hotbar, storeState.objects, selectedSlotNumber })
+	end, {
+		storeState.hotbarSlots,
+		storeState.hotbar,
+		storeState.objects,
+		storeState.equippedObjectId,
+		selectedSlotNumber,
+	})
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
+	-- On equipped object change, reset selected slot
+	React.useEffect(function()
+		if prevEquippedObjectId ~= storeState.equippedObjectId then
+			setSelectedSlotNumber(0)
+		end
+	end, { storeState.equippedObjectId })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e(

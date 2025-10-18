@@ -1,4 +1,4 @@
-local PlayerDataConfigs = {}
+local StartingTools = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,27 +14,32 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
-local GameInitializer = require(GameModules.GameInitializer)
+local Utils = require(ReplicatedPlaywooEngine.Utils)
+local ToolCreator = require(script.Parent.ToolCreator)
 
 -- Handlers --------------------------------------------------------------------
-
--- Instances -----------------------------------------------------------------------
-
--- Info ---------------------------------------------------------------------------
-
--- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
+local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
 
+-- Instances -----------------------------------------------------------------------
+
+-- Info ----------------------------------------------------------------------------
+
+-- Configs -------------------------------------------------------------------------
+
 -- Variables -----------------------------------------------------------------------
+
+-- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
 
@@ -42,25 +47,27 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+-- Verifies and gives starting tools to player if they're on a new save
+local function CheckStartingTools(player: Player)
+	local isNewSave = PlayerDataHandler.GetPathValue(player.UserId, { "sessionState", "newSave" })
+	if not isNewSave then
+		return
+	end
+
+	ToolCreator.GiveTool(player, "rock", "hotbar")
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerDataConfigs.LoadExtraPlayerData(player: Player): boolean
-	if MapConfigs.IS_PVE_PLACE then
-		GameInitializer.LoadInPlayer(player)
-		return true
-	else
-		return true
-	end
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+Utils.Signals.Connect("PlayerLoaded", CheckStartingTools)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return PlayerDataConfigs
+return StartingTools

@@ -211,8 +211,8 @@ function Attack:_UpdateDamage()
 		end
 	end
 
-	PlayerDataHandler.SetPathValue({ "stats", "meleeDamageFactor" }, meleeDamageFactor)
-	PlayerDataHandler.SetPathValue({ "stats", "rangedDamageFactor" }, rangedDamageFactor)
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "meleeDamageFactor" }, meleeDamageFactor)
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "rangedDamageFactor" }, rangedDamageFactor)
 end
 
 function Attack:_UpdateReloadSpeed()
@@ -228,7 +228,7 @@ function Attack:_UpdateReloadSpeed()
 		reloadSpeedFactor += swiftHandsInfo.value
 	end
 
-	PlayerDataHandler.SetPathValue({ "stats", "reloadSpeedFactor" }, reloadSpeedFactor)
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "reloadSpeedFactor" }, reloadSpeedFactor)
 end
 
 function Attack:_UpdateAttackSpeed()
@@ -239,7 +239,7 @@ function Attack:_UpdateAttackSpeed()
 		meleeSpeedFactor += rapidStrikesInfo.value
 	end
 
-	PlayerDataHandler.SetPathValue({ "stats", "meleeSpeedFactor" }, meleeSpeedFactor)
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "meleeSpeedFactor" }, meleeSpeedFactor)
 end
 
 function Attack:_UpdateAmmoSaveLuck()

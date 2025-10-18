@@ -42,49 +42,28 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local function LoadInPlayer(player: Player)
-	GameLoader.GetJoinData(player)
-	GameLoader.LoadPlayer(player)
-	Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
-end
-
 local function InitPVE()
 	-- Place map in workspace
 	local mapName = Utils.Table.Dictionary.getKeyByValue(MapConfigs.MAPS_PLACE_ID, game.PlaceId)
 	local map = ServerStorage.Maps[mapName]
 	map.Name = "Map"
 	map.Parent = game.Workspace
-
-	-- Load in players
-	for _, player in pairs(game.Players:GetPlayers()) do
-		task.spawn(LoadInPlayer, player)
-	end
-	Utils.Signals.Connect("PlayerLoaded", function(player)
-		LoadInPlayer(player)
-	end)
-end
-
-local function InitLobby()
-	-- Load in players
-	for _, player in pairs(game.Players:GetPlayers()) do
-		Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
-	end
-	Utils.Signals.Connect("PlayerLoaded", function(player)
-		Utils.Instantiator.Create("BoolValue", { Parent = player, Name = "PlayerLoaded", Value = true })
-	end)
 end
 
 local function Init()
 	if MapConfigs.IS_PVE_PLACE then
 		InitPVE()
-	else
-		InitLobby()
 	end
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function GameInitializer.LoadInPlayer(player: Player): boolean
+	GameLoader.GetJoinData(player)
+	return GameLoader.LoadPlayer(player)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

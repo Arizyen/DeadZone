@@ -1,4 +1,4 @@
-local PlayerDataConfigs = {}
+local ToolHandler = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -21,18 +21,20 @@ local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
-local GameInitializer = require(GameModules.GameInitializer)
+local Utils = require(ReplicatedPlaywooEngine.Utils)
+local Ports = require(script.Ports)
+local StartingTools = require(script.StartingTools)
+local ToolCreator = require(script.ToolCreator)
 
 -- Handlers --------------------------------------------------------------------
+
+-- Types ---------------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-
--- Types ---------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
 
@@ -46,13 +48,8 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerDataConfigs.LoadExtraPlayerData(player: Player): boolean
-	if MapConfigs.IS_PVE_PLACE then
-		GameInitializer.LoadInPlayer(player)
-		return true
-	else
-		return true
-	end
+function ToolHandler.Register(ports: Ports.Ports)
+	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -63,4 +60,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return PlayerDataConfigs
+return ToolHandler

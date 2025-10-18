@@ -4,7 +4,7 @@ local ReplicatedTypes = ReplicatedSource.Types
 local ReplicatedConfigs = ReplicatedSource.Configs
 
 local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local ItemTypes = require(ReplicatedTypes.ItemTypes)
+local ObjectTypes = require(ReplicatedTypes.ObjectTypes)
 local MovementConfigs = require(ReplicatedConfigs.MovementConfigs)
 local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 
@@ -34,13 +34,16 @@ local DataConfigs = {
 			claimed = {} :: { [string]: number }, -- day1, day2, etc... = timestamp claimed
 		},
 		gamepasses = {} :: { [string]: boolean },
+
+		-- Inventory keys
 		hotbar = {} :: { [string]: string }, -- slotId (slot1) = objectId
 		inventory = {} :: { [string]: string }, -- slotId (slot1) = objectId
-		objects = {} :: { [string]: ItemTypes.Object }, -- objectId = object
-		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
 		loadout = {
 			equippedObjectId = nil :: string?,
 		} :: { [string]: string }, -- slotName = itemName
+		objects = {} :: { [string]: ObjectTypes.Object }, -- objectId = object
+		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
+
 		moderation = {
 			kickedReasons = {} :: { string },
 			permanentBan = false,
@@ -78,6 +81,11 @@ local DataConfigs = {
 			gameEndAt = function()
 				return os.time()
 			end,
+
+			newSave = false,
+
+			-- Session statistics
+			zombieKills = 0,
 		},
 		settings = {
 			musicVolume = 55,
@@ -172,9 +180,13 @@ local DataConfigs = {
 	ON_LOAD_RESET_PATHS = {
 		{ "_inUse" },
 		{ "sessionState", "gameStartAt" },
+		{ "sessionState", "newSave" },
+		{ "sessionState", "zombieKills" },
 		{ "statistics", "totalPlayTimeOnStart" },
 		{ "hotbar" },
 		{ "inventory" },
+		{ "objects" },
+		{ "objectsCategorized" },
 		{ "loadout" },
 		{ "playerState" },
 	},

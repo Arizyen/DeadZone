@@ -79,14 +79,15 @@ local function Crosshair(props: Props)
 	local toolEquipped, setToolEquipped = React.useState(localPlayer:GetAttribute("toolEquipped") or false)
 	local hairLongColor, setHairLongColor = React.useState(Color3.new(1, 1, 1))
 
-	local motorRef = React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / 0.1))
+	local longHairMotorRef = React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / 0.1))
+	local hairMotorRef = React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / 0.1))
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
-	local mappedLongHairTransparency = useMotorMappedBinding(motorRef, function(value)
+	local mappedLongHairTransparency = useMotorMappedBinding(longHairMotorRef, function(value)
 		return 1 - value
-	end, 1, { motorRef.current })
+	end, 1, { longHairMotorRef.current })
 
 	local hairs = React.useMemo(function()
 		local hairWidth = storeState.isOnSmallScreen and HAIR_WIDTH * 0.5 or HAIR_WIDTH
@@ -95,7 +96,7 @@ local function Crosshair(props: Props)
 		return {
 			-- Right Hair
 			Hair1 = e(Hair, {
-				motorRef = motorRef,
+				motorRef = hairMotorRef,
 				endPosition = UDim2.new(0.5, hairWidth * 1.5, 0.5, 0),
 				Position = UDim2.new(0.5, hairWidth, 0.5, 0),
 				Size = UDim2.new(0, hairWidth, 0, hairHeight),
@@ -104,7 +105,7 @@ local function Crosshair(props: Props)
 
 			-- Bottom hair
 			Hair2 = e(Hair, {
-				motorRef = motorRef,
+				motorRef = hairMotorRef,
 				endPosition = UDim2.new(0.5, 0, 0.5, hairWidth * 1.5),
 				Position = UDim2.new(0.5, 0, 0.5, hairWidth),
 				Size = UDim2.new(0, hairHeight, 0, hairWidth),
@@ -113,7 +114,7 @@ local function Crosshair(props: Props)
 
 			-- Left hair
 			Hair3 = e(Hair, {
-				motorRef = motorRef,
+				motorRef = hairMotorRef,
 				endPosition = UDim2.new(0.5, -hairWidth * 1.5, 0.5, 0),
 				Position = UDim2.new(0.5, -hairWidth, 0.5, 0),
 				Size = UDim2.new(0, hairWidth, 0, hairHeight),
@@ -122,7 +123,7 @@ local function Crosshair(props: Props)
 
 			-- Top hair
 			Hair4 = e(Hair, {
-				motorRef = motorRef,
+				motorRef = hairMotorRef,
 				endPosition = UDim2.new(0.5, 0, 0.5, -hairWidth * 1.5),
 				Position = UDim2.new(0.5, 0, 0.5, -hairWidth),
 				Size = UDim2.new(0, hairHeight, 0, hairWidth),
@@ -202,23 +203,22 @@ local function Crosshair(props: Props)
 
 	-- Motor management
 	React.useEffect(function()
-		local connectionHit = localPlayer:GetAttributeChangedSignal("hit"):Connect(function()
-			local hit = localPlayer:GetAttribute("hit")
-			if hit then
-				setHairLongColor(Color3.new(1, 1, 1))
-				motorRef.current:Restart(true, motorRef.current:GetValue())
-			end
+		local connectionActivated = Utils.Signals.Connect("ToolActivated", function()
+			hairMotorRef.current:Restart(true, hairMotorRef.current:GetValue())
 		end)
 
-		local connectionKill = localPlayer:GetAttributeChangedSignal("kill"):Connect(function()
-			local kill = localPlayer:GetAttribute("kill")
-			if kill then
-				setHairLongColor(Color3.new(1, 0, 0))
-				motorRef.current:Restart(true, motorRef.current:GetValue())
-			end
+		local connectionHit = Utils.Signals.Connect("ToolHit", function()
+			setHairLongColor(Color3.new(1, 1, 1))
+			longHairMotorRef.current:Restart(true, longHairMotorRef.current:GetValue())
+		end)
+
+		local connectionKill = Utils.Signals.Connect("ToolKill", function()
+			setHairLongColor(Color3.new(1, 0, 0))
+			longHairMotorRef.current:Restart(true, longHairMotorRef.current:GetValue())
 		end)
 
 		return function()
+			connectionActivated:Disconnect()
 			connectionHit:Disconnect()
 			connectionKill:Disconnect()
 		end

@@ -1,8 +1,10 @@
 local SaveTypes = {}
 
+local ObjectTypes = require(script.Parent.ObjectTypes)
+
 export type SaveInfo = {
 	id: string?, -- Player UserId .. _ .. save # .. _ .. save cycle #
-	chunks: number?, -- Number of data chunks --> Player USerId .. _ .. save # .. _ .. save cycle # .. _ .. chunk #
+	chunksCount: number?, -- Number of data chunks --> Player USerId .. _ .. save # .. _ .. save cycle # .. _ .. chunk #
 	name: string?,
 	placeId: number,
 	difficulty: number,
@@ -19,15 +21,17 @@ export type SaveInfo = {
 
 export type PlayerState = {
 	hp: number,
-	position: Vector3?,
+	position: string?, -- Serialized Vector3
 }
 
 export type PlayerSave = {
 	userId: number, -- Player UserId
+	hotbar: { [string]: string }, -- slotId (slot1) = objectId
+	inventory: { [string]: string }, -- slotId (slot1) = objectId
+	loadout: { [string]: string }, -- slotName = itemName
+	objects: { [string]: ObjectTypes.Object }, -- objectId = object
+	objectsCategorized: { [string]: { string } }, -- key = { objectId }
 	state: PlayerState, -- Player state (hp, position, etc.)
-	inventory: table, -- Player inventory
-	loadout: table, -- Player equipped items
-	hotbar: table, -- Player hotbar items
 	zombieKills: number, -- Number of zombies killed
 }
 

@@ -1,45 +1,40 @@
-local Inventory = {}
-Inventory.__index = Inventory
+local Tool = {}
+Tool.__index = Tool
 
 -- Services ------------------------------------------------------------------------
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 -- Folders -------------------------------------------------------------------------
-local Packages = ReplicatedStorage.Packages
-local ReplicatedSource = ReplicatedStorage.Source
-local ServerSource = ServerStorage.Source
-local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
-local PlaywooEngine = ServerSource.PlaywooEngine
-local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
-local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
-local ReplicatedInfo = ReplicatedSource.Info
-local Info = ServerSource.Info
-local ReplicatedTypes = ReplicatedSource.Types
-local Types = ServerSource.Types
-local BaseModules = PlaywooEngine.BaseModules
-local GameModules = ServerSource.GameModules
-local BaseHandlers = PlaywooEngine.BaseHandlers
-local GameHandlers = ServerSource.GameHandlers
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
+local ReplicatedPlaywooEngine = ReplicatedSource:WaitForChild("PlaywooEngine")
+local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
+local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
+local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
+local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
+
+local Tools = ReplicatedStorage:WaitForChild("Tools")
 
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
+local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 
 -- Handlers --------------------------------------------------------------------
-local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Types ---------------------------------------------------------------------------
+local ObjectTypes = require(ReplicatedTypes:WaitForChild("ObjectTypes"))
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
-local PerksInfo = require(ReplicatedInfo.PerksInfo)
 
 -- Configs -------------------------------------------------------------------------
-local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 
 -- Variables -----------------------------------------------------------------------
+local localPlayer = game.Players.LocalPlayer
 
 -- Tables --------------------------------------------------------------------------
 
@@ -51,80 +46,69 @@ local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Inventory.new(player: Player)
-	local self = setmetatable({}, Inventory)
+function Tool.new(object: ObjectTypes.Tool, humanoid: Humanoid): Tool
+	local self = setmetatable({}, Tool)
 
 	-- Booleans
 	self._destroyed = false
-	self._lightweightPerk = false
-	self._packRatPerk = false
 
 	-- Instances
-	self._player = player :: Player
+	self._object = object
+	self._humanoid = humanoid
+	self._toolInstance = nil
 
 	self:_Init()
 
 	return self
 end
 
-function Inventory:_Init()
+function Tool:_Init()
 	-- Connections
 	Utils.Connections.Add(
 		self,
-		"lightweightPerk",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "lightweight" }, function(newValue)
-			self._lightweightPerk = newValue or false
-			self:_UpdateInventorySlots()
+		"UnequipOnDied",
+		self._humanoid.Died:Connect(function()
+			self:Destroy()
 		end)
 	)
 
-	Utils.Connections.Add(
-		self,
-		"packRatPerk",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "packRat" }, function(newValue)
-			self._packRatPerk = newValue or false
-			self:_UpdateHotbarSlots()
-		end)
-	)
+	-- Clone and equip tool
+	local tool = Tools:FindFirstChild(self._object.key)
+	if not tool then
+		warn("Tool:_Init: Tool not found with key:", self._object.key)
+		self:Destroy()
+		return
+	end
 
-	self:_UpdateInventorySlots()
-	self:_UpdateHotbarSlots()
+	self._toolInstance = tool:Clone()
+	self._humanoid:EquipTool(self._toolInstance)
+
+	localPlayer:SetAttribute("toolEquipped", true)
+	UserInputService.MouseIconEnabled = false
+	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 end
 
-function Inventory:Destroy()
+function Tool:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
 
 	Utils.Connections.DisconnectKeyConnections(self)
+
+	if self._toolInstance then
+		self._toolInstance:Destroy()
+		self._toolInstance = nil
+	end
+
+	localPlayer:SetAttribute("toolEquipped", false)
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	UserInputService.MouseIconEnabled = true
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-
-function Inventory:_UpdateInventorySlots()
-	local baseInventorySlots = GameConfigs.INVENTORY_SLOTS
-
-	if self._lightweightPerk then
-		local lightweightPerkInfo = PerksInfo.byKey.lightweight
-		baseInventorySlots += lightweightPerkInfo.value
-	end
-
-	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "inventorySlots" }, baseInventorySlots)
-end
-
-function Inventory:_UpdateHotbarSlots()
-	local baseHotbarSlots = GameConfigs.HOTBAR_SLOTS
-
-	if self._packRatPerk then
-		local packRatPerkInfo = PerksInfo.byKey.packRat
-		baseHotbarSlots += packRatPerkInfo.value
-	end
-
-	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "hotbarSlots" }, baseHotbarSlots)
-end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
@@ -138,4 +122,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return Inventory
+return Tool

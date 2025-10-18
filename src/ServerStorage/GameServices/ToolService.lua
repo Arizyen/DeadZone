@@ -1,5 +1,3 @@
-local PlayerDataConfigs = {}
-
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +10,6 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
@@ -21,18 +18,25 @@ local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
-local GameInitializer = require(GameModules.GameInitializer)
+local Knit = require(Packages.Knit)
+local RateLimiter = require(BaseModules.RateLimiter)
 
--- Handlers --------------------------------------------------------------------
+-- Handlers -------------------------------------------------------------------
+local ToolHandler = require(GameHandlers.ToolHandler)
+
+-- Knit Services --------------------------------------------------------------------
+local ToolService = Knit.CreateService({
+	Name = "Tool",
+	Client = {},
+})
+
+-- Types ---------------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-
--- Types ---------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
 
@@ -45,22 +49,16 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+-- KNIT FUNCTIONS ------------------------------------------------------------------------------------------------------
 
-function PlayerDataConfigs.LoadExtraPlayerData(player: Player): boolean
-	if MapConfigs.IS_PVE_PLACE then
-		GameInitializer.LoadInPlayer(player)
-		return true
-	else
-		return true
-	end
-end
+-- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
+function ToolService:KnitInit() end
 
-------------------------------------------------------------------------------------------------------------------------
--- CONNECTIONS ---------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
+-- KnitStart() fires after all KnitInit() have been completed.
+function ToolService:KnitStart() end
 
-------------------------------------------------------------------------------------------------------------------------
--- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+-- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
 
-return PlayerDataConfigs
+return ToolService

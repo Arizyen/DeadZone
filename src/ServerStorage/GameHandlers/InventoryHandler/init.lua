@@ -1,9 +1,9 @@
-local Inventory = {}
-Inventory.__index = Inventory
+local InventoryHandler = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HTTPService = game:GetService("HttpService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage.Packages
@@ -15,9 +15,7 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
-local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
-local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -25,6 +23,7 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
+local Ports = require(script.Ports)
 
 -- Handlers --------------------------------------------------------------------
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
@@ -34,10 +33,9 @@ local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
-local PerksInfo = require(ReplicatedInfo.PerksInfo)
+local ObjectTypes = require(ReplicatedTypes.ObjectTypes)
 
 -- Configs -------------------------------------------------------------------------
-local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 
 -- Variables -----------------------------------------------------------------------
 
@@ -47,88 +45,102 @@ local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------
--- CORE METHODS --------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-function Inventory.new(player: Player)
-	local self = setmetatable({}, Inventory)
-
-	-- Booleans
-	self._destroyed = false
-	self._lightweightPerk = false
-	self._packRatPerk = false
-
-	-- Instances
-	self._player = player :: Player
-
-	self:_Init()
-
-	return self
-end
-
-function Inventory:_Init()
-	-- Connections
-	Utils.Connections.Add(
-		self,
-		"lightweightPerk",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "lightweight" }, function(newValue)
-			self._lightweightPerk = newValue or false
-			self:_UpdateInventorySlots()
-		end)
-	)
-
-	Utils.Connections.Add(
-		self,
-		"packRatPerk",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "packRat" }, function(newValue)
-			self._packRatPerk = newValue or false
-			self:_UpdateHotbarSlots()
-		end)
-	)
-
-	self:_UpdateInventorySlots()
-	self:_UpdateHotbarSlots()
-end
-
-function Inventory:Destroy()
-	if self._destroyed then
-		return
-	end
-	self._destroyed = true
-
-	Utils.Connections.DisconnectKeyConnections(self)
+local function CreateObject(object: ObjectTypes.Object)
+	local id = HTTPService:GenerateGUID(false):gsub("-", "")
+	return Utils.Table.Dictionary.mergeDeep(object, { id = id })
 end
 
 ------------------------------------------------------------------------------------------------------------------------
--- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+-- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Inventory:_UpdateInventorySlots()
-	local baseInventorySlots = GameConfigs.INVENTORY_SLOTS
+function InventoryHandler.Register(ports: Ports.Ports)
+	Utils.Table.Dictionary.mergeMut(Ports, ports)
+end
 
-	if self._lightweightPerk then
-		local lightweightPerkInfo = PerksInfo.byKey.lightweight
-		baseInventorySlots += lightweightPerkInfo.value
+function InventoryHandler.AddObject(
+	player: Player,
+	object: ObjectTypes.Object,
+	location: "inventory" | "hotbar"
+): (boolean, string?)
+	assert(object and object.key, "InventoryHandler.AddObject: Invalid object provided")
+
+	location = location or "inventory"
+	local freeSlotKey
+
+	-- Find free slot based on desired location
+	if location == "hotbar" then
+		local hotbar = PlayerDataHandler.GetPathValue(player.UserId, { "hotbar" })
+		local hotbarSlots = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "hotbarSlots" })
+
+		for i = 1, hotbarSlots do
+			local slotKey = "slot" .. tostring(i)
+			if not hotbar[slotKey] then
+				freeSlotKey = slotKey
+				break
+			end
+		end
+
+		-- No free hotbar slot found
+		if not freeSlotKey then
+			location = "inventory"
+		end
 	end
 
-	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "inventorySlots" }, baseInventorySlots)
-end
+	if location == "inventory" then
+		local inventory = PlayerDataHandler.GetPathValue(player.UserId, { "inventory" })
+		local inventorySlots = PlayerDataHandler.GetPathValue(player.UserId, { "stats", "inventorySlots" })
 
-function Inventory:_UpdateHotbarSlots()
-	local baseHotbarSlots = GameConfigs.HOTBAR_SLOTS
-
-	if self._packRatPerk then
-		local packRatPerkInfo = PerksInfo.byKey.packRat
-		baseHotbarSlots += packRatPerkInfo.value
+		for i = 1, inventorySlots do
+			local slotKey = "slot" .. tostring(i)
+			if not inventory[slotKey] then
+				freeSlotKey = slotKey
+				break
+			end
+		end
 	end
 
-	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "hotbarSlots" }, baseHotbarSlots)
+	if not freeSlotKey then
+		return false, "Inventory is full" -- No free slot found
+	end
+
+	-- Create and add object
+	local newObject = CreateObject(object)
+	newObject.location = location
+	newObject.slotId = freeSlotKey
+
+	PlayerDataHandler.SetPathValue(player.UserId, { "objects", newObject.id }, newObject)
+	PlayerDataHandler.InsertAtPathValue(player.UserId, { "objectsCategorized", newObject.key }, newObject.id)
+	PlayerDataHandler.SetPathValue(player.UserId, { location, freeSlotKey }, newObject.id)
+
+	return true
 end
 
-------------------------------------------------------------------------------------------------------------------------
--- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
+function InventoryHandler.RemoveObject(player: Player, objectId: string): boolean
+	local objects = PlayerDataHandler.GetPathValue(player.UserId, { "objects" })
+	local object = objects[objectId]
+	if not object then
+		return false -- Object not found
+	end
+
+	-- Remove from location
+	local location = object.location
+	local slotId = object.slotId
+	if location and slotId then
+		local locationTable = PlayerDataHandler.GetPathValue(player.UserId, { location })
+		if locationTable[slotId] == objectId then
+			PlayerDataHandler.SetPathValue(player.UserId, { location, slotId }, nil)
+		end
+	end
+
+	-- Remove from categorized list
+	PlayerDataHandler.RemoveAtPathValue(player.UserId, { "objectsCategorized", object.key }, objectId)
+
+	-- Remove from objects
+	PlayerDataHandler.SetPathValue(player.UserId, { "objects", objectId }, nil)
+
+	return true
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -138,4 +150,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return Inventory
+return InventoryHandler

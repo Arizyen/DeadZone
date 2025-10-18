@@ -3,4 +3,5 @@ return {
 	RETRY_DELAY = 3,
 	VERSION = "DataV1",
 	MAX_WAIT_FOR_DATA_IN_USE = 10,
+	GAME_SAVES_DATASTORE_KEY = "GameSaves1",
 }

@@ -44,11 +44,10 @@ local TextLabel = require(BaseComponents:WaitForChild("TextLabel"))
 -- Hooks ---------------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local ItemTypes = require(ReplicatedTypes:WaitForChild("ItemTypes"))
+local ObjectTypes = require(ReplicatedTypes:WaitForChild("ObjectTypes"))
 type Props = {
-	object: ItemTypes.Object?,
+	object: ObjectTypes.Object?,
 	equipped: boolean,
-	onPC: boolean,
 	setSelected: (slotNumber: number, objectId: string, state: boolean) -> (),
 	LayoutOrder: number,
 }
@@ -103,15 +102,8 @@ local function Slot(props: Props)
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	-- Input connection
 	React.useEffect(function()
-		if not props.onPC then
-			return
-		end
-
 		local connection = UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessedEvent: boolean)
 			if gameProcessedEvent then
-				return
-			end
-			if input.UserInputType ~= Enum.UserInputType.Keyboard then
 				return
 			end
 
@@ -120,6 +112,8 @@ local function Slot(props: Props)
 				or input.KeyCode == keyCodeKeypad[props.LayoutOrder]
 			then
 				props.setSelected(props.LayoutOrder, props.object and props.object.id, not props.equipped)
+			elseif input.KeyCode == Enum.KeyCode.DPadDown and props.equipped then
+				props.setSelected(props.LayoutOrder, props.object and props.object.id, false)
 			end
 		end)
 
@@ -154,13 +148,22 @@ local function Slot(props: Props)
 			Text = tostring(props.LayoutOrder),
 		}),
 
+		TextLabelName = e(TextLabel, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.9, 0.25),
+			Text = props.object and not props.image and props.object.name or "",
+			TextScaled = true,
+		}),
+
 		TextLabelQuantity = e(TextLabel, {
 			AnchorPoint = Vector2.new(1, 1),
 			BackgroundTransparency = 1,
 			Position = UDim2.fromScale(0.95, 0.99),
 			Size = UDim2.fromScale(0.65, 0.3),
 			Visible = props.object and props.object.quantity,
-			Text = props.object and tostring(props.object.quantity) or "",
+			Text = props.object and props.object.quantity or "",
 		}),
 	})
 end

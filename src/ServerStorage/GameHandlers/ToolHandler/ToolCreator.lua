@@ -1,4 +1,4 @@
-local PlayerDataConfigs = {}
+local ToolCreator = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,27 +14,32 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
-local GameInitializer = require(GameModules.GameInitializer)
+local Utils = require(ReplicatedPlaywooEngine.Utils)
 
 -- Handlers --------------------------------------------------------------------
-
--- Instances -----------------------------------------------------------------------
-
--- Info ---------------------------------------------------------------------------
-
--- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
+local InventoryHandler = require(GameHandlers.InventoryHandler)
 
 -- Types ---------------------------------------------------------------------------
 
+-- Instances -----------------------------------------------------------------------
+
+-- Info ----------------------------------------------------------------------------
+local ToolsInfo = require(ReplicatedInfo.ToolsInfo)
+
+-- Configs -------------------------------------------------------------------------
+
 -- Variables -----------------------------------------------------------------------
+
+-- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
 
@@ -46,13 +51,14 @@ local MapConfigs = require(ReplicatedConfigs.MapConfigs)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayerDataConfigs.LoadExtraPlayerData(player: Player): boolean
-	if MapConfigs.IS_PVE_PLACE then
-		GameInitializer.LoadInPlayer(player)
-		return true
-	else
-		return true
+function ToolCreator.GiveTool(player: Player, toolKey: string, location: "inventory" | "hotbar")
+	local toolInfo = ToolsInfo.byKey[toolKey]
+	if not toolInfo then
+		warn("ToolCreator.GiveTool: Invalid tool key:", toolKey)
+		return
 	end
+
+	InventoryHandler.AddObject(player, toolInfo, location or "inventory")
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -63,4 +69,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return PlayerDataConfigs
+return ToolCreator

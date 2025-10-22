@@ -22,7 +22,7 @@ local BaseServices = PlaywooEngine.BaseServices
 local GameServices = ServerSource.GameServices
 
 -- Modulescripts -------------------------------------------------------------------
-local PlayerStateManager
+local PlayerManagers = require(GameModules.PlayerManagers)
 
 -- KnitServices --------------------------------------------------------------------
 
@@ -53,11 +53,7 @@ local function GetPSM(player: Player)
 		return nil
 	end
 
-	if not PlayerStateManager then
-		PlayerStateManager = require(GameModules.PlayerStateManager)
-	end
-
-	return PlayerStateManager.Get(player)
+	return PlayerManagers.GetManager(player, "StateManager")
 end
 
 ------------------------------------------------------------------------------------------------------------------------

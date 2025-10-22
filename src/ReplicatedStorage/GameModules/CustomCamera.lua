@@ -62,7 +62,7 @@ function CustomCamera.new()
 	self._active = false
 	self._inFirstPerson = false
 	self._transitioningZoom = false
-	self._toolEquipped = localPlayer:GetAttribute("toolEquipped") or false
+	self._toolEquipped = localPlayer:GetAttribute("equippedObjectId") or false
 	self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
 
 	-- Numbers
@@ -101,9 +101,9 @@ function CustomCamera:_Init()
 
 	Utils.Connections.Add(
 		self,
-		"toolEquipped",
-		localPlayer:GetAttributeChangedSignal("toolEquipped"):Connect(function()
-			self._toolEquipped = localPlayer:GetAttribute("toolEquipped") or false
+		"equippedObjectId",
+		localPlayer:GetAttributeChangedSignal("equippedObjectId"):Connect(function()
+			self._toolEquipped = localPlayer:GetAttribute("equippedObjectId") or false
 		end)
 	)
 	Utils.Connections.Add(

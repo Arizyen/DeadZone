@@ -41,7 +41,6 @@ local ToolHandler = require(ReplicatedGameHandlers:WaitForChild("ToolHandler"))
 local Slot = require(script:WaitForChild("Slot"))
 
 -- Hooks ---------------------------------------------------------------------------
-local usePrevious = require(BaseHooks:WaitForChild("usePrevious"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {}
@@ -54,12 +53,13 @@ type Props = {}
 
 -- Variables -----------------------------------------------------------------------
 local e = React.createElement
+local localPlayer = game.Players.LocalPlayer
 
 -- Tables --------------------------------------------------------------------------
 
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
-	data = { { "stats", "hotbarSlots" }, "hotbar", "objects", { "loadout", "equippedObjectId" } },
+	data = { { "stats", "hotbarSlots" }, "hotbar", "objects" },
 	window = { "windowShown", "hideHUD" },
 	app = { "deviceType" },
 })
@@ -74,12 +74,11 @@ local function Hotbar(props: Props)
 
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
 	local selectedSlotNumber, setSelectedSlotNumber = React.useState(0)
-
-	local prevEquippedObjectId = usePrevious(storeState.equippedObjectId)
+	local equippedObjectId, setEquippedObjectId = React.useState(localPlayer:GetAttribute("equippedObjectId"))
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 	local setSelected = React.useCallback(function(slotNumber: number, objectId: string, state: boolean)
-		if state then
+		if state and objectId then
 			ToolHandler.Equip(objectId)
 		else
 			ToolHandler.Unequip()
@@ -96,10 +95,7 @@ local function Hotbar(props: Props)
 
 			slots["slot" .. i] = e(Slot, {
 				object = storeState.objects[objectId],
-				equipped = (
-					storeState.equippedObjectId == objectId
-					and (selectedSlotNumber == nil or selectedSlotNumber == i)
-				) or selectedSlotNumber == i,
+				equipped = (equippedObjectId and equippedObjectId == objectId) or selectedSlotNumber == i,
 				setSelected = setSelected,
 				LayoutOrder = i,
 			})
@@ -109,17 +105,23 @@ local function Hotbar(props: Props)
 		storeState.hotbarSlots,
 		storeState.hotbar,
 		storeState.objects,
-		storeState.equippedObjectId,
 		selectedSlotNumber,
+		equippedObjectId,
 	})
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	-- On equipped object change, reset selected slot
 	React.useEffect(function()
-		if prevEquippedObjectId ~= storeState.equippedObjectId then
-			setSelectedSlotNumber(0)
+		local connection = localPlayer:GetAttributeChangedSignal("equippedObjectId"):Connect(function()
+			local objectId = localPlayer:GetAttribute("equippedObjectId")
+			setEquippedObjectId(objectId)
+			setSelectedSlotNumber(0) -- We reset selected slot to allow for UI sync with equipped object id
+		end)
+
+		return function()
+			connection:Disconnect()
 		end
-	end, { storeState.equippedObjectId })
+	end, {})
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e(

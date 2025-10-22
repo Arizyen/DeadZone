@@ -1,43 +1,39 @@
-local PlayerStatsResolver = {}
+local ObjectConfigs = {}
 
 -- Services ------------------------------------------------------------------------
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Folders -------------------------------------------------------------------------
-local Packages = ReplicatedStorage.Packages
-local ReplicatedSource = ReplicatedStorage.Source
-local ServerSource = ServerStorage.Source
-local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
-local PlaywooEngine = ServerSource.PlaywooEngine
-local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
-local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
-local ReplicatedInfo = ReplicatedSource.Info
-local ReplicatedTypes = ReplicatedSource.Types
-local BaseModules = PlaywooEngine.BaseModules
-local GameModules = ServerSource.GameModules
-local BaseHandlers = PlaywooEngine.BaseHandlers
-local GameHandlers = ServerSource.GameHandlers
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
+local ReplicatedPlaywooEngine = ReplicatedSource:WaitForChild("PlaywooEngine")
+local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
+local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
+local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
+local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
-local StatsResolver = require(script.StatsResolver)
+local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 
--- Handlers --------------------------------------------------------------------
+-- Handlers ----------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
--- Info ---------------------------------------------------------------------------
+-- Info ----------------------------------------------------------------------------
+local ObjectsInfo = require(ReplicatedInfo:WaitForChild("ObjectsInfo"))
 
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
 
+-- Events --------------------------------------------------------------------------
+
 -- Tables --------------------------------------------------------------------------
-local playersStatsResolver = {} :: { [number]: typeof(StatsResolver) }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -47,28 +43,12 @@ local playersStatsResolver = {} :: { [number]: typeof(StatsResolver) }
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
--- Returns the StatsResolver for the given player
-function PlayerStatsResolver.GetStatsResolver(player: Player): typeof(StatsResolver)
-	if playersStatsResolver[player.UserId] then
-		return playersStatsResolver[player.UserId]
-	end
-
-	playersStatsResolver[player.UserId] = StatsResolver.new(player)
-	return playersStatsResolver[player.UserId]
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-Utils.Signals.Connect("PlayerRemoving", function(player: Player)
-	if playersStatsResolver[player.UserId] then
-		playersStatsResolver[player.UserId]:Destroy()
-		playersStatsResolver[player.UserId] = nil
-	end
-end)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return PlayerStatsResolver
+return ObjectConfigs

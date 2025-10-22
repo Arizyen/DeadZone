@@ -1,4 +1,8 @@
-local ToolHandler = {}
+local Tool = require(script.Parent)
+
+local Rock = setmetatable({}, { __index = Tool })
+Rock.__index = Rock
+-- This is a SubClass of Tool which extends the Tool with the same methods and properties.
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -12,7 +16,6 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
@@ -22,13 +25,8 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local StartingTools = require(script.StartingTools)
-local ToolCreator = require(script.ToolCreator)
 
 -- Handlers --------------------------------------------------------------------
-local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
-local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Types ---------------------------------------------------------------------------
 
@@ -41,83 +39,55 @@ local MessageHandler = require(BaseHandlers.MessageHandler)
 -- Variables -----------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
-local playersEquippedTool: { [number]: table } = {}
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
--- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
+-- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function ToolHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
+function Rock.new(player: Player, tool: Tool)
+	local self = setmetatable(Tool.new(player, tool), Rock)
+
+	-- Booleans
+	self._destroyed = false
+
+	self:_Init()
+
+	return self
 end
 
-function ToolHandler.AddToBackpack(player: Player, objectId: string)
-	-- Get tool key from object ID
-	local object = PlayerDataHandler.GetPathValue(player.UserId, { "objects", objectId })
-	local toolKey = object and object.key
+function Rock:_Init()
+	self:Update()
+end
 
-	if not toolKey then
-		MessageHandler.SendMessageToPlayer(player, "You do not own this tool", "Error")
+function Rock:Destroy()
+	if self._destroyed then
 		return
 	end
+	self._destroyed = true
 
-	ToolCreator.AddToBackpack(player, toolKey)
+	Utils.Connections.DisconnectKeyConnections(self)
 end
 
-function ToolHandler.RemoveFromBackpack(player: Player, toolKey: string)
-	ToolCreator.RemoveFromBackpack(player, toolKey)
-end
+function Rock:Update() end
 
--- EQUIP/UNEQUIP ----------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+-- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 
-function ToolHandler.ToolEquipped(player: Player, tool: Tool)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool and equippedTool:GetTool() == tool then
-		return
-	end
-
-	ToolHandler.UnequipTool(player)
-
-	-- Create a new tool metatable
-	local toolModule = script.Tool:FindFirstChild(tool.Name)
-	if not toolModule then
-		warn("ToolHandler.ToolEquipped: Tool module not found for tool:", tool.Name)
-		return
-	end
-
-	local toolMeta = require(toolModule).new(player, tool)
-	playersEquippedTool[player.UserId] = toolMeta
-end
-
-function ToolHandler.ToolUnequipped(player: Player, tool: Tool)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool and equippedTool:GetTool() == tool then
-		playersEquippedTool[player.UserId] = nil
-	end
-end
-
-function ToolHandler.UnequipTool(player: Player)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool then
-		equippedTool:Destroy()
-		playersEquippedTool[player.UserId] = nil
-	end
-end
+------------------------------------------------------------------------------------------------------------------------
+-- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-Utils.Signals.Connect("PlayerRemoving", function(player: Player)
-	ToolHandler.UnequipTool(player)
-end)
-
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return ToolHandler
+return Rock

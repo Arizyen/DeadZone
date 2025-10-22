@@ -54,7 +54,7 @@ local function CheckStartingTools(player: Player)
 		return
 	end
 
-	ToolCreator.GiveTool(player, "rock", "hotbar")
+	ToolCreator.AddToInventory(player, "Rock", "hotbar")
 end
 
 ------------------------------------------------------------------------------------------------------------------------

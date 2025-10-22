@@ -24,7 +24,7 @@ local GameHandlers = ServerSource.GameHandlers
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local SaveData = require(script.SaveData)
 local PlayerManager = require(BaseModules.PlayerManager)
-local PlayerStateManager = require(GameModules.PlayerStateManager)
+local PlayerManagers = require(GameModules.PlayerManagers)
 local DataStore = require(BaseModules.DataStore)
 
 -- Handlers --------------------------------------------------------------------
@@ -73,7 +73,7 @@ end
 
 -- Loads a player's state and inventory based on their save data
 local function LoadPlayer(player: Player, playerSave: SaveTypes.PlayerSave?)
-	PlayerStateManager.Create(player, playerSave) -- Ensure StateManager is created for player
+	PlayerManagers.UpdateStateManager(player, playerSave) -- Ensure StateManager is created for player
 
 	if playerSave then
 		-- Set player's data based on save

@@ -1,4 +1,5 @@
-local ToolHandler = {}
+local StateManager = {}
+StateManager.__index = StateManager
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -22,102 +23,124 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local StartingTools = require(script.StartingTools)
-local ToolCreator = require(script.ToolCreator)
+local HP = require(script.HP)
+local Stamina = require(script.Stamina)
+local FallDamage = require(script.FallDamage)
 
 -- Handlers --------------------------------------------------------------------
-local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
-local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Types ---------------------------------------------------------------------------
+local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local StateConfigs = require(Configs.StateConfigs)
 
 -- Variables -----------------------------------------------------------------------
+local updateTimerRunning = false
 
 -- Tables --------------------------------------------------------------------------
-local playersEquippedTool: { [number]: table } = {}
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+-- Deserialize the player state, ensuring all fields are present and correctly typed
+local function Deserialize(player: Player, playerState: SaveTypes.PlayerState): SaveTypes.PlayerState
+	return {
+		hp = playerState.hp or StateConfigs.HP_MAX,
+		position = type(playerState.position) == "string" and Vector3.new(unpack(string.split(playerState.position)))
+			or playerState.position,
+	}
+end
+
 ------------------------------------------------------------------------------------------------------------------------
--- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
+-- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function ToolHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
+function StateManager.new(player: Player, playerState: SaveTypes.PlayerState?)
+	local self = setmetatable({}, StateManager)
+
+	-- Booleans
+	self._destroyed = false
+
+	-- Instances
+	self._player = player :: Player
+
+	-- Tables
+	self.state = Deserialize(player, playerState or {}) :: SaveTypes.PlayerState
+
+	-- Metatables
+	self._hp = HP.new(player, self)
+	self._stamina = Stamina.new(player)
+	self._fallDamage = FallDamage.new(player, self)
+
+	self:_Init()
+
+	return self
 end
 
-function ToolHandler.AddToBackpack(player: Player, objectId: string)
-	-- Get tool key from object ID
-	local object = PlayerDataHandler.GetPathValue(player.UserId, { "objects", objectId })
-	local toolKey = object and object.key
+function StateManager:_Init() end
 
-	if not toolKey then
-		MessageHandler.SendMessageToPlayer(player, "You do not own this tool", "Error")
+function StateManager:Destroy()
+	if self._destroyed then
+		return
+	end
+	self._destroyed = true
+
+	self._hp:Destroy()
+	self._stamina:Destroy()
+
+	Utils.Connections.DisconnectKeyConnections(self)
+end
+
+function StateManager:Update(playerState: SaveTypes.PlayerState?)
+	if self._destroyed then
 		return
 	end
 
-	ToolCreator.AddToBackpack(player, toolKey)
-end
-
-function ToolHandler.RemoveFromBackpack(player: Player, toolKey: string)
-	ToolCreator.RemoveFromBackpack(player, toolKey)
-end
-
--- EQUIP/UNEQUIP ----------------------------------------------------------------------------------------------------
-
-function ToolHandler.ToolEquipped(player: Player, tool: Tool)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool and equippedTool:GetTool() == tool then
-		return
-	end
-
-	ToolHandler.UnequipTool(player)
-
-	-- Create a new tool metatable
-	local toolModule = script.Tool:FindFirstChild(tool.Name)
-	if not toolModule then
-		warn("ToolHandler.ToolEquipped: Tool module not found for tool:", tool.Name)
-		return
-	end
-
-	local toolMeta = require(toolModule).new(player, tool)
-	playersEquippedTool[player.UserId] = toolMeta
-end
-
-function ToolHandler.ToolUnequipped(player: Player, tool: Tool)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool and equippedTool:GetTool() == tool then
-		playersEquippedTool[player.UserId] = nil
+	if playerState then
+		self.state = Deserialize(self._player, playerState)
 	end
 end
 
-function ToolHandler.UnequipTool(player: Player)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool then
-		equippedTool:Destroy()
-		playersEquippedTool[player.UserId] = nil
-	end
+------------------------------------------------------------------------------------------------------------------------
+-- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+-- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+-- HP ----------------------------------------------------------------------------------------------------
+
+function StateManager:GetStartingHP(): number
+	return self._hp:GetStartingHP()
+end
+
+function StateManager:GetMaxHP(): number
+	return self._hp:GetMaxHP()
+end
+
+function StateManager:IncrementHP(amount: number)
+	return self._hp:Increment(amount)
+end
+
+-- STAMINA ----------------------------------------------------------------------------------------------------
+
+function StateManager:AddStamina(amount: number)
+	self._stamina:Add(amount)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-Utils.Signals.Connect("PlayerRemoving", function(player: Player)
-	ToolHandler.UnequipTool(player)
-end)
-
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return ToolHandler
+return StateManager

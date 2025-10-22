@@ -1,4 +1,4 @@
-local ToolHandler = {}
+local PlayerManagers = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,7 +14,9 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -22,102 +24,92 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local StartingTools = require(script.StartingTools)
-local ToolCreator = require(script.ToolCreator)
 
 -- Handlers --------------------------------------------------------------------
-local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
-local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Types ---------------------------------------------------------------------------
+local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Instances -----------------------------------------------------------------------
 
--- Info ---------------------------------------------------------------------------
+-- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
 
+-- Events --------------------------------------------------------------------------
+
 -- Tables --------------------------------------------------------------------------
-local playersEquippedTool: { [number]: table } = {}
+local managers = {
+	StateManager = script.StateManager,
+	StatsResolver = script.StatsResolver,
+	ToolsManager = script.ToolsManager,
+} -- Required inside PlayerAdded to avoid circular dependency
+local playersManagers = {} :: { [number]: { [string]: table } }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+local function PlayerAdded(player: Player)
+	playersManagers[player.UserId] = playersManagers[player.UserId] or {}
+
+	for _, manager in pairs(managers) do
+		if not playersManagers[player.UserId][manager.Name] then
+			playersManagers[player.UserId][manager.Name] = require(manager).new(player)
+		end
+	end
+end
+
+local function PlayerRemoving(player: Player)
+	if not playersManagers[player.UserId] then
+		return
+	end
+
+	for _, manager in pairs(playersManagers[player.UserId]) do
+		manager:Destroy()
+	end
+
+	playersManagers[player.UserId] = nil
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function ToolHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
-end
-
-function ToolHandler.AddToBackpack(player: Player, objectId: string)
-	-- Get tool key from object ID
-	local object = PlayerDataHandler.GetPathValue(player.UserId, { "objects", objectId })
-	local toolKey = object and object.key
-
-	if not toolKey then
-		MessageHandler.SendMessageToPlayer(player, "You do not own this tool", "Error")
-		return
+-- Retrieves the StateManager for a player, creating it if it doesn't exist
+function PlayerManagers.GetManager(player: Player, managerName: string): table?
+	if not playersManagers[player.UserId] then
+		warn("PlayerManagers.GetManager: No managers found for player:", player.UserId)
+		return nil
+	elseif not managers[managerName] then
+		warn("PlayerManagers.GetManager: Manager not found:", managerName)
+		return nil
 	end
 
-	ToolCreator.AddToBackpack(player, toolKey)
+	return playersManagers[player.UserId][managerName]
 end
 
-function ToolHandler.RemoveFromBackpack(player: Player, toolKey: string)
-	ToolCreator.RemoveFromBackpack(player, toolKey)
-end
-
--- EQUIP/UNEQUIP ----------------------------------------------------------------------------------------------------
-
-function ToolHandler.ToolEquipped(player: Player, tool: Tool)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool and equippedTool:GetTool() == tool then
-		return
+function PlayerManagers.UpdateStateManager(player: Player, playerState: SaveTypes.PlayerState?)
+	if playersManagers[player.UserId] and playersManagers[player.UserId].StateManager then
+		playersManagers[player.UserId].StateManager:Update(playerState)
+		return playersManagers[player.UserId].StateManager
 	end
 
-	ToolHandler.UnequipTool(player)
-
-	-- Create a new tool metatable
-	local toolModule = script.Tool:FindFirstChild(tool.Name)
-	if not toolModule then
-		warn("ToolHandler.ToolEquipped: Tool module not found for tool:", tool.Name)
-		return
-	end
-
-	local toolMeta = require(toolModule).new(player, tool)
-	playersEquippedTool[player.UserId] = toolMeta
-end
-
-function ToolHandler.ToolUnequipped(player: Player, tool: Tool)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool and equippedTool:GetTool() == tool then
-		playersEquippedTool[player.UserId] = nil
-	end
-end
-
-function ToolHandler.UnequipTool(player: Player)
-	local equippedTool = playersEquippedTool[player.UserId]
-	if equippedTool then
-		equippedTool:Destroy()
-		playersEquippedTool[player.UserId] = nil
-	end
+	playersManagers[player.UserId] = playersManagers[player.UserId] or {}
+	playersManagers[player.UserId].StateManager = require(managers.StateManager).new(player, playerState)
+	return playersManagers[player.UserId].StateManager
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-
-Utils.Signals.Connect("PlayerRemoving", function(player: Player)
-	ToolHandler.UnequipTool(player)
-end)
+Utils.Signals.Connect("PlayerLoaded", PlayerAdded)
+Utils.Signals.Connect("PlayerRemoving", PlayerRemoving)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return ToolHandler
+return PlayerManagers

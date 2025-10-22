@@ -16,12 +16,9 @@ local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
 local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
 local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
-local Tools = ReplicatedStorage:WaitForChild("Tools")
-
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Ports = require(script:WaitForChild("Ports"))
-local Tool = require(script:WaitForChild("Tool"))
 
 -- Handlers ----------------------------------------------------------------
 local PlayerDataHandler = require(ReplicatedBaseHandlers:WaitForChild("PlayerDataHandler"))
@@ -32,6 +29,7 @@ local MessageHandler = require(ReplicatedBaseHandlers:WaitForChild("MessageHandl
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local ObjectsInfo = require(ReplicatedInfo:WaitForChild("ObjectsInfo"))
 
 -- Configs -------------------------------------------------------------------------
 
@@ -59,12 +57,13 @@ function ToolHandler.Activate() end
 
 function ToolHandler.Equip(objectId: string)
 	local object = PlayerDataHandler.GetPathValue({ "objects", objectId })
+	local objectInfo = ObjectsInfo.byKey[object and object.key]
 
-	if not object then
+	if not object or not objectInfo then
 		warn("ToolHandler.Equip: Object not found with ID:", objectId)
 		return
-	elseif not Tools:FindFirstChild(object.key) then
-		warn("ToolHandler.Equip: Tool not found with key:", object.key)
+	elseif objectInfo.type ~= "tool" then
+		warn("ToolHandler.Equip: Object is not a tool with ID:", objectId)
 		MessageHandler.ShowMessage("This item cannot be equipped!", "Error")
 		return
 	elseif localPlayer:GetAttribute("isDead") then
@@ -80,7 +79,15 @@ function ToolHandler.Equip(objectId: string)
 
 	ToolHandler.Unequip()
 
-	currentTool = Tool.new(object, humanoid)
+	if not script.Tool:FindFirstChild(object.key) then
+		warn("ToolHandler.Equip: Tool module not found with key:", object.key)
+		MessageHandler.ShowMessage("Could not find tool to equip", "Error")
+		return
+	end
+
+	-- Equip tool
+	local toolModule = require(script.Tool:FindFirstChild(object.key))
+	currentTool = toolModule.new(object, objectInfo, humanoid)
 end
 
 function ToolHandler.Unequip()
@@ -93,11 +100,6 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-PlayerDataHandler.ObservePath({ "loadout", "equippedObjectId" }, function(newObjectId: string?)
-	if not newObjectId and currentTool then
-		ToolHandler.Unequip()
-	end
-end)
 
 game.Players.LocalPlayer.CharacterRemoving:Connect(function()
 	ToolHandler.Unequip()

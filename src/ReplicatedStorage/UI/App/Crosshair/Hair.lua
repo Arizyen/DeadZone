@@ -80,7 +80,7 @@ local function Hair(props: Props)
 	local mappedPositionBinding = useMotorMappedBinding(props.motorRef, function(value)
 		return props.Position:Lerp(
 			props.endPosition,
-			TweenService:GetValue(value, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+			TweenService:GetValue(value, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		)
 	end, props.Position, { props.motorRef.current })
 
@@ -99,7 +99,8 @@ local function Hair(props: Props)
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 			Color = Color3.new(0, 0, 0),
 			LineJoinMode = Enum.LineJoinMode.Miter,
-			Thickness = 2,
+			Thickness = 1,
+			fixedThickness = true,
 		}),
 	})
 end

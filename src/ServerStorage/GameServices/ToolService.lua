@@ -20,6 +20,7 @@ local GameHandlers = ServerSource.GameHandlers
 -- Modules -------------------------------------------------------------------
 local Knit = require(Packages.Knit)
 local RateLimiter = require(BaseModules.RateLimiter)
+local t = require(Packages.t)
 
 -- Handlers -------------------------------------------------------------------
 local ToolHandler = require(GameHandlers.ToolHandler)
@@ -60,5 +61,15 @@ function ToolService:KnitStart() end
 -------------------------------------------------------------------------------------------------------------------------
 -- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------
+
+function ToolService.Client:AddToBackpack(player: Player, objectId: string)
+	if not RateLimiter.Use(player, "ToolService", "AddToBackpack") then
+		return
+	elseif not t.string(objectId) then
+		return
+	end
+
+	ToolHandler.AddToBackpack(player, objectId)
+end
 
 return ToolService

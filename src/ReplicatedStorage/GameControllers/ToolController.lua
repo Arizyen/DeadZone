@@ -49,13 +49,16 @@ local knitServices = {}
 -- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
 function ToolController:KnitInit()
 	knitServices["Tool"] = Knit.GetService("Tool")
+
+	-- Add client functions to Handler
+	ToolHandler.Register({
+		AddToBackpack = function(objectId: string): (boolean, string?)
+			knitServices["Tool"]:AddToBackpack(objectId)
+		end,
+	})
 end
 
 -- KnitStart() fires after all KnitInit() have been completed.
 function ToolController:KnitStart() end
-
--------------------------------------------------------------------------------------------------------------------------
--- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------------------------------
 
 return ToolController

@@ -67,7 +67,7 @@ function PlayerAxesAnimator.new(player: Player)
 	self._destroyed = false
 	self._activated = false
 	self._isLocalPlayer = player == localPlayer
-	self._toolEquipped = player:GetAttribute("toolEquipped") or false
+	self._toolEquipped = player:GetAttribute("equippedObjectId") or false
 	self._isRagdolled = player:GetAttribute("isRagdolled") or false
 	self._inRange = self._isLocalPlayer or player:GetAttribute("isInRange") or false
 
@@ -119,9 +119,9 @@ function PlayerAxesAnimator:_Init()
 
 	Utils.Connections.Add(
 		self,
-		"toolEquipped",
-		self._player:GetAttributeChangedSignal("toolEquipped"):Connect(function()
-			self._toolEquipped = self._player:GetAttribute("toolEquipped") or false
+		"equippedObjectId",
+		self._player:GetAttributeChangedSignal("equippedObjectId"):Connect(function()
+			self._toolEquipped = self._player:GetAttribute("equippedObjectId") or false
 		end)
 	)
 

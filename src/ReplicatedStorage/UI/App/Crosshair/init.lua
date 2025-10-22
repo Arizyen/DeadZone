@@ -50,10 +50,10 @@ type Props = {}
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local HAIR_WIDTH = 14
-local HAIR_HEIGHT = 4
-local HAIR_LONG_WIDTH = 24
-local HAIR_LONG_HEIGHT = 4
+local HAIR_WIDTH = 8
+local HAIR_HEIGHT = 2
+local HAIR_LONG_WIDTH = 14
+local HAIR_LONG_HEIGHT = 2
 
 -- Variables -----------------------------------------------------------------------
 local e = React.createElement
@@ -76,11 +76,11 @@ local function Crosshair(props: Props)
 	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
-	local toolEquipped, setToolEquipped = React.useState(localPlayer:GetAttribute("toolEquipped") or false)
+	local toolEquipped, setToolEquipped = React.useState(localPlayer:GetAttribute("equippedObjectId") or false)
 	local hairLongColor, setHairLongColor = React.useState(Color3.new(1, 1, 1))
 
 	local longHairMotorRef = React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / 0.1))
-	local hairMotorRef = React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / 0.1))
+	local hairMotorRef = React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / 0.07))
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
@@ -90,8 +90,8 @@ local function Crosshair(props: Props)
 	end, 1, { longHairMotorRef.current })
 
 	local hairs = React.useMemo(function()
-		local hairWidth = storeState.isOnSmallScreen and HAIR_WIDTH * 0.5 or HAIR_WIDTH
-		local hairHeight = storeState.isOnSmallScreen and HAIR_HEIGHT * 0.5 or HAIR_HEIGHT
+		local hairWidth = storeState.isOnSmallScreen and HAIR_WIDTH * 1.25 or HAIR_WIDTH
+		local hairHeight = storeState.isOnSmallScreen and HAIR_HEIGHT * 1.25 or HAIR_HEIGHT
 
 		return {
 			-- Right Hair
@@ -133,9 +133,9 @@ local function Crosshair(props: Props)
 	end, { storeState.windowShown, storeState.isOnSmallScreen, toolEquipped })
 
 	local hairsLong = React.useMemo(function()
-		local hairWidth = storeState.isOnSmallScreen and HAIR_WIDTH * 0.5 or HAIR_WIDTH
-		local hairLongWidth = storeState.isOnSmallScreen and HAIR_LONG_WIDTH * 0.5 or HAIR_LONG_WIDTH
-		local hairLongHeight = storeState.isOnSmallScreen and HAIR_LONG_HEIGHT * 0.5 or HAIR_LONG_HEIGHT
+		local hairWidth = storeState.isOnSmallScreen and HAIR_WIDTH * 1.25 or HAIR_WIDTH
+		local hairLongWidth = storeState.isOnSmallScreen and HAIR_LONG_WIDTH * 1.25 or HAIR_LONG_WIDTH
+		local hairLongHeight = storeState.isOnSmallScreen and HAIR_LONG_HEIGHT * 1.25 or HAIR_LONG_HEIGHT
 
 		return {
 			-- Top right
@@ -192,8 +192,8 @@ local function Crosshair(props: Props)
 
 	-- Crosshair visibility
 	React.useEffect(function()
-		local connection = localPlayer:GetAttributeChangedSignal("toolEquipped"):Connect(function()
-			setToolEquipped(localPlayer:GetAttribute("toolEquipped") or false)
+		local connection = localPlayer:GetAttributeChangedSignal("equippedObjectId"):Connect(function()
+			setToolEquipped(localPlayer:GetAttribute("equippedObjectId") or false)
 		end)
 
 		return function()

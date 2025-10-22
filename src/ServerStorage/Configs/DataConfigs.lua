@@ -38,10 +38,8 @@ local DataConfigs = {
 		-- Inventory keys
 		hotbar = {} :: { [string]: string }, -- slotId (slot1) = objectId
 		inventory = {} :: { [string]: string }, -- slotId (slot1) = objectId
-		loadout = {
-			equippedObjectId = nil :: string?,
-		} :: { [string]: string }, -- slotName = itemName
-		objects = {} :: { [string]: ObjectTypes.Object }, -- objectId = object
+		loadout = {} :: { [string]: string }, -- slotId = itemName
+		objects = {} :: { [string]: ObjectTypes.ObjectCopy }, -- objectId = object
 		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
 
 		moderation = {

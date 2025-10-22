@@ -49,6 +49,11 @@ local knitServices = {}
 -- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
 function InventoryController:KnitInit()
 	knitServices["Inventory"] = Knit.GetService("Inventory")
+	InventoryHandler.Register({
+		MoveObject = function(objectId: string, newLocation: string, newSlotId: string): (boolean, string?)
+			return knitServices["Inventory"]:MoveObject(objectId, newLocation, newSlotId)
+		end,
+	})
 end
 
 -- KnitStart() fires after all KnitInit() have been completed.

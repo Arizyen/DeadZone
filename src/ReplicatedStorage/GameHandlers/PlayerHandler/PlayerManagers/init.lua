@@ -1,4 +1,4 @@
-local PlayersManagers = {}
+local PlayerManagers = {}
 
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -95,7 +95,7 @@ end
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function PlayersManagers.GetPlayerZoneKey(userId: number): string?
+function PlayerManagers.GetPlayerZoneKey(userId: number): string?
 	if not userId then
 		return nil
 	end
@@ -106,7 +106,7 @@ function PlayersManagers.GetPlayerZoneKey(userId: number): string?
 	return zoneTracker:GetZoneKey()
 end
 
-function PlayersManagers.UpdatePlayerAxes(userId: number, pitchRad: number, yawRad: number)
+function PlayerManagers.UpdatePlayerAxes(userId: number, pitchRad: number, yawRad: number)
 	if not userId then
 		return
 	end
@@ -126,4 +126,4 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 Utils.Signals.Once("ClientStarted", Activate)
 
-return PlayersManagers
+return PlayerManagers

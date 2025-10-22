@@ -1,5 +1,5 @@
-local StateManager = {}
-StateManager.__index = StateManager
+local ToolsManager = {}
+ToolsManager.__index = ToolsManager
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -15,7 +15,9 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -23,25 +25,20 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local PlayerStatsResolver = require(GameModules.PlayerStatsResolver)
-local HP = require(script.HP)
-local Stamina = require(script.Stamina)
-local FallDamage = require(script.FallDamage)
 
 -- Handlers --------------------------------------------------------------------
+local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
+local ToolHandler = require(GameHandlers.ToolHandler)
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local StateConfigs = require(Configs.StateConfigs)
 
 -- Variables -----------------------------------------------------------------------
-local updateTimerRunning = false
 
 -- Tables --------------------------------------------------------------------------
 
@@ -49,93 +46,124 @@ local updateTimerRunning = false
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
--- Deserialize the player state, ensuring all fields are present and correctly typed
-local function Deserialize(player: Player, playerState: SaveTypes.PlayerState): SaveTypes.PlayerState
-	return {
-		hp = playerState.hp or StateConfigs.HP_MAX,
-		position = type(playerState.position) == "string" and Vector3.new(unpack(string.split(playerState.position)))
-			or playerState.position,
-	}
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function StateManager.new(player: Player, playerState: SaveTypes.PlayerState?)
-	local self = setmetatable({}, StateManager)
+function ToolsManager.new(player: Player)
+	local self = setmetatable({}, ToolsManager)
 
 	-- Booleans
 	self._destroyed = false
 
 	-- Instances
-	self._player = player :: Player
-
-	-- Tables
-	self.state = Deserialize(player, playerState or {}) :: SaveTypes.PlayerState
-
-	-- Metatables
-	self.statsResolver = PlayerStatsResolver.GetStatsResolver(player)
-	self._hp = HP.new(player, self)
-	self._stamina = Stamina.new(player)
-	self._fallDamage = FallDamage.new(player, self)
+	self._player = player
 
 	self:_Init()
 
 	return self
 end
 
-function StateManager:_Init() end
+function ToolsManager:_Init()
+	-- Connections
+	Utils.Connections.Add(
+		self,
+		"HotbarChanged",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "hotbar" }, function(new, prev)
+			if not prev and new then
+				-- Initial population of hotbar
+				for _, objectId in pairs(new) do
+					ToolHandler.AddToBackpack(self._player, objectId)
+				end
+			else
+				-- Remove tools that are no longer in the hotbar
+				for _, objectId in pairs(prev) do
+					if not new[objectId] then
+						ToolHandler.RemoveFromBackpack(self._player, objectId)
+					end
+				end
 
-function StateManager:Destroy()
+				-- Add tools that are newly added to the hotbar
+				for _, objectId in pairs(new) do
+					if not prev[objectId] then
+						ToolHandler.AddToBackpack(self._player, objectId)
+					end
+				end
+			end
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"CharacterAdded",
+		self._player.CharacterAdded:Connect(function(character)
+			self:_AddCharacterConnections(character)
+		end)
+	)
+
+	-- Add tools from hotbar on initialization
+	local hotbar = PlayerDataHandler.GetPathValue(self._player.UserId, { "hotbar" })
+
+	if hotbar then
+		for _, objectId in pairs(hotbar) do
+			ToolHandler.AddToBackpack(self._player, objectId)
+		end
+	end
+
+	-- Run functions
+	self:_AddCharacterConnections(self._player.Character)
+end
+
+function ToolsManager:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
 
-	self._hp:Destroy()
-	self._stamina:Destroy()
-
 	Utils.Connections.DisconnectKeyConnections(self)
-end
-
-function StateManager:Update(playerState: SaveTypes.PlayerState?)
-	if self._destroyed then
-		return
-	end
-
-	if playerState then
-		self.state = Deserialize(self._player, playerState)
-	end
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+function ToolsManager:_AddCharacterConnections(character: Model)
+	if not character then
+		return
+	end
+
+	Utils.Connections.Add(
+		self,
+		"ToolAdded",
+		character.ChildAdded:Connect(function(child)
+			if child:IsA("Tool") then
+				ToolHandler.ToolEquipped(self._player, child)
+			end
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"ToolRemoved",
+		character.ChildRemoved:Connect(function(child)
+			if child:IsA("Tool") then
+				ToolHandler.ToolUnequipped(self._player, child)
+			end
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"CharacterRemoving",
+		self._player.CharacterRemoving:Connect(function()
+			ToolHandler.UnequipTool(self._player)
+		end)
+	)
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-
--- HP ----------------------------------------------------------------------------------------------------
-
-function StateManager:GetStartingHP(): number
-	return self._hp:GetStartingHP()
-end
-
-function StateManager:GetMaxHP(): number
-	return self._hp:GetMaxHP()
-end
-
-function StateManager:IncrementHP(amount: number)
-	return self._hp:Increment(amount)
-end
-
--- STAMINA ----------------------------------------------------------------------------------------------------
-
-function StateManager:AddStamina(amount: number)
-	self._stamina:Add(amount)
-end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -145,4 +173,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return StateManager
+return ToolsManager

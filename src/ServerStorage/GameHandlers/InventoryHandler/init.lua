@@ -34,6 +34,7 @@ local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 
 -- Info ---------------------------------------------------------------------------
 local ObjectTypes = require(ReplicatedTypes.ObjectTypes)
+local ObjectsInfo = require(ReplicatedInfo.ObjectsInfo)
 
 -- Configs -------------------------------------------------------------------------
 
@@ -60,10 +61,11 @@ end
 
 function InventoryHandler.AddObject(
 	player: Player,
-	object: ObjectTypes.Object,
-	location: "inventory" | "hotbar"
+	objectCopy: ObjectTypes.ObjectCopy,
+	location: ("inventory" | "hotbar" | "loadout")?
 ): (boolean, string?)
-	assert(object and object.key, "InventoryHandler.AddObject: Invalid object provided")
+	assert(objectCopy and objectCopy.key, "InventoryHandler.AddObject: Invalid object provided")
+	assert(ObjectsInfo.byKey[objectCopy.key], "InventoryHandler.AddObject: Object key not found in ObjectsInfo")
 
 	location = location or "inventory"
 	local freeSlotKey
@@ -105,7 +107,7 @@ function InventoryHandler.AddObject(
 	end
 
 	-- Create and add object
-	local newObject = CreateObject(object)
+	local newObject = CreateObject(objectCopy)
 	newObject.location = location
 	newObject.slotId = freeSlotKey
 
@@ -138,6 +140,78 @@ function InventoryHandler.RemoveObject(player: Player, objectId: string): boolea
 
 	-- Remove from objects
 	PlayerDataHandler.SetPathValue(player.UserId, { "objects", objectId }, nil)
+
+	return true
+end
+
+function InventoryHandler.MoveObject(
+	player: Player,
+	objectId: string,
+	newLocation: ("inventory" | "hotbar" | "loadout")?,
+	newSlotId: string
+): (boolean, string?)
+	local objects = PlayerDataHandler.GetPathValue(player.UserId, { "objects" })
+	local object = objects[objectId]
+	if not object then
+		return false, "Object not found"
+	end
+
+	-- Get object info
+	local objectInfo = ObjectsInfo.byKey[object.key]
+	if not objectInfo then
+		return false, "Object info not found"
+	end
+
+	-- Confirm it can go to the new location
+	newLocation = newLocation or "inventory"
+	if newLocation == "hotbar" and objectInfo.type ~= "tool" then
+		return false, "Only tools can be placed in the hotbar"
+	elseif newLocation == "loadout" and objectInfo.type ~= "wearable" then
+		return false, "Only wearables can be placed in the loadout"
+	end
+
+	-- Place the new slot's item in the object's current location
+	local locationTable = PlayerDataHandler.GetPathValue(player.UserId, { newLocation })
+	if locationTable[newSlotId] then
+		-- Verify if an object exists in the new slot
+		local occupyingObjectId = locationTable[newSlotId]
+		local occupyingObject = objects[occupyingObjectId]
+		if occupyingObject then
+			local occupyingObjectCopy = table.clone(occupyingObject)
+			-- Place it in the original object's location
+			occupyingObjectCopy.location = object.location
+			occupyingObjectCopy.slotId = object.slotId
+			PlayerDataHandler.SetPathValue(player.UserId, { "objects", occupyingObjectId }, occupyingObjectCopy)
+
+			-- Update the location table with the occupying object
+			if occupyingObjectCopy.location and occupyingObjectCopy.slotId then
+				PlayerDataHandler.SetPathValue(
+					player.UserId,
+					{ occupyingObjectCopy.location, occupyingObjectCopy.slotId },
+					occupyingObjectId
+				)
+			end
+		end
+	end
+
+	-- Clear old location
+	local oldLocation = object.location
+	local oldSlotId = object.slotId
+	if oldLocation and oldSlotId then
+		local oldLocationTable = PlayerDataHandler.GetPathValue(player.UserId, { oldLocation })
+		if oldLocationTable[oldSlotId] == objectId then
+			PlayerDataHandler.SetPathValue(player.UserId, { oldLocation, oldSlotId }, nil)
+		end
+	end
+
+	-- Set new location
+	PlayerDataHandler.SetPathValue(player.UserId, { newLocation, newSlotId }, objectId)
+
+	-- Update object data
+	object = table.clone(object)
+	object.location = newLocation
+	object.slotId = newSlotId
+	PlayerDataHandler.SetPathValue(player.UserId, { "objects", objectId }, object)
 
 	return true
 end

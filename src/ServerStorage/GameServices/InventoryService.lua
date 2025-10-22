@@ -23,6 +23,7 @@ local RateLimiter = require(BaseModules.RateLimiter)
 
 -- Handlers -------------------------------------------------------------------
 local InventoryHandler = require(GameHandlers.InventoryHandler)
+local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Knit Services --------------------------------------------------------------------
 local InventoryService = Knit.CreateService({
@@ -60,5 +61,17 @@ function InventoryService:KnitStart() end
 -------------------------------------------------------------------------------------------------------------------------
 -- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------
+function InventoryService.Client:MoveObject(
+	player: Player,
+	objectId: string,
+	newLocation: "inventory" | "hotbar" | "loadout",
+	newSlotId: string
+)
+	if not RateLimiter.Use(player.UserId, "InventoryService", "MoveObject", 5, 5) then
+		return false, "Rate limit exceeded"
+	end
+
+	return InventoryHandler.MoveObject(player, objectId, newLocation, newSlotId)
+end
 
 return InventoryService

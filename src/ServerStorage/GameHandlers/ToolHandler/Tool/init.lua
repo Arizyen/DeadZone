@@ -1,4 +1,5 @@
-local PlayerStateManager = {}
+local Tool = {}
+Tool.__index = Tool
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,7 +15,9 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -22,12 +25,10 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local StateManager = require(script.StateManager)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Instances -----------------------------------------------------------------------
 
@@ -38,50 +39,63 @@ local SaveTypes = require(ReplicatedTypes.SaveTypes)
 -- Variables -----------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
-local playersStateManager = {} :: { [number]: typeof(StateManager) }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
--- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
+-- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
--- Creates or retrieves the StateManager for a player with optional initial state
--- If the StateManager already exists, it updates it with the provided state
-function PlayerStateManager.Create(player: Player, playerState: SaveTypes.PlayerState?): typeof(StateManager)
-	if playersStateManager[player.UserId] then
-		playersStateManager[player.UserId]:Update(playerState)
-		return playersStateManager[player.UserId]
-	end
+function Tool.new(player: Player, tool: Tool)
+	local self = setmetatable({}, Tool)
 
-	playersStateManager[player.UserId] = StateManager.new(player, playerState)
-	return playersStateManager[player.UserId]
+	-- Booleans
+	self._destroyed = false
+
+	-- Instances
+	self._player = player
+	self._tool = tool
+
+	self:_Init()
+
+	return self
 end
 
--- Retrieves the StateManager for a player, creating it if it doesn't exist
-function PlayerStateManager.Get(player: Player): typeof(StateManager)
-	if playersStateManager[player.UserId] then
-		return playersStateManager[player.UserId]
-	end
+function Tool:_Init()
+	self:Update()
+end
 
-	playersStateManager[player.UserId] = StateManager.new(player)
-	return playersStateManager[player.UserId]
+function Tool:Destroy()
+	if self._destroyed then
+		return
+	end
+	self._destroyed = true
+
+	Utils.Connections.DisconnectKeyConnections(self)
+end
+
+function Tool:Update() end
+
+------------------------------------------------------------------------------------------------------------------------
+-- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+-- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+function Tool:GetTool(): Tool
+	return self._tool
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-Utils.Signals.Connect("PlayerRemoving", function(player: Player)
-	if playersStateManager[player.UserId] then
-		playersStateManager[player.UserId]:Destroy()
-		playersStateManager[player.UserId] = nil
-	end
-end)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return PlayerStateManager
+return Tool

@@ -73,7 +73,6 @@ function GameService:KnitStart() end
 
 function GameService.Client:GetGameState(playerFired: Player): GameTypes.GameState
 	if not RateLimiter.Use(playerFired, "GameService", "GetGameState") then
-		warn("Rate limit exceeded for GetGameState by player: " .. playerFired.Name)
 		return
 	end
 
@@ -82,7 +81,6 @@ end
 
 function GameService.Client:VoteSkipDay(playerFired: Player): boolean
 	if not RateLimiter.Use(playerFired, "GameService", "VoteSkipDay") then
-		warn("Rate limit exceeded for VoteSkipDay by player: " .. playerFired.Name)
 		return false
 	end
 

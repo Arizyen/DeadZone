@@ -1,9 +1,12 @@
-local Tool = {}
-Tool.__index = Tool
+local Tool = require(script.Parent)
+
+local Rock = setmetatable({}, { __index = Tool })
+Rock.__index = Rock
+-- This is a SubClass of Tool which extends the Tool with the same methods and properties.
 
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -16,8 +19,6 @@ local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
 local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
 local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
 local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
-
-local Tools = ReplicatedStorage:WaitForChild("Tools")
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
@@ -34,7 +35,6 @@ local ObjectTypes = require(ReplicatedTypes:WaitForChild("ObjectTypes"))
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
-local localPlayer = game.Players.LocalPlayer
 
 -- Tables --------------------------------------------------------------------------
 
@@ -46,72 +46,88 @@ local localPlayer = game.Players.LocalPlayer
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Tool.new(object: ObjectTypes.Tool, humanoid: Humanoid): Tool
-	local self = setmetatable({}, Tool)
+function Rock.new(object: ObjectTypes.Tool, objectInfo: ObjectTypes.Tool, humanoid: Humanoid)
+	local self = setmetatable(Tool.new(object, objectInfo, humanoid), Rock)
 
 	-- Booleans
 	self._destroyed = false
 
-	-- Instances
-	self._object = object
-	self._humanoid = humanoid
-	self._toolInstance = nil
+	-- Numbers
+	self._lastHitTime = 0
+
+	-- Tables
+	self._objectInfo = objectInfo
 
 	self:_Init()
 
 	return self
 end
 
-function Tool:_Init()
+function Rock:_Init()
+	-- Activate idle animation
+	self.animationManager:PlayAnimation(self._objectInfo.animations["idle"], { looped = true })
+
 	-- Connections
+	Utils.Connections.Add(self, "Destroying", self.destroying:Connect(function() end))
 	Utils.Connections.Add(
 		self,
-		"UnequipOnDied",
-		self._humanoid.Died:Connect(function()
-			self:Destroy()
+		"Activated",
+		self.activated:Connect(function()
+			self:_Activate()
 		end)
 	)
-
-	-- Clone and equip tool
-	local tool = Tools:FindFirstChild(self._object.key)
-	if not tool then
-		warn("Tool:_Init: Tool not found with key:", self._object.key)
-		self:Destroy()
-		return
-	end
-
-	self._toolInstance = tool:Clone()
-	self._humanoid:EquipTool(self._toolInstance)
-
-	localPlayer:SetAttribute("toolEquipped", true)
-	UserInputService.MouseIconEnabled = false
-	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-end
-
-function Tool:Destroy()
-	if self._destroyed then
-		return
-	end
-	self._destroyed = true
-
-	Utils.Connections.DisconnectKeyConnections(self)
-
-	if self._toolInstance then
-		self._toolInstance:Destroy()
-		self._toolInstance = nil
-	end
-
-	localPlayer:SetAttribute("toolEquipped", false)
-	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-	UserInputService.MouseIconEnabled = true
+	Utils.Connections.Add(
+		self,
+		"Deactivated",
+		self.deactivated:Connect(function()
+			self:_Deactivate()
+		end)
+	)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
--- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
+-- PRIVATE METHODS -----------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+function Rock:_Activate()
+	self:_Hit()
+
+	Utils.Connections.Add(
+		self,
+		"HeartbeatHit",
+		RunService.Heartbeat:Connect(function()
+			self:_Hit()
+		end)
+	)
+end
+
+function Rock:_Deactivate()
+	Utils.Connections.DisconnectKeyConnection(self, "HeartbeatHit")
+end
+
+function Rock:_Hit()
+	if os.clock() - self._lastHitTime < (self._objectInfo.attackDelay or 0) then
+		return
+	end
+	self._lastHitTime = os.clock()
+
+	Utils.Signals.Fire("ToolActivated")
+
+	local animationTrack = self.animationManager:PlayAnimation(
+		self._objectInfo.animations["attack"],
+		{ priority = Enum.AnimationPriority.Action2 }
+	)
+
+	-- Adjust speed based on attackDelay and animation length (to sync length with attackDelay)
+	animationTrack:AdjustSpeed(1 / (self._objectInfo.attackDelay / animationTrack.Length))
+end
+
+------------------------------------------------------------------------------------------------------------------------
+-- VIRTUAL METHODS IMPLEMENTATION --------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
--- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
+-- PUBLIC METHODS ------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -122,4 +138,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return Tool
+return Rock

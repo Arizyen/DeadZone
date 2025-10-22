@@ -55,6 +55,7 @@ type Props = {
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local ObjectsInfo = require(ReplicatedInfo:WaitForChild("ObjectsInfo"))
 
 -- Configs -------------------------------------------------------------------------
 
@@ -94,6 +95,7 @@ local function Slot(props: Props)
 	-- SELECTORS/CONTEXTS --------------------------------------------------------------------------------------------
 
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
+	local objectInfo, setObjectInfo = React.useState({})
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
@@ -116,6 +118,8 @@ local function Slot(props: Props)
 				props.setSelected(props.LayoutOrder, props.object and props.object.id, false)
 			end
 		end)
+
+		setObjectInfo(ObjectsInfo.byKey[props.object and props.object.key] or {})
 
 		return function()
 			connection:Disconnect()
@@ -153,7 +157,7 @@ local function Slot(props: Props)
 			BackgroundTransparency = 1,
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(0.9, 0.25),
-			Text = props.object and not props.image and props.object.name or "",
+			Text = not objectInfo.image and objectInfo.name or "",
 			TextScaled = true,
 		}),
 

@@ -1,4 +1,0 @@
-return {
-	LUCKY_RARITY_BOOST = 0.2,
-	SUPER_LUCKY_RARITY_BOOST = 0.3,
-}

@@ -1,8 +1,9 @@
-local RangeTracker = {}
-RangeTracker.__index = RangeTracker
+local Tool = {}
+Tool.__index = Tool
 
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -18,11 +19,14 @@ local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
-local PlayerManagers = require(ReplicatedGameHandlers:WaitForChild("PlayerHandler"):WaitForChild("PlayerManagers"))
+local Ports = require(script.Parent:WaitForChild("Ports"))
+local DeviceTypeUpdater = require(ReplicatedBaseModules:WaitForChild("DeviceTypeUpdater"))
+local AnimationManager = require(ReplicatedBaseModules:WaitForChild("AnimationManager"))
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
+local ObjectTypes = require(ReplicatedTypes:WaitForChild("ObjectTypes"))
 
 -- Instances -----------------------------------------------------------------------
 
@@ -43,146 +47,144 @@ local localPlayer = game.Players.LocalPlayer
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function RangeTracker.new()
-	local self = setmetatable({}, RangeTracker)
+function Tool.new(object: ObjectTypes.ToolCopy, objectInfo: ObjectTypes.Tool, humanoid: Humanoid)
+	local self = setmetatable({}, Tool)
 
 	-- Booleans
 	self._destroyed = false
 
-	-- Strings
-	self._zoneKey = PlayerManagers.GetPlayerZoneKey(localPlayer.UserId)
+	-- Instances
+	self._object = object
+	self._objectInfo = objectInfo
+	self._humanoid = humanoid
 
-	-- Tables
-	self._playersInRange = {} :: { [number]: boolean }
-	self._playersZoneKey = {} :: { [number]: string? }
-	self._inRangeKeys = {} :: { string }
+	-- Signals
+	self.destroying = Utils.Signals.Create()
+	self.activated = Utils.Signals.Create()
+	self.deactivated = Utils.Signals.Create()
+
+	-- Metatables
+	self.animationManager = AnimationManager.new(humanoid)
 
 	self:_Init()
 
 	return self
 end
 
-function RangeTracker:_Init()
+function Tool:_Init()
+	-- Load animations
+	self.animationManager:LoadAnimations(self._objectInfo.animations or {})
+
 	-- Connections
 	Utils.Connections.Add(
 		self,
-		"playerZoneChanged",
-		Utils.Signals.Connect("PlayerZoneChanged", function(player, newZoneKey)
-			if player == localPlayer then
-				self._zoneKey = newZoneKey
-				self:_UpdatePlayersInRange()
-			else
-				self:_PlayerZoneChanged(player, newZoneKey)
-			end
+		"UnequipOnDied",
+		self._humanoid.Died:Connect(function()
+			self:Destroy()
 		end)
 	)
 
-	Utils.Connections.Add(
-		self,
-		"PlayerRemoving",
-		game.Players.PlayerRemoving:Connect(function(player)
-			self._playersInRange[player.UserId] = nil
-			self._playersZoneKey[player.UserId] = nil
-		end)
-	)
+	-- Equip tool
+	self:_Equip()
 end
 
-function RangeTracker:Destroy()
+function Tool:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
 
+	self.destroying:Fire()
 	Utils.Connections.DisconnectKeyConnections(self)
+
+	if self._humanoid then
+		self._humanoid:UnequipTools()
+	end
+
+	localPlayer:SetAttribute("equippedObjectId", nil)
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	UserInputService.MouseIconEnabled = true
+
+	-- Destroy signals
+	self.destroying:Destroy()
+	self.activated:Destroy()
+	self.deactivated:Destroy()
+
+	-- Destroy metatables
+	self.animationManager:Destroy()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function RangeTracker:_PlayerZoneChanged(player: Player, newZoneKey: string?)
-	self._playersZoneKey[player.UserId] = newZoneKey
-
-	local prevInRange = self._playersInRange[player.UserId]
-	local inRange = false
-
-	if not newZoneKey then
-		inRange = false
-	else
-		local coordinates = string.split(newZoneKey, ",")
-		local x, y, z = tonumber(coordinates[1]), tonumber(coordinates[2]), tonumber(coordinates[3])
-
-		for i = x - 1, x + 1 do
-			for j = y - 1, y + 1 do
-				for k = z - 1, z + 1 do
-					if self._zoneKey == (i .. "," .. j .. "," .. k) then
-						inRange = true
-						break
-					end
-				end
-				if inRange then
-					break
-				end
-			end
-			if inRange then
-				break
-			end
-		end
-	end
-
-	if prevInRange ~= inRange then
-		self._playersInRange[player.UserId] = inRange or nil
-		self:_PlayerInRangeChanged(player, inRange or false)
-	end
-end
-
-function RangeTracker:_UpdatePlayersInRange()
-	if not self._zoneKey then
+function Tool:_Equip()
+	if self._destroyed then
 		return
 	end
 
-	local inRangeZoneKeys = {}
-	local coordinates = string.split(self._zoneKey, ",")
-	local x, y, z = tonumber(coordinates[1]), tonumber(coordinates[2]), tonumber(coordinates[3])
+	local tool = localPlayer.Backpack:FindFirstChild(self._objectInfo.key)
 
-	for i = x - 1, x + 1 do
-		for j = y - 1, y + 1 do
-			for k = z - 1, z + 1 do
-				table.insert(inRangeZoneKeys, i .. "," .. j .. "," .. k)
-			end
-		end
+	if not tool then
+		Utils.Connections.Add(
+			self,
+			"ToolAdded",
+			localPlayer.Backpack.ChildAdded:Connect(function(child)
+				if child.Name == self._objectInfo.key then
+					self:_Equip()
+					Utils.Connections.DisconnectKeyConnection(self, "ToolAdded")
+				end
+			end)
+		)
+
+		Ports.AddToBackpack(self._object.id)
+
+		return
 	end
-	self._inRangeKeys = inRangeZoneKeys
 
-	for userId, zoneKey in pairs(self._playersZoneKey) do
-		local player = game.Players:GetPlayerByUserId(userId)
-		if player and player ~= localPlayer then
-			local inRange = table.find(inRangeZoneKeys, zoneKey) ~= nil
-
-			if self._playersInRange[userId] ~= (inRange or nil) then
-				self._playersInRange[userId] = inRange or nil
-				self:_PlayerInRangeChanged(player, inRange or false)
+	-- Add tool connections
+	Utils.Connections.Add(
+		self,
+		"ToolActivated",
+		tool.Activated:Connect(function()
+			if DeviceTypeUpdater.currentDeviceType == "mobile" then
+				return
 			end
-		end
-	end
+
+			self:Activate()
+		end)
+	)
+	Utils.Connections.Add(
+		self,
+		"ToolDeactivated",
+		tool.Deactivated:Connect(function()
+			if DeviceTypeUpdater.currentDeviceType == "mobile" then
+				return
+			end
+
+			self:Deactivate()
+		end)
+	)
+
+	self._humanoid:EquipTool(tool)
+
+	localPlayer:SetAttribute("equippedObjectId", self._object.id)
+	UserInputService.MouseIconEnabled = false
+	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 end
 
-function RangeTracker:_PlayerInRangeChanged(player: Player, inRange: boolean)
-	player:SetAttribute("isInRange", inRange)
-end
+function Tool:_RunHoldAnimation() end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function RangeTracker:IsPositionInRange(position: Vector3): boolean
-	if not position or not self._zoneKey then
-		return false
-	end
+function Tool:Activate()
+	self.activated:Fire()
+end
 
-	local positionZoneKey = position.X .. "," .. position.Y .. "," .. position.Z
-
-	return table.find(self._inRangeKeys, positionZoneKey) ~= nil
+function Tool:Deactivate()
+	self.deactivated:Fire()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -193,4 +195,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return RangeTracker.new()
+return Tool

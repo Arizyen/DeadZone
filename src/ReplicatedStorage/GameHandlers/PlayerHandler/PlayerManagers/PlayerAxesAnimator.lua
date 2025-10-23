@@ -69,7 +69,7 @@ function PlayerAxesAnimator.new(player: Player)
 	self._isLocalPlayer = player == localPlayer
 	self._toolEquipped = player:GetAttribute("equippedObjectId") or false
 	self._isRagdolled = player:GetAttribute("isRagdolled") or false
-	self._inRange = self._isLocalPlayer or player:GetAttribute("isInRange") or false
+	self._inRange = self._isLocalPlayer and true or false
 
 	-- Instances
 	self._player = player
@@ -148,6 +148,8 @@ function PlayerAxesAnimator:_Init()
 
 	if self._isLocalPlayer then
 		self:_Activate()
+	else
+		self:SetInRange(self._player:GetAttribute("isInRange") or false)
 	end
 end
 

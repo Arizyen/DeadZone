@@ -46,8 +46,23 @@ local camera = game.Workspace.CurrentCamera
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+local GetCollidable = Utils.Raycaster.GetCollidable
+
 local function GetZoomDistance()
 	return (camera.CFrame.Position - camera.Focus.Position).Magnitude
+end
+
+local function CameraBasisXZ(camCF: CFrame)
+	local f = camCF.LookVector
+	f = Vector3.new(f.X, 0, f.Z)
+	if f.Magnitude < 1e-6 then
+		f = Vector3.new(0, 0, -1)
+	else
+		f = f.Unit
+	end
+	local r = f:Cross(Vector3.yAxis).Unit -- right
+
+	return f, r
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -137,14 +152,26 @@ function CustomCamera:Update()
 	end
 
 	local zoomDistance = GetZoomDistance()
+	local root = self._character.PrimaryPart
 
 	-- Make character face camera direction
 	if not self._inFirstPerson and self._toolEquipped and not self._isRagdolled then
-		-- In first-person, the character rotates automatically with the camera
-		local root = self._character.PrimaryPart
-		-- local _, yaw = camera.CFrame:ToEulerAnglesYXZ()
-		local yaw = Utils.Math.YawToTarget(root.CFrame, camera.CFrame * CFrame.new(0, 0, -(zoomDistance + 50)))
+		-- Raycast for closest hit to camera to determine yaw
+		local startCFrame = camera.CFrame * CFrame.new(0, 0, -zoomDistance)
+		local endCFrame = camera.CFrame * CFrame.new(0, 0, -50)
+		local raycastResult = GetCollidable(startCFrame.Position, endCFrame.Position, { self._character })
 
+		local yaw = Utils.Math.YawToTarget(
+			root.CFrame,
+			(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position)) or endCFrame
+		)
+
+		-- Rotate character to face camera direction or toward raycast hit
+		self._character:PivotTo(CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0))
+	elseif self._inFirstPerson and not self._isRagdolled then
+		-- Ensure character faces forward
+		local lookVector = camera.CFrame.LookVector
+		local yaw = Utils.Math.Yaw(Vector3.new(lookVector.X, 0, lookVector.Z).Unit)
 		self._character:PivotTo(CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0))
 	end
 
@@ -167,8 +194,13 @@ function CustomCamera:Update()
 		end
 	end
 
-	self._humanoid.CameraOffset = (CAMERA_OFFSET * self._offsetAlpha) * fade
-	self._humanoid.AutoRotate = self._inFirstPerson or self._isRagdolled or not self._toolEquipped
+	-- Calculate offset based on camera orientation (not character orientation, since camera can swivel as CameraSubject is Humanoid)
+	local f, r = CameraBasisXZ(camera.CFrame)
+	local desiredWorld = root.Position + r * CAMERA_OFFSET.X + Vector3.new(0, CAMERA_OFFSET.Y, 0) + f * CAMERA_OFFSET.Z
+	local localOffset = root.CFrame:VectorToObjectSpace(desiredWorld - root.Position)
+
+	self._humanoid.CameraOffset = (localOffset * self._offsetAlpha) * fade
+	self._humanoid.AutoRotate = not self._toolEquipped
 
 	-- Auto transition first-person / third-person
 	if not self._transitioningZoom then

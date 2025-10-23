@@ -115,7 +115,10 @@ local function Hotbar(props: Props)
 		local connection = localPlayer:GetAttributeChangedSignal("equippedObjectId"):Connect(function()
 			local objectId = localPlayer:GetAttribute("equippedObjectId")
 			setEquippedObjectId(objectId)
-			setSelectedSlotNumber(0) -- We reset selected slot to allow for UI sync with equipped object id
+
+			if objectId then
+				setSelectedSlotNumber(0) -- We reset selected slot to allow for UI sync with equipped object id
+			end
 		end)
 
 		return function()

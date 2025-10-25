@@ -27,6 +27,7 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
+local GameStateManager = require(GameModules.GameStateManager)
 
 -- Handlers --------------------------------------------------------------------
 local MessageHandler = require(BaseHandlers.MessageHandler)
@@ -58,6 +59,7 @@ function DayManager.new(game)
 	-- Booleans
 	self._destroyed = false
 	self._isDay = false
+	self._nightCompleted = false
 
 	-- Tables
 	self._skipVotes = {} :: { [number]: boolean } -- UserId -> true
@@ -90,9 +92,16 @@ function DayManager:_Init()
 	)
 
 	-- Initialize clock time
-	Lighting.ClockTime = self.game.saveInfo.clockTime or TimeConfigs.DAY_START_TIME
-
+	Lighting.ClockTime = GameStateManager.GetKey("clockTime") or TimeConfigs.DAY_START_TIME
 	self:_StartClock()
+
+	-- Observe game state changes
+	GameStateManager.ObserveKey("zombiesLeft", function(newValue: number, oldValue: number)
+		if newValue <= 0 and oldValue > 0 then
+			-- All zombies have been eliminated for the night
+			self:_NightCompleted()
+		end
+	end)
 end
 
 function DayManager:Destroy()
@@ -159,6 +168,7 @@ function DayManager:_StartClock()
 	if Lighting.ClockTime >= TimeConfigs.DAY_START_TIME and Lighting.ClockTime < TimeConfigs.DAY_END_TIME then
 		-- Day time
 		self._isDay = true
+		self._nightCompleted = true
 		self.dayStarted:Fire()
 
 		-- Tween to night time over day duration
@@ -191,6 +201,7 @@ end
 
 function DayManager:_StartNight()
 	self._isDay = false
+	self._nightCompleted = false
 
 	if Lighting.ClockTime ~= TimeConfigs.NIGHT_START_TIME then
 		-- Tween to night start time first
@@ -210,6 +221,11 @@ function DayManager:_StartNight()
 end
 
 function DayManager:_NightCompleted()
+	if self._isDay or self._nightCompleted then
+		return
+	end
+	self._nightCompleted = true
+
 	self._skipVotes = {}
 
 	-- Tween to day start time

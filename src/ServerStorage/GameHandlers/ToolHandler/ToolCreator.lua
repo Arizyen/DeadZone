@@ -87,7 +87,6 @@ function ToolCreator.AddToBackpack(player: Player, toolKey: string)
 	-- Add tool idle animation if exists
 	local toolInfo = ObjectsInfo.byKey[toolKey]
 	if toolInfo.animations and toolInfo.animations.idle then
-		print("Adding tool idle animation for tool:", toolKey)
 		Utils.Instantiator.Create("StringValue", {
 			Name = "toolanim",
 			Value = toolInfo.animations.idle,

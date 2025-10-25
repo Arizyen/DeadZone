@@ -4,6 +4,7 @@ CustomCamera.__index = CustomCamera
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -29,7 +30,7 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local CAMERA_OFFSET = Vector3.new(2.7, 1.25, 0)
+local CAMERA_OFFSET = Vector3.new(2.35, 1, 0)
 local CAMERA_OFFSET_SPEED = 1 / 4
 local FADE_START = 3
 local FADE_END = 0.5
@@ -153,6 +154,7 @@ function CustomCamera:Update()
 
 	local zoomDistance = GetZoomDistance()
 	local root = self._character.PrimaryPart
+	local newRootCFrame = root.CFrame
 
 	-- Make character face camera direction
 	if not self._inFirstPerson and self._toolEquipped and not self._isRagdolled then
@@ -167,12 +169,15 @@ function CustomCamera:Update()
 		)
 
 		-- Rotate character to face camera direction or toward raycast hit
-		self._character:PivotTo(CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0))
+		newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
+		self._character:PivotTo(newRootCFrame)
 	elseif self._inFirstPerson and not self._isRagdolled then
 		-- Ensure character faces forward
 		local lookVector = camera.CFrame.LookVector
 		local yaw = Utils.Math.Yaw(Vector3.new(lookVector.X, 0, lookVector.Z).Unit)
-		self._character:PivotTo(CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0))
+
+		newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
+		self._character:PivotTo(newRootCFrame)
 	end
 
 	-- Fade out as we approach first-person
@@ -196,8 +201,11 @@ function CustomCamera:Update()
 
 	-- Calculate offset based on camera orientation (not character orientation, since camera can swivel as CameraSubject is Humanoid)
 	local f, r = CameraBasisXZ(camera.CFrame)
-	local desiredWorld = root.Position + r * CAMERA_OFFSET.X + Vector3.new(0, CAMERA_OFFSET.Y, 0) + f * CAMERA_OFFSET.Z
-	local localOffset = root.CFrame:VectorToObjectSpace(desiredWorld - root.Position)
+	local desiredWorld = newRootCFrame.Position
+		+ r * CAMERA_OFFSET.X
+		+ Vector3.new(0, CAMERA_OFFSET.Y, 0)
+		+ f * CAMERA_OFFSET.Z
+	local localOffset = newRootCFrame:VectorToObjectSpace(desiredWorld - newRootCFrame.Position)
 
 	self._humanoid.CameraOffset = (localOffset * self._offsetAlpha) * fade
 	self._humanoid.AutoRotate = not self._toolEquipped
@@ -210,6 +218,11 @@ function CustomCamera:Update()
 		elseif self._inFirstPerson and zoomDistance > FADE_END + EPS then
 			self:_StartTransitionZoom(FADE_START, TWEEN_TIME)
 			self._inFirstPerson = false
+			if self._toolEquipped then
+				-- Make sure mouse is locked to center when exiting first-person with tool equipped
+				UserInputService.MouseIconEnabled = false
+				UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+			end
 		end
 	end
 end

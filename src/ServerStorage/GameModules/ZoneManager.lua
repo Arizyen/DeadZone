@@ -1,4 +1,4 @@
-local GameHandler = {}
+local ZoneManager = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,31 +14,32 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
+local Zones = game.Workspace.Zones
+
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local Game = require(script.Game)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
 
 -- Instances -----------------------------------------------------------------------
 
--- Info ---------------------------------------------------------------------------
+-- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
-local game = nil :: typeof(Game)
+
+-- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
 
@@ -50,29 +51,7 @@ local game = nil :: typeof(Game)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function GameHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
-end
-
-function GameHandler.Init()
-	game = Game.new()
-end
-
-function GameHandler.GetGameState(): GameTypes.GameState
-	if not game then
-		return
-	end
-
-	return game:GetGameState()
-end
-
-function GameHandler.VoteSkipDay(player: Player): boolean
-	if not game then
-		return false
-	end
-
-	return game:VoteSkipDay(player)
-end
+function ZoneManager.ParentResource(model: Model, type: string) end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -82,4 +61,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return GameHandler
+return ZoneManager

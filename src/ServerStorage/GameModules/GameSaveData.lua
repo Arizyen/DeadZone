@@ -1,4 +1,4 @@
-local GameHandler = {}
+local GameSaveData = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,7 +14,9 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -22,25 +24,30 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local Game = require(script.Game)
+local GameStateManager = require(GameModules.GameStateManager)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
 local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
 
 -- Instances -----------------------------------------------------------------------
 
--- Info ---------------------------------------------------------------------------
+-- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
-local game = nil :: typeof(Game)
+
+-- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
+local saveData = {
+	info = {} :: SaveTypes.SaveInfo,
+	builds = {},
+	resources = {},
+	playersSave = {} :: { [number]: SaveTypes.PlayerSave },
+} :: SaveTypes.Save
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -50,28 +57,46 @@ local game = nil :: typeof(Game)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function GameHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
+function GameSaveData.Load(newSaveData: SaveTypes.Save)
+	saveData = newSaveData
+	GameStateManager.Load(newSaveData.info)
 end
 
-function GameHandler.Init()
-	game = Game.new()
+-- BUILDS ----------------------------------------------------------------------------------------------------
+
+function GameSaveData.GetBuilds()
+	return saveData.builds
 end
 
-function GameHandler.GetGameState(): GameTypes.GameState
-	if not game then
-		return
-	end
-
-	return game:GetGameState()
+-- Clears all saved builds from memory after it's been loaded
+function GameSaveData.ClearBuilds()
+	saveData.builds = {}
 end
 
-function GameHandler.VoteSkipDay(player: Player): boolean
-	if not game then
-		return false
-	end
+-- Resources ----------------------------------------------------------------------------------------------------
 
-	return game:VoteSkipDay(player)
+function GameSaveData.GetResources()
+	return saveData.resources
+end
+
+-- Clears all saved resources from memory after it's been loaded
+function GameSaveData.ClearResources()
+	saveData.resources = {}
+end
+
+-- PLAYERS SAVE ----------------------------------------------------------------------------------------------------
+
+function GameSaveData.GetPlayersSave()
+	return saveData.playersSave
+end
+
+function GameSaveData.GetPlayerSave(userId: number)
+	return saveData.playersSave[userId]
+end
+
+-- Clears the saved data for a specific player from memory after it's been loaded
+function GameSaveData.ClearPlayerSave(userId: number)
+	saveData.playersSave[userId] = nil
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -82,4 +107,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return GameHandler
+return GameSaveData

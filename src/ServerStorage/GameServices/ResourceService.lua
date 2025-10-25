@@ -1,5 +1,3 @@
-local GameHandler = {}
-
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +10,6 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
@@ -21,15 +18,20 @@ local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local Game = require(script.Game)
+local Knit = require(Packages.Knit)
+local RateLimiter = require(BaseModules.RateLimiter)
+local t = require(Packages.t)
 
--- Handlers --------------------------------------------------------------------
+-- Handlers -------------------------------------------------------------------
+local ResourceHandler = require(GameHandlers.ResourceHandler)
+
+-- Knit Services --------------------------------------------------------------------
+local ResourceService = Knit.CreateService({
+	Name = "Resource",
+	Client = {},
+})
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
 
 -- Instances -----------------------------------------------------------------------
 
@@ -38,7 +40,6 @@ local GameTypes = require(ReplicatedTypes.GameTypes)
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
-local game = nil :: typeof(Game)
 
 -- Tables --------------------------------------------------------------------------
 
@@ -49,37 +50,18 @@ local game = nil :: typeof(Game)
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+-- KNIT FUNCTIONS ------------------------------------------------------------------------------------------------------
 
-function GameHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
+-- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
+function ResourceService:KnitInit()
+	ResourceHandler.Register({})
 end
 
-function GameHandler.Init()
-	game = Game.new()
-end
+-- KnitStart() fires after all KnitInit() have been completed.
+function ResourceService:KnitStart() end
 
-function GameHandler.GetGameState(): GameTypes.GameState
-	if not game then
-		return
-	end
+-------------------------------------------------------------------------------------------------------------------------
+-- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
 
-	return game:GetGameState()
-end
-
-function GameHandler.VoteSkipDay(player: Player): boolean
-	if not game then
-		return false
-	end
-
-	return game:VoteSkipDay(player)
-end
-
-------------------------------------------------------------------------------------------------------------------------
--- CONNECTIONS ---------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-------------------------------------------------------------------------------------------------------------------------
--- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-return GameHandler
+return ResourceService

@@ -1,4 +1,4 @@
-local GameHandler = {}
+local GameStateManager = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,7 +14,9 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -22,25 +24,40 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local Game = require(script.Game)
+local TableObserver = require(ReplicatedBaseModules.TableObserver)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
 local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
 
 -- Instances -----------------------------------------------------------------------
 
--- Info ---------------------------------------------------------------------------
+-- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local MapConfigs = require(ReplicatedConfigs.MapConfigs)
+local TimeConfigs = require(ReplicatedConfigs.TimeConfigs)
 
 -- Variables -----------------------------------------------------------------------
-local game = nil :: typeof(Game)
+
+-- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
+local gameState = {
+	placeId = MapConfigs.PVE_PLACE_IDS[#MapConfigs.PVE_PLACE_IDS],
+	difficulty = 1,
+	nightsSurvived = 0,
+	zombiesLeft = 0,
+	playtime = 0,
+	createdAt = os.time(),
+	updatedAt = os.time(),
+	creatorId = 0,
+
+	clockTime = TimeConfigs.DAY_START_TIME, -- Day time ratio (0-24)
+} :: SaveTypes.SaveInfo
+
+local tableObserver = TableObserver.new(gameState)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -50,28 +67,26 @@ local game = nil :: typeof(Game)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function GameHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
+function GameStateManager.Load(saveInfo: SaveTypes.SaveInfo)
+	tableObserver:Set(saveInfo)
 end
 
-function GameHandler.Init()
-	game = Game.new()
+-- GET/SET ----------------------------------------------------------------------------------------------------
+
+function GameStateManager.Get()
+	return tableObserver:Get()
 end
 
-function GameHandler.GetGameState(): GameTypes.GameState
-	if not game then
-		return
-	end
-
-	return game:GetGameState()
+function GameStateManager.GetKey(key: string)
+	return tableObserver:GetKey(key)
 end
 
-function GameHandler.VoteSkipDay(player: Player): boolean
-	if not game then
-		return false
-	end
+function GameStateManager.SetKey(key: string, value: any)
+	tableObserver:SetKey(key, value)
+end
 
-	return game:VoteSkipDay(player)
+function GameStateManager.ObserveKey(key: string, callback: (newValue: any, oldValue: any) -> ())
+	return tableObserver:ObserveKey(key, callback)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -82,4 +97,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return GameHandler
+return GameStateManager

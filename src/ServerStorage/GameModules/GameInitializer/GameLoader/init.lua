@@ -22,14 +22,15 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local SaveData = require(script.SaveData)
+local GameSaveData = require(GameModules.GameSaveData)
 local PlayerManager = require(BaseModules.PlayerManager)
 local PlayerManagers = require(GameModules.PlayerManagers)
 local DataStore = require(BaseModules.DataStore)
 
 -- Handlers --------------------------------------------------------------------
-local GameHandler = require(GameHandlers.GameHandler)
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
+local GameHandler = require(GameHandlers.GameHandler)
+local ResourceHandler = require(GameHandlers.ResourceHandler)
 
 -- Types ---------------------------------------------------------------------------
 local SaveTypes = require(ReplicatedTypes.SaveTypes)
@@ -95,7 +96,7 @@ local function LoadPlayer(player: Player, playerSave: SaveTypes.PlayerSave?)
 		-- Set player vitals
 		PlayerManager.SetVital(player, "hp", playerSave.state.hp or 100)
 
-		SaveData.playersSave[player.UserId] = nil -- Clear loaded save data to free memory
+		GameSaveData.ClearPlayerSave(player.UserId) -- Clear loaded player save data to free memory
 	else
 		-- Initialize player as new player
 		PlayerDataHandler.SetPathValue(player.UserId, { "sessionState", "newSave" }, true)
@@ -117,7 +118,7 @@ local function LoadSave(id: string, chunksCount: number): boolean
 	end
 
 	-- Combine chunks into a single save data table
-	SaveData = Utils.Table.Tree.joinChunks(chunks)
+	GameSaveData.Load(Utils.Table.Tree.joinChunks(chunks))
 
 	return true
 end
@@ -152,19 +153,14 @@ function GameLoader.GetJoinData(playerJoined: Player)
 					return
 				end
 
-				GameHandler.Init(SaveData.info, SaveData.builds) -- SaveData.info contains all settings of the saved game
-
-				SaveData.info = nil -- Clear loaded save data to free memory
-				SaveData.builds = nil -- Clear loaded builds data to free memory
-
 				loadedSaveData = true
-			else
-				GameHandler.Init(saveInfo) -- saveInfo contains settings of the new game
 			end
 		end
-	else
-		GameHandler.Init() -- New game with default settings
 	end
+
+	-- Init game handlers
+	GameHandler.Init()
+	ResourceHandler.Init()
 
 	return joinData
 end
@@ -186,7 +182,7 @@ function GameLoader.LoadPlayer(player: Player): boolean
 	-- Load player into game
 	if isSavedGame then
 		-- Load player based on save data
-		LoadPlayer(player, SaveData.playersSave and SaveData.playersSave[player.UserId] or nil)
+		LoadPlayer(player, GameSaveData.GetPlayerSave(player.UserId))
 	else
 		-- Load player as new player
 		LoadPlayer(player, nil)

@@ -1,4 +1,4 @@
-local GameHandler = {}
+local TreeManager = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,33 +14,40 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
+local ResourceSpawns = game.Workspace.ResourceSpawns
+
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local Game = require(script.Game)
+local Tree = require(script.Tree)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
+local ResourceTypes = require(ReplicatedTypes.ResourceTypes)
 
 -- Instances -----------------------------------------------------------------------
 
--- Info ---------------------------------------------------------------------------
+-- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local MIN_SCALE_FACTOR = 0.8
+local MAX_SCALE_FACTOR = 1.05
 
 -- Variables -----------------------------------------------------------------------
-local game = nil :: typeof(Game)
+local rng = Random.new()
+
+-- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
+local trees = {} :: { [Instance]: typeof(Tree) }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -50,28 +57,36 @@ local game = nil :: typeof(Game)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function GameHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
-end
-
-function GameHandler.Init()
-	game = Game.new()
-end
-
-function GameHandler.GetGameState(): GameTypes.GameState
-	if not game then
-		return
+function TreeManager.Init(treesData: ResourceTypes.Resources?)
+	if not treesData then
+		-- Spawn trees at predefined locations at random
+		for _, treeTypes in pairs(ResourceSpawns.Trees:GetChildren()) do
+			local treeType = treeTypes.Name
+			for _, spawn in pairs(treeTypes:GetChildren()) do
+				local tree = Tree.new(
+					string.lower(treeType),
+					spawn.CFrame
+						* CFrame.new(0, -spawn.Size.Y / 1.95, 0)
+						* CFrame.Angles(0, math.rad(rng:NextInteger(0, 360)), 0),
+					rng:NextNumber(MIN_SCALE_FACTOR, MAX_SCALE_FACTOR),
+					rng:NextInteger(1, 3)
+				)
+				trees[tree:GetInstance()] = tree
+			end
+		end
+	else
+		for type, treeData in pairs(treesData) do
+			local tree = Tree.new(
+				string.lower(type),
+				CFrame.new(table.unpack(string.split(treeData.cframe, ","))),
+				treeData.scaleFactor,
+				treeData.stageIndex,
+				treeData.stageProgress,
+				treeData.planted
+			)
+			trees[tree:GetInstance()] = tree
+		end
 	end
-
-	return game:GetGameState()
-end
-
-function GameHandler.VoteSkipDay(player: Player): boolean
-	if not game then
-		return false
-	end
-
-	return game:VoteSkipDay(player)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -82,4 +97,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return GameHandler
+return TreeManager

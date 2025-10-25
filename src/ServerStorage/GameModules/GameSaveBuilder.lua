@@ -1,4 +1,4 @@
-local GameHandler = {}
+local GameSaveBuilder = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -14,7 +14,9 @@ local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
 local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
+local Info = ServerSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
+local Types = ServerSource.Types
 local BaseModules = PlaywooEngine.BaseModules
 local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
@@ -22,23 +24,24 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local Game = require(script.Game)
+local GameStateManager = require(GameModules.GameStateManager)
+local GameSaveData = require(GameModules.GameSaveData)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
 local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
 
 -- Instances -----------------------------------------------------------------------
 
--- Info ---------------------------------------------------------------------------
+-- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
-local game = nil :: typeof(Game)
+local lastSaveTime = os.time()
+
+-- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
 
@@ -50,28 +53,22 @@ local game = nil :: typeof(Game)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function GameHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
-end
+function GameSaveBuilder.Serialize(): SaveTypes.Save
+	-- Make updates required before saving full state
+	local currentTime = os.time()
+	local saveInfo = GameStateManager.Get()
+	saveInfo.playtime += currentTime - lastSaveTime
+	saveInfo.updatedAt = currentTime
+	lastSaveTime = currentTime
 
-function GameHandler.Init()
-	game = Game.new()
-end
+	local saveData = {
+		info = Utils.Table.Dictionary.deepCopy(saveInfo) :: SaveTypes.SaveInfo,
+		builds = {}, -- TODO: Implement builds saving
+		resources = {}, -- TODO: Implement resources saving
+		playersSave = Utils.Table.Dictionary.merge(GameSaveData.GetPlayersSave(), {}), -- TODO: Implement players saving
+	} :: SaveTypes.Save
 
-function GameHandler.GetGameState(): GameTypes.GameState
-	if not game then
-		return
-	end
-
-	return game:GetGameState()
-end
-
-function GameHandler.VoteSkipDay(player: Player): boolean
-	if not game then
-		return false
-	end
-
-	return game:VoteSkipDay(player)
+	return saveData
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -82,4 +79,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return GameHandler
+return GameSaveBuilder

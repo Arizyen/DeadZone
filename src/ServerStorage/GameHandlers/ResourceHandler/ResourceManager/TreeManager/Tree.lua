@@ -1,5 +1,5 @@
-local Game = {}
-Game.__index = Game
+local Tree = {}
+Tree.__index = Tree
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -23,29 +23,29 @@ local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
+local TreeModels = ReplicatedStorage.Models.Trees
+
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Parent.Ports)
-local GameStateManager = require(GameModules.GameStateManager)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
-local DifficultiesInfo = require(ReplicatedInfo.DifficultiesInfo)
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-local TimeConfigs = require(ReplicatedConfigs.TimeConfigs)
 
 -- Variables -----------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
+local treeTypeModelFolder = {
+	maple = TreeModels.Maple,
+	palm = TreeModels.Palm,
+	pine = TreeModels.Pine,
+}
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -55,112 +55,84 @@ local TimeConfigs = require(ReplicatedConfigs.TimeConfigs)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Game.new(): typeof(Game)
-	local self = setmetatable({}, Game)
+function Tree.new(
+	type: string,
+	cframe: CFrame,
+	scaleFactor: number,
+	stageIndex: number,
+	stageProgress: number?,
+	planted: boolean?
+): typeof(Tree)
+	local self = setmetatable({}, Tree)
 
 	-- Booleans
 	self._destroyed = false
+	self._planted = planted or false
+
+	-- Strings
+	self._type = type
 
 	-- Numbers
+	self._scaleFactor = scaleFactor
+	self._stageIndex = stageIndex
+	self._growthProgress = stageProgress or 0
 
-	-- Tables
-	self.difficultyInfo = DifficultiesInfo.byKey[DifficultiesInfo.keys[table.find(
-		DifficultiesInfo.keys,
-		GameStateManager.GetKey("difficulty")
-	) or 1]] :: DifficultiesInfo.DifficultyInfo
+	-- CFrame
+	self._cframe = cframe
 
-	-- Metatables
-	self.dayManager = require(script.DayManager).new(self)
+	-- Instances
+	self._instance = nil
 
 	self:_Init()
 
 	return self
 end
 
-function Game:_Init()
-	self:_FireGameState()
+function Tree:_Init()
+	-- Spawn tree
+	local modelFolder = treeTypeModelFolder[self._type]
+	if not modelFolder then
+		warn("Invalid tree type: " .. tostring(self._type))
+		return
+	end
 
-	-- Connections
-	Utils.Connections.Add(
-		self,
-		"nightSurvived",
-		self.dayManager.nightSurvived:Connect(function()
-			self:_NightSurvived()
-		end)
-	)
+	local stageModel = modelFolder:FindFirstChild(self._stageIndex)
+	if not stageModel then
+		warn("Invalid stage index: " .. tostring(self._stageIndex) .. " for tree type: " .. tostring(self._type))
+		return
+	end
 
-	Utils.Connections.Add(
-		self,
-		"nightStarted",
-		self.dayManager.nightStarted:Connect(function()
-			self:_FireGameState()
-		end)
-	)
-
-	Utils.Connections.Add(
-		self,
-		"dayStarted",
-		self.dayManager.dayStarted:Connect(function()
-			self:_FireGameState()
-		end)
-	)
-
-	Utils.Connections.Add(
-		self,
-		"votesChanged",
-		self.dayManager.votesChanged:Connect(function()
-			self:_FireGameState()
-		end)
-	)
+	self._instance = stageModel:Clone()
+	self._instance:PivotTo(self._cframe)
+	self._instance:ScaleTo((self._instance:GetScale() or 1) * self._scaleFactor)
+	self._instance.Parent = game.Workspace
 end
 
-function Game:Destroy()
+function Tree:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
 
 	Utils.Connections.DisconnectKeyConnections(self)
-
-	self.dayManager:Destroy()
 end
+
+function Tree:Update() end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
--- REPLICATIONS ----------------------------------------------------------------------------------------------------
-
-function Game:_FireGameState()
-	Ports.SetGameState(self:GetGameState())
-end
-
-function Game:_FireGameStateKey(key: string)
-	Ports.SetGameStateKey(key, self:GetGameState()[key])
-end
-
-function Game:_NightSurvived()
-	GameStateManager.SetKey("nightsSurvived", GameStateManager.GetKey("nightsSurvived") + 1)
-
-	self:_FireGameState()
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Game:GetGameState(): GameTypes.GameState
-	return {
-		difficulty = GameStateManager.GetKey("difficulty"),
-		isDay = self.dayManager:IsDay(),
-		nightsSurvived = GameStateManager.GetKey("nightsSurvived"),
-		zombiesLeft = GameStateManager.GetKey("zombiesLeft"),
-		skipVotes = self.dayManager:GetSkipVotesCount(),
-	}
+function Tree:GetInstance(): Model
+	return self._instance
 end
 
-function Game:VoteSkipDay(player: Player): boolean
-	return self.dayManager:VoteSkipDay(player)
+function Tree:GetCFrame(): CFrame
+	return self._instance and self._instance:GetPivot()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -171,4 +143,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return Game
+return Tree

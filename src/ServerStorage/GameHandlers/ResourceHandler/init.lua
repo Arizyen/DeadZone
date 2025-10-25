@@ -1,4 +1,4 @@
-local GameHandler = {}
+local ResourceHandler = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -23,13 +23,11 @@ local GameHandlers = ServerSource.GameHandlers
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local Ports = require(script.Ports)
-local Game = require(script.Game)
+local ResourceManager = require(script.ResourceManager)
 
 -- Handlers --------------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
 
 -- Instances -----------------------------------------------------------------------
 
@@ -38,7 +36,6 @@ local GameTypes = require(ReplicatedTypes.GameTypes)
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
-local game = nil :: typeof(Game)
 
 -- Tables --------------------------------------------------------------------------
 
@@ -50,28 +47,12 @@ local game = nil :: typeof(Game)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function GameHandler.Register(ports: Ports.Ports)
+function ResourceHandler.Register(ports: Ports.Ports)
 	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
 
-function GameHandler.Init()
-	game = Game.new()
-end
-
-function GameHandler.GetGameState(): GameTypes.GameState
-	if not game then
-		return
-	end
-
-	return game:GetGameState()
-end
-
-function GameHandler.VoteSkipDay(player: Player): boolean
-	if not game then
-		return false
-	end
-
-	return game:VoteSkipDay(player)
+function ResourceHandler.Init()
+	ResourceManager.Init()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -82,4 +63,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return GameHandler
+return ResourceHandler

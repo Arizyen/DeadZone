@@ -5161,10 +5161,10 @@
 									"filePaths": ["src/ReplicatedStorage\\Info\\RaritiesInfo.lua"]
 								},
 								{
-									"name": "ResourcesInfo",
+									"name": "MetaResourcesInfo",
 									"className": "ModuleScript",
 									"filePaths": [
-										"src/ReplicatedStorage\\Info\\ResourcesInfo.lua"
+										"src/ReplicatedStorage\\Info\\MetaResourcesInfo.lua"
 									]
 								},
 								{

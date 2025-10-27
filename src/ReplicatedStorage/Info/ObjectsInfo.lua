@@ -2,6 +2,8 @@ return {
 	keys = { "Rock" },
 	byType = {
 		tool = { "Rock" },
+		item = {},
+		wearable = {},
 	},
 	byKey = {
 		-- Tools
@@ -14,12 +16,22 @@ return {
 			weightPerUnit = 2,
 			type = "tool",
 			category = "hybrid",
-			attackDelay = 1,
+			useDelay = 1,
 			damage = 5,
 			animations = {
 				idle = "rbxassetid://107469312851840",
 				attack = "rbxassetid://76047539306094",
 			},
+		},
+
+		-- Items
+		Logs = {
+			key = "Logs",
+			name = "Logs",
+			description = "Wooden logs obtained from chopping down trees.",
+			stackable = true,
+			image = nil,
+			weightPerUnit = 1,
 		},
 	},
 }

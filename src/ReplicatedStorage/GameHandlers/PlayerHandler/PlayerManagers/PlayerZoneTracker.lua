@@ -28,7 +28,7 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local RANGE = 200
+local ZoneConfigs = require(ReplicatedConfigs:WaitForChild("ZoneConfigs"))
 local UPDATE_RATE = 2 -- Times per second
 
 -- Variables -----------------------------------------------------------------------
@@ -129,10 +129,9 @@ function PlayerZoneTracker:Update()
 	end
 
 	local rootPosition = root.Position
-	local x, y, z =
-		math.floor(rootPosition.X / RANGE), math.floor(rootPosition.Y / RANGE), math.floor(rootPosition.Z / RANGE)
+	local zoneKey = ZoneConfigs.GetZoneKey(rootPosition)
 
-	self:_UpdateZoneKey(tostring(x) .. "," .. tostring(y) .. "," .. tostring(z))
+	self:_UpdateZoneKey(zoneKey)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

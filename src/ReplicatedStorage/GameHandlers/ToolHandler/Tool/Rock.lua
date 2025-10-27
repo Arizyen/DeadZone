@@ -106,7 +106,7 @@ function Rock:_Deactivate()
 end
 
 function Rock:_Hit()
-	if os.clock() - self._lastHitTime < (self._objectInfo.attackDelay or 0) then
+	if os.clock() - self._lastHitTime < (self._objectInfo.useDelay or 0) then
 		return
 	end
 	self._lastHitTime = os.clock()
@@ -118,8 +118,8 @@ function Rock:_Hit()
 		{ priority = Enum.AnimationPriority.Action2 }
 	)
 
-	-- Adjust speed based on attackDelay and animation length (to sync length with attackDelay)
-	animationTrack:AdjustSpeed(1 / (self._objectInfo.attackDelay / animationTrack.Length))
+	-- Adjust speed based on useDelay and animation length (to sync length with useDelay)
+	animationTrack:AdjustSpeed(1 / (self._objectInfo.useDelay / animationTrack.Length))
 end
 
 ------------------------------------------------------------------------------------------------------------------------

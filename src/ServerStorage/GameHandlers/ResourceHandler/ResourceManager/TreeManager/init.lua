@@ -47,7 +47,7 @@ local rng = Random.new()
 -- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
-local trees = {} :: { [Instance]: typeof(Tree) }
+local trees = {} :: { [string]: typeof(Tree) }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -60,31 +60,33 @@ local trees = {} :: { [Instance]: typeof(Tree) }
 function TreeManager.Init(treesData: ResourceTypes.Resources?)
 	if not treesData then
 		-- Spawn trees at predefined locations at random
-		for _, treeTypes in pairs(ResourceSpawns.Trees:GetChildren()) do
-			local treeType = treeTypes.Name
-			for _, spawn in pairs(treeTypes:GetChildren()) do
+		for _, treeKeys in pairs(ResourceSpawns.Trees:GetChildren()) do
+			local treeKey = treeKeys.Name
+			for _, spawn in pairs(treeKeys:GetChildren()) do
 				local tree = Tree.new(
-					string.lower(treeType),
+					treeKey,
 					spawn.CFrame
 						* CFrame.new(0, -spawn.Size.Y / 1.95, 0)
 						* CFrame.Angles(0, math.rad(rng:NextInteger(0, 360)), 0),
 					rng:NextNumber(MIN_SCALE_FACTOR, MAX_SCALE_FACTOR),
+					nil,
 					rng:NextInteger(1, 3)
 				)
-				trees[tree:GetInstance()] = tree
+				trees[tree:GetId()] = tree
 			end
 		end
 	else
-		for type, treeData in pairs(treesData) do
+		for _, treeData in pairs(treesData) do
 			local tree = Tree.new(
-				string.lower(type),
+				treeData.key,
 				CFrame.new(table.unpack(string.split(treeData.cframe, ","))),
 				treeData.scaleFactor,
+				treeData.hp,
 				treeData.stageIndex,
 				treeData.stageProgress,
 				treeData.planted
 			)
-			trees[tree:GetInstance()] = tree
+			trees[tree:GetId()] = tree
 		end
 	end
 end

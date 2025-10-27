@@ -46,7 +46,7 @@ local ImageButton = require(BaseComponents:WaitForChild("ImageButton"))
 local useMotorMappedBinding = require(BaseHooks:WaitForChild("useMotorMappedBinding"))
 
 -- Info ---------------------------------------------------------------------------
-local ResourcesInfo = require(ReplicatedInfo:WaitForChild("ResourcesInfo"))
+local MetaResourcesInfo = require(ReplicatedInfo:WaitForChild("MetaResourcesInfo"))
 
 -- Configs -------------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ local function Currency(props: Props)
 
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 	local resourceInfo = React.useMemo(function()
-		return ResourcesInfo.byKey[props.type] or {}
+		return MetaResourcesInfo.byKey[props.type] or {}
 	end, { props.type })
 
 	local positionMappedBinding = useMotorMappedBinding(motorRef, function(value)

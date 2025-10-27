@@ -36,6 +36,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local ZoneConfigs = require(ReplicatedConfigs:WaitForChild("ZoneConfigs"))
 
 -- Variables -----------------------------------------------------------------------
 
@@ -51,7 +52,21 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function ZoneManager.ParentResource(model: Model, type: string) end
+function ZoneManager.ParentResource(model: Model, folderName: string)
+	local modelPosition = model:GetPivot().Position
+	local zoneKey = ZoneConfigs.GetZoneKey(modelPosition)
+
+	local zoneFolder = Utils.Instantiator.Create("Folder", {
+		Name = zoneKey,
+		Parent = Zones,
+	})
+	local resourceTypeFolder = Utils.Instantiator.Create("Folder", {
+		Name = folderName,
+		Parent = zoneFolder,
+	})
+
+	model.Parent = resourceTypeFolder
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

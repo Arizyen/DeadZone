@@ -29,6 +29,7 @@ local PlayerManagers = require(ReplicatedGameHandlers:WaitForChild("PlayerHandle
 -- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
+local ZoneConfigs = require(ReplicatedConfigs:WaitForChild("ZoneConfigs"))
 
 -- Variables -----------------------------------------------------------------------
 local localPlayer = game.Players.LocalPlayer
@@ -55,7 +56,7 @@ function RangeTracker.new()
 	-- Tables
 	self._playersInRange = {} :: { [number]: boolean }
 	self._playersZoneKey = {} :: { [number]: string? }
-	self._inRangeKeys = {} :: { string }
+	self._inRangeKeys = self._zoneKey and ZoneConfigs.GetZoneKeysInRange(self._zoneKey) or {} :: { string }
 
 	self:_Init()
 
@@ -109,25 +110,7 @@ function RangeTracker:_PlayerZoneChanged(player: Player, newZoneKey: string?)
 	if not newZoneKey then
 		inRange = false
 	else
-		local coordinates = string.split(newZoneKey, ",")
-		local x, y, z = tonumber(coordinates[1]), tonumber(coordinates[2]), tonumber(coordinates[3])
-
-		for i = x - 1, x + 1 do
-			for j = y - 1, y + 1 do
-				for k = z - 1, z + 1 do
-					if self._zoneKey == (i .. "," .. j .. "," .. k) then
-						inRange = true
-						break
-					end
-				end
-				if inRange then
-					break
-				end
-			end
-			if inRange then
-				break
-			end
-		end
+		inRange = table.find(self._inRangeKeys, newZoneKey) ~= nil
 	end
 
 	if prevInRange ~= inRange then
@@ -141,23 +124,12 @@ function RangeTracker:_UpdatePlayersInRange()
 		return
 	end
 
-	local inRangeZoneKeys = {}
-	local coordinates = string.split(self._zoneKey, ",")
-	local x, y, z = tonumber(coordinates[1]), tonumber(coordinates[2]), tonumber(coordinates[3])
-
-	for i = x - 1, x + 1 do
-		for j = y - 1, y + 1 do
-			for k = z - 1, z + 1 do
-				table.insert(inRangeZoneKeys, i .. "," .. j .. "," .. k)
-			end
-		end
-	end
-	self._inRangeKeys = inRangeZoneKeys
+	self._inRangeKeys = ZoneConfigs.GetZoneKeysInRange(self._zoneKey)
 
 	for userId, zoneKey in pairs(self._playersZoneKey) do
 		local player = game.Players:GetPlayerByUserId(userId)
 		if player and player ~= localPlayer then
-			local inRange = table.find(inRangeZoneKeys, zoneKey) ~= nil
+			local inRange = table.find(self._inRangeKeys, zoneKey) ~= nil
 
 			if self._playersInRange[userId] ~= (inRange or nil) then
 				self._playersInRange[userId] = inRange or nil

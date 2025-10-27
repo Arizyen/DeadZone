@@ -21,7 +21,7 @@ type ToolFields = {
 	type: "tool",
 	category: "weapon" | "harvesting" | "hybrid" | "utility" | "consumable", -- hybrid = both weapon and harvesting
 	durabilityLossPerUse: number, -- a value between 0 and 1 representing percentage of durability lost per use
-	hitDelay: number?, -- delay between uses in seconds
+	useDelay: number?, -- delay between uses in seconds
 	reloadTime: number?, -- time taken to reload in seconds
 	damage: number?, -- required if weapon or hybrid
 	maxAmmo: number?,

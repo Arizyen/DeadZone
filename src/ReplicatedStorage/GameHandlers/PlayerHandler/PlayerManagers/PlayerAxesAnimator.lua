@@ -314,7 +314,7 @@ function PlayerAxesAnimator:_Animate()
 	Utils.Connections.Add(
 		self,
 		"Animate",
-		RunService.Heartbeat:Connect(function(dt)
+		RunService.Heartbeat:Connect(function()
 			local alpha = math.clamp((os.clock() - self._lastUpdateTime) / (1 / REPLICATION_RATE), 0, 1)
 			if alpha >= 1 then
 				Utils.Connections.DisconnectKeyConnection(self, "Animate")

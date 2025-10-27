@@ -3,7 +3,7 @@ local InventoryHandler = {}
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HTTPService = game:GetService("HttpService")
+local HttpService = game:GetService("HttpService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage.Packages
@@ -47,7 +47,7 @@ local ObjectsInfo = require(ReplicatedInfo.ObjectsInfo)
 ------------------------------------------------------------------------------------------------------------------------
 
 local function CreateObject(object: ObjectTypes.Object)
-	local id = HTTPService:GenerateGUID(false):gsub("-", "")
+	local id = HttpService:GenerateGUID(false):gsub("-", "")
 	return Utils.Table.Dictionary.mergeDeep(object, { id = id })
 end
 

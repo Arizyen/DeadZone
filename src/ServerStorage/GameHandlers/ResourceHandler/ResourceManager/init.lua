@@ -55,7 +55,10 @@ local TreeManager = require(script.TreeManager)
 function ResourceManager.Init()
 	local resources = GameSaveData.GetResources()
 
-	TreeManager.Init(resources.trees)
+	TreeManager.Init(resources.tree)
+
+	-- Clear cached resources from save data to free up memory
+	GameSaveData.ClearResources()
 end
 
 ------------------------------------------------------------------------------------------------------------------------

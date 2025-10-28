@@ -71,7 +71,10 @@ function InventoryService.Client:MoveObject(
 		return false, "Rate limit exceeded"
 	end
 
-	return InventoryHandler.MoveObject(player, objectId, newLocation, newSlotId)
+	local success, errMsg = InventoryHandler.MoveObject(player, objectId, newLocation, newSlotId)
+	if not success then
+		MessageHandler.SendMessageToPlayer(player, errMsg or "Cannot move object", "Error")
+	end
 end
 
 return InventoryService

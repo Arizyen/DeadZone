@@ -18,7 +18,7 @@ return {
 		"efficientMiner",
 		"efficientLumberjack",
 		"efficientCrafter",
-		"lightweight",
+		"packMule",
 		"ammoSaver",
 
 		-- Utility perks
@@ -47,7 +47,7 @@ return {
 			"efficientMiner",
 			"efficientLumberjack",
 			"efficientCrafter",
-			"lightweight",
+			"packMule",
 			"ammoSaver",
 		},
 		utility = {
@@ -122,7 +122,7 @@ return {
 			description = "Crafting costs 20% less resources",
 			value = 0.2,
 		},
-		lightweight = { name = "Lightweight", type = "resource", description = "+10 inventory slots", value = 10 },
+		packMule = { name = "Pack Mule", type = "resource", description = "+100 inventory capacity", value = 100 },
 		ammoSaver = {
 			name = "Ammo Saver",
 			type = "resource",

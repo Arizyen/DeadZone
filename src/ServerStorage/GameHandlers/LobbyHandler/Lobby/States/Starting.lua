@@ -74,8 +74,8 @@ function Starting:_Init()
 	Utils.Connections.Add(
 		self,
 		"PlayersUpdated",
-		self.lobby.playersUpdated:Connect(function()
-			self:Update()
+		self.lobby.playersUpdated:Connect(function(players: table)
+			self:_PlayersUpdated(#players)
 		end)
 	)
 
@@ -120,7 +120,7 @@ function Starting:_StartTimer()
 	task.spawn(function()
 		while os.clock() < self._timeStarting and not self._destroyed do
 			self:Update()
-			task.wait(1)
+			task.wait(0.5)
 		end
 
 		if self._destroyed then
@@ -130,6 +130,21 @@ function Starting:_StartTimer()
 		-- Time's up, start the game
 		self.lobby:ChangeState("Teleporting")
 	end)
+end
+
+function Starting:_PlayersUpdated(playersCount: number)
+	-- Verify if max players is reached
+	if
+		self.lobby.settings
+		and playersCount >= self.lobby.settings.maxPlayers
+		and self._timeStarting > os.clock() + 5
+	then
+		-- Set the game to start in 5 seconds
+		self._timeStarting = os.clock() + 5
+		self.lobby:SetStartTime(game.Workspace:GetServerTimeNow() + 5)
+	end
+
+	self:Update()
 end
 
 ------------------------------------------------------------------------------------------------------------------------

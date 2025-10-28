@@ -12,10 +12,12 @@ type ObjectBase = {
 	image: string,
 	weightPerUnit: number,
 	quantity: number?,
+	canStore: boolean, -- whether the object can be placed in inventory (example a chest or backpack cannot be placed inside another chest or backpack or inside inventory)
 }
 type ItemFields = {
 	type: "item",
 	category: "material" | "other",
+	quantity: number,
 }
 type ToolFields = {
 	type: "tool",
@@ -31,6 +33,13 @@ type WearableFields = {
 	type: "wearable",
 	category: "clothing" | "accessory",
 	hp: number?, -- amount of HP this wearable provides
+}
+type InventoryFields = {
+	inventoryCapacity: number, -- maximum weight capacity of the inventory
+	capacityUsed: number, -- current weight in the inventory
+	inventory: { [string]: string }, -- slotId = objectId
+	objects: { [string]: ObjectCopy }, -- objectId = object
+	objectsCategorized: { [string]: { string } }, -- key = { objectId }
 }
 
 -- A copy of the object with only key and editable fields -------------------------------------------------------------
@@ -54,13 +63,19 @@ type ToolFieldsCopy = {
 type WearableFieldsCopy = {
 	hpBonus: number?, -- Bonus HP applied to base HP
 }
+type InventoryFieldsCopy = {
+	capacityUsed: number, -- current weight in the inventory
+	inventory: { [string]: string }, -- slotId = objectId
+	objects: { [string]: ObjectCopy }, -- objectId = object
+	objectsCategorized: { [string]: { string } }, -- key = { objectId }
+}
 
-export type Object = ObjectBase & (ItemFields | ToolFields | WearableFields)
+export type Object = ObjectBase & (ItemFields | ToolFields | WearableFields) & (InventoryFields?)
 export type Item = Object & { type: "item" }
 export type Tool = Object & { type: "tool" }
 export type Wearable = Object & { type: "wearable" }
 
-export type ObjectCopy = ObjectBaseCopy & (ItemFieldsCopy | ToolFieldsCopy | WearableFieldsCopy)
+export type ObjectCopy = ObjectBaseCopy & (ItemFieldsCopy | ToolFieldsCopy | WearableFieldsCopy) & (InventoryFieldsCopy?)
 export type ItemCopy = ObjectCopy & { type: "item" }
 export type ToolCopy = ObjectCopy & { type: "tool" }
 export type WearableCopy = ObjectCopy & { type: "wearable" }

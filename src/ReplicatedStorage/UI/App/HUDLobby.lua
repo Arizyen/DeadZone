@@ -75,7 +75,7 @@ local function HUDLobby(props: Props)
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
 	local lobbyState, setLobbyState = React.useState(storeState.lobbyStates[storeState.currentLobbyId] or {})
 	local timeLeftBinding, setTimeLeft = React.useBinding(LobbyConfigs.START_TIME_WAIT)
-	local motorRef = React.useRef(UIUtils.Motor.PulseMotor.new())
+	local motorRef = React.useRef(UIUtils.Motor.PulseMotor.new(2))
 
 	local isHost = lobbyState.players and lobbyState.players[1] == game.Players.LocalPlayer
 	local isCustomSave = lobbyState and lobbyState.settings and type(lobbyState.settings.saveId) == "string"

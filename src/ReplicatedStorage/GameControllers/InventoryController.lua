@@ -50,8 +50,8 @@ local knitServices = {}
 function InventoryController:KnitInit()
 	knitServices["Inventory"] = Knit.GetService("Inventory")
 	InventoryHandler.Register({
-		MoveObject = function(objectId: string, newLocation: string, newSlotId: string): (boolean, string?)
-			return knitServices["Inventory"]:MoveObject(objectId, newLocation, newSlotId)
+		MoveObject = function(objectId: string, newLocation: string, newSlotId: string)
+			knitServices["Inventory"]:MoveObject(objectId, newLocation, newSlotId)
 		end,
 	})
 end

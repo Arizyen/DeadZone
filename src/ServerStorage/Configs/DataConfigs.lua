@@ -36,11 +36,13 @@ local DataConfigs = {
 		gamepasses = {} :: { [string]: boolean },
 
 		-- Inventory keys
+		capacityUsed = 0, -- current weight in the inventory
 		hotbar = {} :: { [string]: string }, -- slotId (slot1) = objectId
 		inventory = {} :: { [string]: string }, -- slotId (slot1) = objectId
 		loadout = {} :: { [string]: string }, -- slotId = itemName
 		objects = {} :: { [string]: ObjectTypes.ObjectCopy }, -- objectId = object
 		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
+		backpack = {} :: ObjectTypes.WearableCopy, -- currently equipped backpack
 
 		moderation = {
 			kickedReasons = {} :: { string },
@@ -129,7 +131,7 @@ local DataConfigs = {
 			craftingCostFactor = 1, -- Multiplier (1 = normal cost)
 
 			-- Inventory
-			inventorySlots = GameConfigs.INVENTORY_SLOTS, -- Number of inventory slots unlocked
+			inventoryCapacity = GameConfigs.INVENTORY_CAPACITY, -- Maximum weight capacity
 			hotbarSlots = GameConfigs.HOTBAR_SLOTS, -- Number of hotbar slots unlocked
 
 			-- Miscellaneous
@@ -223,7 +225,7 @@ local DataConfigs = {
 -- FUNCTIONS ----------------------------------------------------------------------------------------------------
 
 -- Populates concatenated paths for faster lookup
-local function populateConcatenatedPaths()
+local function PopulateConcatenatedPaths()
 	for _, path in pairs(DataConfigs.SHARED_PATHS) do
 		DataConfigs.SHARED_PATHS_CONCATENATED[table.concat(path)] = true
 	end
@@ -233,6 +235,6 @@ local function populateConcatenatedPaths()
 	end
 end
 
-populateConcatenatedPaths()
+PopulateConcatenatedPaths()
 
 return DataConfigs

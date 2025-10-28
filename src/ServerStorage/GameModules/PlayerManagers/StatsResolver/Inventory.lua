@@ -56,7 +56,7 @@ function Inventory.new(player: Player)
 
 	-- Booleans
 	self._destroyed = false
-	self._lightweightPerk = false
+	self._packMulePerk = false
 	self._packRatPerk = false
 
 	-- Instances
@@ -71,9 +71,9 @@ function Inventory:_Init()
 	-- Connections
 	Utils.Connections.Add(
 		self,
-		"lightweightPerk",
-		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "lightweight" }, function(newValue)
-			self._lightweightPerk = newValue or false
+		"packMulePerk",
+		PlayerDataHandler.ObservePlayerPath(self._player.UserId, { "perks", "packMule" }, function(newValue)
+			self._packMulePerk = newValue or false
 			self:_UpdateInventorySlots()
 		end)
 	)
@@ -105,14 +105,14 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 
 function Inventory:_UpdateInventorySlots()
-	local baseInventorySlots = GameConfigs.INVENTORY_SLOTS
+	local baseInventoryCapacity = GameConfigs.INVENTORY_CAPACITY
 
-	if self._lightweightPerk then
-		local lightweightPerkInfo = PerksInfo.byKey.lightweight
-		baseInventorySlots += lightweightPerkInfo.value
+	if self._packMulePerk then
+		local packMulePerkInfo = PerksInfo.byKey.packMule
+		baseInventoryCapacity += packMulePerkInfo.value
 	end
 
-	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "inventorySlots" }, baseInventorySlots)
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "inventoryCapacity" }, baseInventoryCapacity)
 end
 
 function Inventory:_UpdateHotbarSlots()

@@ -7,7 +7,7 @@ local GamepassesInfo = {
 		infiniteBackpack = {
 			key = "infiniteBackpack",
 			name = "Infinite Backpack",
-			description = "Unlimited slots backpack!",
+			description = "Unlimited capacity backpack!",
 			price = 779,
 			id = 1510862566,
 		},

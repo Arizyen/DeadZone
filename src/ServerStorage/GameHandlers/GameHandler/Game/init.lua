@@ -140,7 +140,7 @@ function Game:_FireGameStateKey(key: string)
 end
 
 function Game:_NightSurvived()
-	GameStateManager.SetKey("nightsSurvived", GameStateManager.GetKey("nightsSurvived") + 1)
+	GameStateManager.SetKeyValue("nightsSurvived", GameStateManager.GetKey("nightsSurvived") + 1)
 
 	self:_FireGameState()
 end

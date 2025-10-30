@@ -46,7 +46,7 @@ local TextLabel = require(BaseComponents:WaitForChild("TextLabel"))
 -- Types ---------------------------------------------------------------------------
 local ObjectTypes = require(ReplicatedTypes:WaitForChild("ObjectTypes"))
 type Props = {
-	object: ObjectTypes.Object?,
+	object: ObjectTypes.ObjectCopy?,
 	equipped: boolean,
 	setSelected: (slotNumber: number, objectId: string, state: boolean) -> (),
 	LayoutOrder: number,
@@ -140,7 +140,7 @@ local function Slot(props: Props)
 	}, {
 		UIStrokeEquipped = e(UIStroke, {
 			Color = Color3.new(1, 1, 1),
-			Thickness = 3,
+			Thickness = 2,
 			Enabled = props.equipped,
 		}),
 
@@ -168,6 +168,26 @@ local function Slot(props: Props)
 			Size = UDim2.fromScale(0.65, 0.3),
 			Visible = props.object and props.object.quantity,
 			Text = props.object and props.object.quantity or "",
+		}),
+
+		FrameDurability = props.object and props.object.durability and e("Frame", {
+			BackgroundColor3 = Color3.fromRGB(200, 200, 200),
+			BorderSizePixel = 0,
+			Position = UDim2.fromScale(0, 1.035),
+			Size = UDim2.fromScale(1, 0.1),
+		}, {
+			FrameGreen = e("Frame", {
+				BackgroundColor3 = Color3.fromRGB(85, 170, 0),
+				BorderSizePixel = 0,
+				Size = UDim2.fromScale(math.clamp(props.object.durability or 0, 0, 1), 1),
+			}),
+			FrameRed = e("Frame", {
+				AnchorPoint = Vector2.new(1, 0),
+				BackgroundColor3 = Color3.fromRGB(170, 0, 0),
+				BorderSizePixel = 0,
+				Position = UDim2.fromScale(1, 0),
+				Size = UDim2.fromScale(math.clamp(1 - (props.object.durability or 0), 0, 1), 1),
+			}),
 		}),
 	})
 end

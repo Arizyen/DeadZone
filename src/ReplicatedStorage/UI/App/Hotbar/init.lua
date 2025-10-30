@@ -132,7 +132,7 @@ local function Hotbar(props: Props)
 		{
 			AnchorPoint = Vector2.new(0.5, 1),
 			BackgroundTransparency = 1,
-			Position = UDim2.fromScale(0.5, 0.99),
+			Position = UDim2.fromScale(0.5, 0.985),
 			Size = UDim2.fromScale(0.05, 0.09),
 			Visible = not storeState.windowShown and not storeState.hideHUD,
 		},

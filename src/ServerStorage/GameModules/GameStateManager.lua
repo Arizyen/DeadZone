@@ -81,8 +81,8 @@ function GameStateManager.GetKey(key: string)
 	return tableObserver:GetKey(key)
 end
 
-function GameStateManager.SetKey(key: string, value: any)
-	tableObserver:SetKey(key, value)
+function GameStateManager.SetKeyValue(key: string, value: any)
+	tableObserver:SetKeyValue(key, value)
 end
 
 function GameStateManager.ObserveKey(key: string, callback: (newValue: any, oldValue: any) -> ())

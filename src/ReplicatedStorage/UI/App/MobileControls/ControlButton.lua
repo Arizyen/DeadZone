@@ -40,13 +40,16 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- Hooks ---------------------------------------------------------------------------
 local usePreloadAssets = require(BaseHooks:WaitForChild("usePreloadAssets"))
+local usePrevious = require(BaseHooks:WaitForChild("usePrevious"))
 
 -- Types ---------------------------------------------------------------------------
 type Props = {
 	isToggle: boolean?,
+	activated: boolean?,
+	externalDeactivation: boolean?,
+	onActiveImage: string?,
 	onActivation: (() -> ())?,
 	onDeactivation: (() -> ())?,
-	onActiveImage: string?,
 }
 
 -- Instances -----------------------------------------------------------------------
@@ -72,6 +75,7 @@ local function ControlButton(props: Props)
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
 	local isActive, setIsActive = React.useState(false)
 
+	local prevActivated = usePrevious(props.activated)
 	usePreloadAssets({ props.Image, props.onActiveImage }, "ImageLabel")
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
@@ -79,6 +83,15 @@ local function ControlButton(props: Props)
 	-- MEMOS ---------------------------------------------------------------------------------------------------------------
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
+	-- Deactivate on external change
+	React.useEffect(function()
+		if prevActivated == true and not props.activated then
+			setIsActive(false)
+			if props.onDeactivation then
+				props.onDeactivation()
+			end
+		end
+	end, { props.activated })
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e(
@@ -92,6 +105,10 @@ local function ControlButton(props: Props)
 						props.onActivation()
 					end
 				else
+					if props.externalDeactivation then
+						return
+					end
+
 					setIsActive(false)
 					if props.onDeactivation then
 						props.onDeactivation()
@@ -99,7 +116,7 @@ local function ControlButton(props: Props)
 				end
 			end,
 			[React.Event.MouseButton1Up] = function()
-				if not props.isToggle and isActive then
+				if not props.isToggle and isActive and not props.externalDeactivation then
 					setIsActive(false)
 					if props.onDeactivation then
 						props.onDeactivation()

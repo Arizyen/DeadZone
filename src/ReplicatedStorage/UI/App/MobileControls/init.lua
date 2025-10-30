@@ -125,13 +125,26 @@ local function MobileControls(props: Props)
 			end,
 		}),
 
-		AimButton = e(ControlHold, {
+		-- CrosshairButton = e(ControlHold, {
+		-- 	AnchorPoint = Vector2.new(0.5, 0.5),
+		-- 	Position = UDim2.fromScale(0.22, 0.22),
+		-- 	Size = UDim2.fromScale(0.5, 0.5),
+		-- 	Visible = hasWeaponEquippedBinding,
+		-- 	Image = "rbxassetid://95484305126311",
+		-- 	onActiveImage = "rbxassetid://78688992914092",
+		-- 	onActivation = function() end,
+		-- 	onDeactivation = function() end,
+		-- 	draggable = true,
+		-- }),
+
+		ShootButton = e(ControlHold, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.22, 0.22),
 			Size = UDim2.fromScale(0.5, 0.5),
 			Visible = hasWeaponEquippedBinding,
-			Image = "rbxassetid://95484305126311",
-			onActiveImage = "rbxassetid://78688992914092",
+			Image = "rbxassetid://113494186198554",
+			isToggle = true,
+			onActiveImage = "rbxassetid://71545011517512",
 			onActivation = function() end,
 			onDeactivation = function() end,
 			draggable = true,
@@ -143,10 +156,12 @@ local function MobileControls(props: Props)
 			Size = UDim2.fromScale(0.35, 0.35),
 			Visible = hasWeaponEquippedBinding,
 			Image = "rbxassetid://85265793481466",
+			activated = false, -- Todo: Update to binding
+			isToggle = true,
+			externalDeactivation = true,
 			onActiveImage = "rbxassetid://94491897619211",
 			onActivation = function() end,
 			onDeactivation = function() end,
-			draggable = true,
 		}),
 	})
 end

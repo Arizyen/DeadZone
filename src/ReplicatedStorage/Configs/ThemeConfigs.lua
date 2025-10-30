@@ -13,7 +13,7 @@ return {
 	textStrokeByDefault = true,
 	textColor3 = Color3.fromRGB(255, 255, 255),
 	textStrokeColor = Color3.fromRGB(30, 30, 30),
-	textStrokeThickness = 2,
+	textStrokeThickness = 1.5,
 
 	strokeColor = Color3.fromRGB(230, 230, 230),
 

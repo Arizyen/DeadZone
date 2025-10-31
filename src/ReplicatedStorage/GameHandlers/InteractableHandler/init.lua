@@ -1,45 +1,35 @@
-local ResourceManager = {}
+local InteractableHandler = {}
 
 -- Services ------------------------------------------------------------------------
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Folders -------------------------------------------------------------------------
-local Packages = ReplicatedStorage.Packages
-local ReplicatedSource = ReplicatedStorage.Source
-local ServerSource = ServerStorage.Source
-local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
-local PlaywooEngine = ServerSource.PlaywooEngine
-local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
-local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
-local ReplicatedInfo = ReplicatedSource.Info
-local Info = ServerSource.Info
-local ReplicatedTypes = ReplicatedSource.Types
-local Types = ServerSource.Types
-local BaseModules = PlaywooEngine.BaseModules
-local GameModules = ServerSource.GameModules
-local BaseHandlers = PlaywooEngine.BaseHandlers
-local GameHandlers = ServerSource.GameHandlers
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
+local ReplicatedPlaywooEngine = ReplicatedSource:WaitForChild("PlaywooEngine")
+local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
+local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
+local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
+local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
-local GameSaveData = require(GameModules.GameSaveData)
-local TreeManager = require(script.TreeManager)
+local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
+local Ports = require(script:WaitForChild("Ports"))
 
--- Handlers --------------------------------------------------------------------
+-- Handlers ----------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
 
 -- Instances -----------------------------------------------------------------------
 
--- Info ----------------------------------------------------------------------------
+-- Info ---------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
 
 -- Variables -----------------------------------------------------------------------
-
--- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
 
@@ -51,15 +41,13 @@ local TreeManager = require(script.TreeManager)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
--- Spawns initial resources in the game world
-function ResourceManager.Init()
-	local resources = GameSaveData.GetResources()
-
-	TreeManager.Init(resources.tree)
-
-	-- Clear cached resources from save data to free up memory
-	GameSaveData.ClearResources()
+function InteractableHandler.Register(ports: Ports.Ports)
+	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
+
+function InteractableHandler.Init() end
+
+-- CLIENT FUNCTIONS ----------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
@@ -69,4 +57,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return ResourceManager
+return InteractableHandler

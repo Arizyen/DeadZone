@@ -1,4 +1,4 @@
-local ResourceHandler = {}
+local InteractableHandler = {}
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -20,11 +20,12 @@ local GameModules = ServerSource.GameModules
 local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
+local Interactables = script.Interactables
+
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local Ports = require(script.Ports)
 local GameSaveData = require(GameModules.GameSaveData)
-local TreeManager = require(script.TreeManager)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -48,17 +49,19 @@ local TreeManager = require(script.TreeManager)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function ResourceHandler.Register(ports: Ports.Ports)
+function InteractableHandler.Register(ports: Ports.Ports)
 	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
 
-function ResourceHandler.Init()
-	local resources = GameSaveData.GetResources()
+function InteractableHandler.Init()
+	local interactables = GameSaveData.GetInteractables()
 
-	TreeManager.Init(resources.tree)
+	for _, interactableData in pairs(interactables) do
+		require(Interactables[interactableData.type]).new(interactableData)
+	end
 
-	-- Clear cached resources from save data to free up memory
-	GameSaveData.ClearResources()
+	-- Clear cached interactables from save data to free up memory
+	GameSaveData.ClearInteractables()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -69,4 +72,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return ResourceHandler
+return InteractableHandler

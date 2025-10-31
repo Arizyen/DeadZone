@@ -1,0 +1,65 @@
+-- Services ------------------------------------------------------------------------
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Folders -------------------------------------------------------------------------
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
+local ReplicatedPlaywooEngine = ReplicatedSource:WaitForChild("PlaywooEngine")
+local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
+local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
+local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
+local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
+
+-- Modules -------------------------------------------------------------------
+local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
+local Knit = require(Packages:WaitForChild("Knit"))
+
+-- Handlers -----------------------------------------------------------------------
+
+-- Knit Controllers ----------------------------------------------------------------
+local InteractableController = Knit.CreateController({
+	Name = "Interactable",
+})
+
+-- Types ---------------------------------------------------------------------------
+
+-- Instances -----------------------------------------------------------------------
+
+-- Info ---------------------------------------------------------------------------
+
+-- Configs -------------------------------------------------------------------------
+
+-- Variables -----------------------------------------------------------------------
+
+-- Tables --------------------------------------------------------------------------
+local knitServices = {}
+
+------------------------------------------------------------------------------------------------------------------------
+-- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+-- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+-- KNIT FUNCTIONS ------------------------------------------------------------------------------------------------------
+
+-- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
+function InteractableController:KnitInit()
+	knitServices["Interactable"] = Knit.GetService("Interactable")
+	-- Register ports to handler (communication to server)
+end
+
+-- KnitStart() fires after all KnitInit() have been completed.
+function InteractableController:KnitStart()
+	-- Register server events
+	-- Init handler
+end
+
+-------------------------------------------------------------------------------------------------------------------------
+-- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+
+return InteractableController

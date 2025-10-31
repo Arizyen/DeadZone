@@ -44,7 +44,8 @@ local SaveTypes = require(ReplicatedTypes.SaveTypes)
 -- Tables --------------------------------------------------------------------------
 local saveData = {
 	info = {} :: SaveTypes.SaveInfo,
-	builds = {},
+	structures = {},
+	interactables = {},
 	resources = {},
 	playersSave = {} :: { [number]: SaveTypes.PlayerSave },
 } :: SaveTypes.Save
@@ -62,18 +63,29 @@ function GameSaveData.Load(newSaveData: SaveTypes.Save)
 	GameStateManager.Load(newSaveData.info)
 end
 
--- BUILDS ----------------------------------------------------------------------------------------------------
+-- STRUCTURES ----------------------------------------------------------------------------------------------------
 
-function GameSaveData.GetBuilds()
-	return saveData.builds
+function GameSaveData.GetStructures()
+	return saveData.structures
 end
 
--- Clears all saved builds from memory after it's been loaded
-function GameSaveData.ClearBuilds()
-	saveData.builds = {}
+-- Clears all saved structures from memory after it's been loaded
+function GameSaveData.ClearStructures()
+	saveData.structures = {}
 end
 
--- Resources ----------------------------------------------------------------------------------------------------
+-- INTERACTABLES ----------------------------------------------------------------------------------------------------
+
+function GameSaveData.GetInteractables()
+	return saveData.interactables
+end
+
+-- Clears all saved interactables from memory after it's been loaded
+function GameSaveData.ClearInteractables()
+	saveData.interactables = {}
+end
+
+-- RESOURCES ----------------------------------------------------------------------------------------------------
 
 function GameSaveData.GetResources()
 	return saveData.resources

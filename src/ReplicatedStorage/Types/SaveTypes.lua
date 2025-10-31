@@ -2,6 +2,8 @@ local SaveTypes = {}
 
 local ObjectTypes = require(script.Parent.ObjectTypes)
 local ResourceTypes = require(script.Parent.ResourceTypes)
+local BuildTypes = require(script.Parent.BuildTypes)
+local InteractableTypes = require(script.Parent.InteractableTypes)
 
 export type SaveInfo = {
 	id: string?, -- Player UserId .. _ .. save # .. _ .. save cycle #
@@ -38,7 +40,8 @@ export type PlayerSave = {
 
 export type Save = {
 	info: SaveInfo,
-	builds: table, -- All players builds (placed items, structures, etc.)
+	structures: { { BuildTypes.Build } }, -- All placed structures
+	interactables: { InteractableTypes.Container }, -- workbenches, generators, miners / core, chests, backpacks, etc. Everything that can be interacted with by players
 	resources: ResourceTypes.Resources, -- World resources (trees, rocks, etc.)
 	playersSave: { [number]: PlayerSave }, -- Key is player UserId
 }

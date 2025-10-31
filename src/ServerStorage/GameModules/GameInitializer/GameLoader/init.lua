@@ -31,6 +31,7 @@ local DataStore = require(BaseModules.DataStore)
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
 local GameHandler = require(GameHandlers.GameHandler)
 local ResourceHandler = require(GameHandlers.ResourceHandler)
+local InteractableHandler = require(GameHandlers.InteractableHandler)
 
 -- Types ---------------------------------------------------------------------------
 local SaveTypes = require(ReplicatedTypes.SaveTypes)
@@ -161,6 +162,7 @@ function GameLoader.GetJoinData(playerJoined: Player)
 	-- Init game handlers
 	GameHandler.Init()
 	ResourceHandler.Init()
+	InteractableHandler.Init()
 
 	return joinData
 end

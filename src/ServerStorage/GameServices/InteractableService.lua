@@ -1,5 +1,3 @@
-local ResourceHandler = {}
-
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +10,6 @@ local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
 local PlaywooEngine = ServerSource.PlaywooEngine
 local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
 local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
 local ReplicatedInfo = ReplicatedSource.Info
 local ReplicatedTypes = ReplicatedSource.Types
 local BaseModules = PlaywooEngine.BaseModules
@@ -21,12 +18,17 @@ local BaseHandlers = PlaywooEngine.BaseHandlers
 local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Ports)
-local GameSaveData = require(GameModules.GameSaveData)
-local TreeManager = require(script.TreeManager)
+local Knit = require(Packages.Knit)
+local RateLimiter = require(BaseModules.RateLimiter)
+local t = require(Packages.t)
 
--- Handlers --------------------------------------------------------------------
+-- Handlers -------------------------------------------------------------------
+
+-- Knit Services --------------------------------------------------------------------
+local InteractableService = Knit.CreateService({
+	Name = "Interactable",
+	Client = {},
+})
 
 -- Types ---------------------------------------------------------------------------
 
@@ -47,26 +49,18 @@ local TreeManager = require(script.TreeManager)
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+-- KNIT FUNCTIONS ------------------------------------------------------------------------------------------------------
 
-function ResourceHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
+-- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
+function InteractableService:KnitInit()
+	-- Register ports to handler
 end
 
-function ResourceHandler.Init()
-	local resources = GameSaveData.GetResources()
+-- KnitStart() fires after all KnitInit() have been completed.
+function InteractableService:KnitStart() end
 
-	TreeManager.Init(resources.tree)
+-------------------------------------------------------------------------------------------------------------------------
+-- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
 
-	-- Clear cached resources from save data to free up memory
-	GameSaveData.ClearResources()
-end
-
-------------------------------------------------------------------------------------------------------------------------
--- CONNECTIONS ---------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-------------------------------------------------------------------------------------------------------------------------
--- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-return ResourceHandler
+return InteractableService

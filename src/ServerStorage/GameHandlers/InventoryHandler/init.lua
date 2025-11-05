@@ -24,6 +24,7 @@ local GameHandlers = ServerSource.GameHandlers
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local Ports = require(script.Ports)
+local Inventory = require(script.Inventory)
 
 -- Handlers --------------------------------------------------------------------
 local PlayerDataHandler = require(BaseHandlers.PlayerDataHandler)
@@ -156,35 +157,17 @@ end
 
 -- Adds a new object to the player's inventory, hotbar, or loadout
 function InventoryHandler.AddObject(
-	player: Player,
+	inventoryId: string | number,
 	objectCopy: ObjectTypes.ObjectCopy,
 	location: ("inventory" | "hotbar" | "loadout" | "backpack")?
 ): (boolean, string?)
-	assert(objectCopy and objectCopy.key, "InventoryHandler.AddObject: Invalid object provided")
-	assert(ObjectsInfo.byKey[objectCopy.key], "InventoryHandler.AddObject: Object key not found in ObjectsInfo")
-
-	location = location or "inventory"
-
-	local freeSlotKey = GetFreeSlotId(player, location)
-	if not freeSlotKey and location == "hotbar" then
-		location = "inventory"
-		freeSlotKey = GetFreeSlotId(player, location)
+	local inventory = Inventory.GetInventory(inventoryId)
+	if not inventory then
+		print("Inventory not found for ID:", inventoryId)
+		return false, "Inventory not found"
 	end
-
-	if not freeSlotKey then
-		return false, "No slots available in inventory" -- No free slot found
-	end
-
-	-- Create and add object
-	local newObject = CreateObject(objectCopy)
-	newObject.location = location
-	newObject.slotId = freeSlotKey
-
-	PlayerDataHandler.SetPathValue(player.UserId, { "objects", newObject.id }, newObject)
-	PlayerDataHandler.InsertAtPathValue(player.UserId, { "objectsCategorized", newObject.key }, newObject.id)
-	PlayerDataHandler.SetPathValue(player.UserId, { location, freeSlotKey }, newObject.id)
-
-	return true
+	print("Adding object to inventory:", inventoryId, objectCopy.key, objectCopy.quantity, location)
+	return inventory:AddObject(objectCopy, location)
 end
 
 -- Removes an object from the player's inventory, hotbar, or loadout
@@ -375,6 +358,22 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+Utils.Signals.Connect("PlayerLoaded", function(player: Player)
+	local playerData = PlayerDataHandler.GetDataInstance(player.UserId)
+	if not playerData and player.Parent == game.Players then
+		warn("InventoryHandler: Player data not found for userId " .. tostring(player.UserId))
+	end
+
+	Inventory.new(playerData, player.UserId)
+end)
+
+Utils.Signals.Connect("PlayerRemoving", function(player: Player)
+	local inventory = Inventory.GetInventory(player.UserId)
+	if inventory then
+		inventory:Destroy()
+	end
+end)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------

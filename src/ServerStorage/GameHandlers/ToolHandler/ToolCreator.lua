@@ -63,7 +63,7 @@ function ToolCreator.AddToInventory(player: Player, toolKey: string, location: "
 		return
 	end
 
-	InventoryHandler.AddObject(player, { key = toolKey, durability = 1 }, location or "inventory")
+	InventoryHandler.AddObject(player.UserId, { key = toolKey, durability = 1 }, location or "inventory")
 end
 
 function ToolCreator.AddToBackpack(player: Player, toolKey: string)

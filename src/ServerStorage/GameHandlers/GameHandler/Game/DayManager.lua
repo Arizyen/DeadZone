@@ -92,7 +92,7 @@ function DayManager:_Init()
 	)
 
 	-- Initialize clock time
-	Lighting.ClockTime = GameStateManager.GetKey("clockTime") or TimeConfigs.DAY_START_TIME
+	Lighting.ClockTime = GameStateManager.GetKeyValue("clockTime") or TimeConfigs.DAY_START_TIME
 	self:_StartClock()
 
 	-- Observe game state changes

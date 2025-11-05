@@ -32,7 +32,12 @@ function Assets:PlayerBoughtAsset(player, assetId, isPurchased)
 	end
 
 	self.PlayerDataHandler.SetPathValue(player.UserId, { "avatarAssets", "owned", tostring(assetId) }, true)
-	self.PlayerDataHandler.SetPathValue(player.UserId, { "avatarAssets", "purchased", tostring(assetId) }, true, true)
+	self.PlayerDataHandler.SetPathValue(
+		player.UserId,
+		{ "avatarAssets", "purchased", tostring(assetId) },
+		true,
+		{ save = true }
+	)
 
 	self.MessageHandler.SendMessageToPlayer(
 		player,

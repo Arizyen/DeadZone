@@ -201,11 +201,8 @@ function CustomCamera:Update()
 
 	-- Calculate offset based on camera orientation (not character orientation, since camera can swivel as CameraSubject is Humanoid)
 	local f, r = CameraBasisXZ(camera.CFrame)
-	local desiredWorld = newRootCFrame.Position
-		+ r * CAMERA_OFFSET.X
-		+ Vector3.new(0, CAMERA_OFFSET.Y, 0)
-		+ f * CAMERA_OFFSET.Z
-	local localOffset = newRootCFrame:VectorToObjectSpace(desiredWorld - newRootCFrame.Position)
+	local desiredWorld = r * CAMERA_OFFSET.X + Vector3.new(0, CAMERA_OFFSET.Y, 0) + f * CAMERA_OFFSET.Z
+	local localOffset = newRootCFrame:VectorToObjectSpace(desiredWorld)
 
 	self._humanoid.CameraOffset = (localOffset * self._offsetAlpha) * fade
 	self._humanoid.AutoRotate = not self._toolEquipped

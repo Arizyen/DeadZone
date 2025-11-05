@@ -77,8 +77,8 @@ function GameStateManager.Get()
 	return tableObserver:Get()
 end
 
-function GameStateManager.GetKey(key: string)
-	return tableObserver:GetKey(key)
+function GameStateManager.GetKeyValue(key: string)
+	return tableObserver:GetKeyValue(key)
 end
 
 function GameStateManager.SetKeyValue(key: string, value: any)

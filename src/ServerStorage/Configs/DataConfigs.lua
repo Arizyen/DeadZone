@@ -39,10 +39,10 @@ local DataConfigs = {
 		capacityUsed = 0, -- current weight in the inventory
 		hotbar = {} :: { [string]: string }, -- slotId (slot1) = objectId
 		inventory = {} :: { [string]: string }, -- slotId (slot1) = objectId
+		backpack = {} :: ObjectTypes.WearableCopy, -- currently equipped backpack
 		loadout = {} :: { [string]: string }, -- slotId = itemName
 		objects = {} :: { [string]: ObjectTypes.ObjectCopy }, -- objectId = object
 		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
-		backpack = {} :: ObjectTypes.WearableCopy, -- currently equipped backpack
 
 		moderation = {
 			kickedReasons = {} :: { string },
@@ -215,7 +215,7 @@ local DataConfigs = {
 		-- { "statistics", "totalPlayTime" },
 		{ "gamepasses" },
 	},
-	SHARED_PATHS_CONCATENATED = {} :: { [string]: boolean }, -- Populated on module load
+	SHARABLE_PATHS_CONCATENATED = {} :: { [string]: boolean }, -- Populated on module load
 
 	-- Non-replicated values/paths (these will not be sent to the player)
 	NON_REPLICATED_PATHS = {},
@@ -227,7 +227,7 @@ local DataConfigs = {
 -- Populates concatenated paths for faster lookup
 local function PopulateConcatenatedPaths()
 	for _, path in pairs(DataConfigs.SHARED_PATHS) do
-		DataConfigs.SHARED_PATHS_CONCATENATED[table.concat(path)] = true
+		DataConfigs.SHARABLE_PATHS_CONCATENATED[table.concat(path)] = true
 	end
 
 	for _, path in pairs(DataConfigs.NON_REPLICATED_PATHS) do

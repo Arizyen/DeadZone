@@ -38,7 +38,7 @@ function Gamepasses:PlayerPurchasedGamePass(player, gamePassId, success)
 	if success and gamepassKey then
 		print(player.Name .. " purchased the game pass " .. gamepassKey .. " with ID " .. gamePassId .. ".")
 
-		self.PlayerDataHandler.SetPathValue(player.UserId, { "gamepasses", gamepassKey }, true, true)
+		self.PlayerDataHandler.SetPathValue(player.UserId, { "gamepasses", gamepassKey }, true, { save = true })
 		self.Utils.Signals.Fire("GamepassPurchased", player, gamepassKey)
 
 		if gamepassKey == "vip" then

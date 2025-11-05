@@ -1,5 +1,5 @@
-local Game = {}
-Game.__index = Game
+local Interactable = {}
+Interactable.__index = Interactable
 
 -- Services ------------------------------------------------------------------------
 local ServerStorage = game:GetService("ServerStorage")
@@ -25,23 +25,20 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local Ports = require(script.Parent.Ports)
-local GameStateManager = require(GameModules.GameStateManager)
+local Interactables = require(script.Parent)
+local Inventory = require(GameHandlers.InventoryHandler.Inventory)
 
 -- Handlers --------------------------------------------------------------------
+local DataHandler = require(BaseHandlers.DataHandler)
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
-local GameTypes = require(ReplicatedTypes.GameTypes)
+local InteractableTypes = require(ReplicatedTypes.InteractableTypes)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
-local DifficultiesInfo = require(ReplicatedInfo.DifficultiesInfo)
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-local TimeConfigs = require(ReplicatedConfigs.TimeConfigs)
 
 -- Variables -----------------------------------------------------------------------
 
@@ -55,112 +52,63 @@ local TimeConfigs = require(ReplicatedConfigs.TimeConfigs)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Game.new(): typeof(Game)
-	local self = setmetatable({}, Game)
+function Interactable.new(data: InteractableTypes.Interactable): typeof(Interactable)
+	local self = setmetatable({}, Interactable)
 
 	-- Booleans
 	self._destroyed = false
 
-	-- Numbers
+	-- Strings
+	self._id = nil :: string
 
-	-- Tables
-	self.difficultyInfo = DifficultiesInfo.byKey[DifficultiesInfo.keys[table.find(
-		DifficultiesInfo.keys,
-		GameStateManager.GetKeyValue("difficulty")
-	) or 1]] :: DifficultiesInfo.DifficultyInfo
-
-	-- Metatables
-	self.dayManager = require(script.DayManager).new(self)
+	-- Instances
+	self._dataReplicator = DataHandler.CreateDataReplicator(data or {})
+	self._inventory = Inventory.new(self._dataReplicator, self._id, true)
 
 	self:_Init()
 
 	return self
 end
 
-function Game:_Init()
-	self:_FireGameState()
+function Interactable:_Init()
+	self._id = self._dataReplicator:GetId()
+	Interactables[self._id] = self
 
-	-- Connections
-	Utils.Connections.Add(
-		self,
-		"nightSurvived",
-		self.dayManager.nightSurvived:Connect(function()
-			self:_NightSurvived()
-		end)
-	)
-
-	Utils.Connections.Add(
-		self,
-		"nightStarted",
-		self.dayManager.nightStarted:Connect(function()
-			self:_FireGameState()
-		end)
-	)
-
-	Utils.Connections.Add(
-		self,
-		"dayStarted",
-		self.dayManager.dayStarted:Connect(function()
-			self:_FireGameState()
-		end)
-	)
-
-	Utils.Connections.Add(
-		self,
-		"votesChanged",
-		self.dayManager.votesChanged:Connect(function()
-			self:_FireGameState()
-		end)
-	)
+	-- Spawn instance in world
 end
 
-function Game:Destroy()
+function Interactable:Destroy()
 	if self._destroyed then
 		return
 	end
 	self._destroyed = true
+	Interactables[self._id] = nil
 
 	Utils.Connections.DisconnectKeyConnections(self)
 
-	self.dayManager:Destroy()
+	-- Destroy instances
+	self._inventory:Destroy()
+	self._dataReplicator:Destroy()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
--- REPLICATIONS ----------------------------------------------------------------------------------------------------
-
-function Game:_FireGameState()
-	Ports.SetGameState(self:GetGameState())
-end
-
-function Game:_FireGameStateKey(key: string)
-	Ports.SetGameStateKey(key, self:GetGameState()[key])
-end
-
-function Game:_NightSurvived()
-	GameStateManager.SetKeyValue("nightsSurvived", GameStateManager.GetKeyValue("nightsSurvived") + 1)
-
-	self:_FireGameState()
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Game:GetGameState(): GameTypes.GameState
-	return {
-		difficulty = GameStateManager.GetKeyValue("difficulty"),
-		isDay = self.dayManager:IsDay(),
-		nightsSurvived = GameStateManager.GetKeyValue("nightsSurvived"),
-		zombiesLeft = GameStateManager.GetKeyValue("zombiesLeft"),
-		skipVotes = self.dayManager:GetSkipVotesCount(),
-	}
+function Interactable:GetInventory(): typeof(Inventory)
+	return self._inventory
 end
 
-function Game:VoteSkipDay(player: Player): boolean
-	return self.dayManager:VoteSkipDay(player)
+function Interactable:AddPlayerListener(player: Player)
+	self._dataReplicator:AddPlayerListener(player)
+end
+
+function Interactable:RemovePlayerListener(player: Player)
+	self._dataReplicator:RemovePlayerListener(player)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -171,4 +119,4 @@ end
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return Game
+return Interactable

@@ -52,7 +52,7 @@ local InteractableTypes = require(ReplicatedTypes.InteractableTypes)
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function Interactable.new(data: InteractableTypes.Interactable): typeof(Interactable)
+function Interactable.new(data: InteractableTypes.Interactable, hasInventory: boolean): typeof(Interactable)
 	local self = setmetatable({}, Interactable)
 
 	-- Booleans
@@ -63,7 +63,10 @@ function Interactable.new(data: InteractableTypes.Interactable): typeof(Interact
 
 	-- Instances
 	self._dataReplicator = DataHandler.CreateDataReplicator(data or {})
-	self._inventory = Inventory.new(self._dataReplicator, self._id, true)
+	self._inventory = hasInventory and Inventory.new(self._dataReplicator, self._id, true) or nil
+
+	-- Signals
+	self.onDestroy = Utils.Signals.Create()
 
 	self:_Init()
 
@@ -84,11 +87,14 @@ function Interactable:Destroy()
 	self._destroyed = true
 	Interactables[self._id] = nil
 
+	self.onDestroy:Fire()
+
 	Utils.Connections.DisconnectKeyConnections(self)
 
 	-- Destroy instances
 	self._inventory:Destroy()
 	self._dataReplicator:Destroy()
+	self.onDestroy:Destroy()
 end
 
 ------------------------------------------------------------------------------------------------------------------------

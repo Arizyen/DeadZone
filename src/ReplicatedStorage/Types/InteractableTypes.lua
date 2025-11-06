@@ -9,7 +9,7 @@ export type Interactable = {
 }
 
 export type Container = Interactable & {
-	inventoryCapacity: number, -- maximum weight capacity of the inventory
+	storageCapacity: number, -- maximum weight capacity of the inventory
 	capacityUsed: number, -- current weight in the inventory
 	inventory: { [string]: string }, -- slotId = objectId
 	objects: { [string]: ObjectTypes.ObjectCopy }, -- objectId = object

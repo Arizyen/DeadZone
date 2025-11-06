@@ -15,9 +15,10 @@ local GameConfigs = {}
 -- Configs
 
 -- Variables
-GameConfigs.MAX_INVENTORY_SLOTS = 500 -- Maximum inventory slots
+GameConfigs.INVENTORY_SLOTS = 500 -- Maximum inventory slots
 GameConfigs.HOTBAR_SLOTS = 6
-GameConfigs.INVENTORY_CAPACITY = 500 -- Maximum weight capacity
+GameConfigs.LOADOUT_SLOTS = 6 -- head, chest, legs, backpack, pants, shirt
+GameConfigs.STORAGE_CAPACITY = 500 -- Maximum weight capacity
 
 -- Tables
 

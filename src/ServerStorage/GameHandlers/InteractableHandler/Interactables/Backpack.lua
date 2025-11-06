@@ -50,10 +50,9 @@ local InteractableTypes = require(ReplicatedTypes.InteractableTypes)
 ------------------------------------------------------------------------------------------------------------------------
 
 function Backpack.new(data: InteractableTypes.Interactable?)
-	local self = setmetatable(Interactable.new(data), Backpack)
+	local self = setmetatable(Interactable.new(data, true), Backpack)
 
 	-- Booleans
-	self._destroyed = false
 
 	self:_Init()
 
@@ -61,19 +60,8 @@ function Backpack.new(data: InteractableTypes.Interactable?)
 end
 
 function Backpack:_Init()
-	self:Update()
+	Utils.Connections.Add(self, "onDestroy", self.onDestroy:Connect(function() end))
 end
-
-function Backpack:Destroy()
-	if self._destroyed then
-		return
-	end
-	self._destroyed = true
-
-	Utils.Connections.DisconnectKeyConnections(self)
-end
-
-function Backpack:Update() end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------

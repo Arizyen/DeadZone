@@ -36,13 +36,14 @@ local DataConfigs = {
 		gamepasses = {} :: { [string]: boolean },
 
 		-- Inventory keys
-		capacityUsed = 0, -- current weight in the inventory
 		hotbar = {} :: { [string]: string }, -- slotId (slot1) = objectId
-		inventory = {} :: { [string]: string }, -- slotId (slot1) = objectId
-		backpack = {} :: ObjectTypes.WearableCopy, -- currently equipped backpack
 		loadout = {} :: { [string]: string }, -- slotId = itemName
+		inventory = {} :: { [string]: string }, -- slotId (slot1) = objectId
+		capacityUsed = 0, -- current weight in the inventory
 		objects = {} :: { [string]: ObjectTypes.ObjectCopy }, -- objectId = object
 		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
+
+		storage = {} :: ObjectTypes.BackpackCopy, -- currently equipped backpack
 
 		moderation = {
 			kickedReasons = {} :: { string },
@@ -131,7 +132,7 @@ local DataConfigs = {
 			craftingCostFactor = 1, -- Multiplier (1 = normal cost)
 
 			-- Inventory
-			inventoryCapacity = GameConfigs.INVENTORY_CAPACITY, -- Maximum weight capacity
+			storageCapacity = GameConfigs.STORAGE_CAPACITY, -- Maximum weight capacity
 			hotbarSlots = GameConfigs.HOTBAR_SLOTS, -- Number of hotbar slots unlocked
 
 			-- Miscellaneous

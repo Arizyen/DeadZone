@@ -105,14 +105,14 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 
 function Inventory:_UpdateInventorySlots()
-	local baseInventoryCapacity = GameConfigs.INVENTORY_CAPACITY
+	local baseInventoryCapacity = GameConfigs.STORAGE_CAPACITY
 
 	if self._packMulePerk then
 		local packMulePerkInfo = PerksInfo.byKey.packMule
 		baseInventoryCapacity += packMulePerkInfo.value
 	end
 
-	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "inventoryCapacity" }, baseInventoryCapacity)
+	PlayerDataHandler.SetPathValue(self._player.UserId, { "stats", "storageCapacity" }, baseInventoryCapacity)
 end
 
 function Inventory:_UpdateHotbarSlots()

@@ -5,14 +5,17 @@ local ObjectTypes = {}
 -- Object info
 
 type ObjectBase = {
-	key: string, -- Unique key identifying the object
+	id: string, -- Unique identifier for this specific object instance
+	key: string, -- Unique key identifying the object info
+	type: string,
+	category: string,
 	name: string,
 	description: string,
 	stackable: boolean,
 	image: string,
 	weightPerUnit: number,
-	quantity: number?,
 	canStore: boolean, -- whether the object can be placed in inventory (example a chest or backpack cannot be placed inside another chest or backpack or inside inventory)
+	quantity: number?,
 }
 type ItemFields = {
 	type: "item",
@@ -35,9 +38,9 @@ type WearableFields = {
 	hp: number?, -- amount of HP this wearable provides
 }
 type InventoryFields = {
-	inventoryCapacity: number, -- maximum weight capacity of the inventory
-	capacityUsed: number, -- current weight in the inventory
-	inventory: { [string]: string }, -- slotId = objectId
+	storageCapacity: number, -- maximum weight capacity of the storage
+	capacityUsed: number, -- current weight in the storage
+	storage: { [string]: string }, -- slotId = objectId
 	objects: { [string]: ObjectCopy }, -- objectId = object
 	objectsCategorized: { [string]: { string } }, -- key = { objectId }
 }
@@ -45,7 +48,7 @@ type InventoryFields = {
 -- A copy of the object with only key and editable fields -------------------------------------------------------------
 type ObjectBaseCopy = {
 	id: string, -- Unique identifier for this specific object instance
-	key: string, -- Unique key identifying the object
+	key: string, -- Unique key identifying the object info
 	quantity: number?,
 	location: string?, -- e.g., "inventory", "hotbar", "loadout", etc.
 	slotId: string?, -- e.g., "slot1", "slot2", etc.
@@ -79,5 +82,11 @@ export type ObjectCopy = ObjectBaseCopy & (ItemFieldsCopy | ToolFieldsCopy | Wea
 export type ItemCopy = ObjectCopy & { type: "item" }
 export type ToolCopy = ObjectCopy & { type: "tool" }
 export type WearableCopy = ObjectCopy & { type: "wearable" }
+
+export type BackpackCopy =
+	ObjectBaseCopy
+	& WearableFieldsCopy
+	& InventoryFieldsCopy
+	& { type: "wearable", category: "accessory" }
 
 return ObjectTypes

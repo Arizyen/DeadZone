@@ -62,14 +62,14 @@ function ToolService:KnitStart() end
 -- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------
 
-function ToolService.Client:AddToBackpack(player: Player, objectId: string)
+function ToolService.Client:AddToBackpack(player: Player, objectId: string): boolean
 	if not RateLimiter.Use(player, "ToolService", "AddToBackpack") then
-		return
+		return false
 	elseif not t.string(objectId) then
-		return
+		return false
 	end
 
-	ToolHandler.AddToBackpack(player, objectId)
+	return ToolHandler.AddToBackpack(player, objectId)
 end
 
 return ToolService

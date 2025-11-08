@@ -30,10 +30,14 @@ export type PlayerState = {
 export type PlayerSave = {
 	userId: number, -- Player UserId
 	hotbar: { [string]: string }, -- slotId (slot1) = objectId
-	inventory: { [string]: string }, -- slotId (slot1) = objectId
 	loadout: { [string]: string }, -- slotName = itemName
+	inventory: { [string]: string }, -- slotId (slot1) = objectId
+	capacityUsed: number, -- current weight in the inventory
 	objects: { [string]: ObjectTypes.Object }, -- objectId = object
 	objectsCategorized: { [string]: { string } }, -- key = { objectId }
+
+	backpack: ObjectTypes.BackpackCopy?, -- currently equipped backpack
+
 	state: PlayerState, -- Player state (hp, position, etc.)
 	zombieKills: number, -- Number of zombies killed
 }

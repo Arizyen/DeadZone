@@ -30,6 +30,7 @@ local BaseContexts = require(PlaywooEngineUI:WaitForChild("BaseContexts"))
 
 -- Handlers ----------------------------------------------------------------
 local PlayerHandler = require(ReplicatedGameHandlers:WaitForChild("PlayerHandler"))
+local ToolHandler = require(ReplicatedGameHandlers:WaitForChild("ToolHandler"))
 
 -- BaseComponents ----------------------------------------------------------------
 
@@ -49,7 +50,7 @@ type Props = {}
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
-local WeaponsInfo = require(ReplicatedInfo:WaitForChild("WeaponsInfo"))
+local ObjectsInfo = require(ReplicatedInfo:WaitForChild("ObjectsInfo"))
 
 -- Configs -------------------------------------------------------------------------
 
@@ -57,14 +58,21 @@ local WeaponsInfo = require(ReplicatedInfo:WaitForChild("WeaponsInfo"))
 local e = React.createElement
 
 -- Tables --------------------------------------------------------------------------
+local mobileActivationIcons = {
+	ranged = { "rbxassetid://113494186198554", "rbxassetid://71545011517512" },
+	melee = { "rbxassetid://91824541248785", "rbxassetid://113180054276793" },
+	consumable = { "rbxassetid://127954810762739", "rbxassetid://122636095014142" },
+	axe = { "rbxassetid://140308152792906", "rbxassetid://116854439242419" },
+	pickaxe = { "rbxassetid://87220871390329", "rbxassetid://113732588420289" },
+}
 
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
 	app = { "deviceType" },
 	theme = { "totalScreenSize" },
 	playerAttributes = { "isAlive" },
-	data = { { "loadout", "equippedTool" } },
 })
+
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
@@ -74,7 +82,11 @@ local function MobileControls(props: Props)
 	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
-	local hasWeaponEquippedBinding, setHasWeaponEquipped = React.useBinding(false)
+	local activationImageKey, setActivationImageKey = React.useState("consumable")
+	local hasToolEquippedBinding, setHasToolEquipped = React.useBinding(false)
+	local draggable, setDraggable = React.useState(false)
+	local toggleable, setToggleable = React.useState(false)
+	local reloadable, setReloadable = React.useState(false)
 
 	-- CALLBACKS -----------------------------------------------------------------------------------------------------------
 
@@ -82,20 +94,53 @@ local function MobileControls(props: Props)
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 	React.useEffect(function()
-		if storeState.equippedTool then
-			local tool = storeState.equippedTool
+		local connection = game.Players.LocalPlayer:GetAttributeChangedSignal("equippedObjectKey"):Connect(function()
+			local equippedObjectKey = game.Players.LocalPlayer:GetAttribute("equippedObjectKey")
+			if equippedObjectKey then
+				local objectInfo = ObjectsInfo.byKey[equippedObjectKey]
+				if objectInfo then
+					-- Set activation image
+					if
+						objectInfo.category == "weapon"
+						or objectInfo.category == "harvesting"
+						or objectInfo.category == "hybrid"
+					then
+						setDraggable(true)
+						setToggleable(objectInfo.attackType == "ranged" or false)
+						setReloadable(objectInfo.reloadTime ~= nil)
+						if objectInfo.resourceType == "wood" then
+							setActivationImageKey("axe")
+						elseif objectInfo.resourceType == "ore" then
+							setActivationImageKey("pickaxe")
+						else
+							setActivationImageKey(objectInfo.attackType or "melee")
+						end
+					else
+						setDraggable(false)
+						setToggleable(false)
+						setReloadable(false)
+						setActivationImageKey("consumable")
+					end
 
-			if tool.category == "Weapon" then
-				local weaponInfo = WeaponsInfo.byKey[tool.key]
-				if weaponInfo and weaponInfo.class.ranged then
-					setHasWeaponEquipped(true)
-					return
+					if objectInfo.attackType ~= nil then
+						setHasToolEquipped(true)
+					end
+				else
+					setHasToolEquipped(false)
 				end
+			else
+				setHasToolEquipped(false)
+			end
+		end)
+
+		setHasToolEquipped(false)
+
+		return function()
+			if connection then
+				connection:Disconnect()
 			end
 		end
-
-		setHasWeaponEquipped(false)
-	end, { storeState.equippedTool })
+	end, {})
 
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
 	return e("Frame", {
@@ -129,7 +174,7 @@ local function MobileControls(props: Props)
 		-- 	AnchorPoint = Vector2.new(0.5, 0.5),
 		-- 	Position = UDim2.fromScale(0.22, 0.22),
 		-- 	Size = UDim2.fromScale(0.5, 0.5),
-		-- 	Visible = hasWeaponEquippedBinding,
+		-- 	Visible = hasToolEquippedBinding,
 		-- 	Image = "rbxassetid://95484305126311",
 		-- 	onActiveImage = "rbxassetid://78688992914092",
 		-- 	onActivation = function() end,
@@ -137,24 +182,28 @@ local function MobileControls(props: Props)
 		-- 	draggable = true,
 		-- }),
 
-		ShootButton = e(ControlHold, {
+		ActivationButton = e(draggable and ControlHold or ControlButton, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.22, 0.22),
 			Size = UDim2.fromScale(0.5, 0.5),
-			Visible = hasWeaponEquippedBinding,
-			Image = "rbxassetid://113494186198554",
-			isToggle = true,
-			onActiveImage = "rbxassetid://71545011517512",
-			onActivation = function() end,
-			onDeactivation = function() end,
-			draggable = true,
+			Visible = hasToolEquippedBinding,
+			Image = mobileActivationIcons[activationImageKey][1],
+			isToggle = toggleable,
+			onActiveImage = mobileActivationIcons[activationImageKey][2],
+			onActivation = function()
+				ToolHandler.Activate()
+			end,
+			onDeactivation = function()
+				ToolHandler.Deactivate()
+			end,
+			draggable = draggable,
 		}),
 
 		ReloadButton = e(ControlButton, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.22, 0.75),
 			Size = UDim2.fromScale(0.35, 0.35),
-			Visible = hasWeaponEquippedBinding,
+			Visible = reloadable,
 			Image = "rbxassetid://85265793481466",
 			activated = false, -- Todo: Update to binding
 			isToggle = true,

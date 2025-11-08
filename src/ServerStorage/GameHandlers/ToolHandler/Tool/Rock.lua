@@ -60,19 +60,9 @@ function Rock.new(player: Player, tool: Tool)
 end
 
 function Rock:_Init()
-	self:Update()
+	-- Connections
+	self.destroying:Connect(function() end)
 end
-
-function Rock:Destroy()
-	if self._destroyed then
-		return
-	end
-	self._destroyed = true
-
-	Utils.Connections.DisconnectKeyConnections(self)
-end
-
-function Rock:Update() end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- PRIVATE CLASS METHODS -----------------------------------------------------------------------------------------------

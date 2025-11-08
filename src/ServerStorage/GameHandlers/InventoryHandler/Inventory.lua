@@ -26,7 +26,7 @@ local GameHandlers = ServerSource.GameHandlers
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
-local TableObserver = require(ReplicatedBaseModules.TableObserver)
+local TableManager = require(ReplicatedBaseModules.TableManager)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -50,9 +50,12 @@ local inventories = {} :: { [string | number]: typeof(Inventory) }
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+local mergeDeep = Utils.Table.Dictionary.mergeDeep
+
+-- Gives a new unique object id to the object copy
 local function GiveObjectId(object: ObjectTypes.ObjectCopy): ObjectTypes.ObjectCopy
 	local id = HttpService:GenerateGUID(false):gsub("-", "")
-	return Utils.Table.Dictionary.mergeDeep(object, { id = id })
+	return mergeDeep(object, { id = id })
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -64,7 +67,7 @@ function Inventory.GetInventory(id: string | number): typeof(Inventory)?
 end
 
 function Inventory.new(
-	tableObserver: typeof(ReplicatedBaseModules.TableObserver),
+	tableManager: typeof(ReplicatedBaseModules.TableManager),
 	id: string | number,
 	isAnInteractable: boolean?
 )
@@ -79,7 +82,7 @@ function Inventory.new(
 	self._id = id
 
 	-- Instances
-	self._tableObserver = tableObserver :: typeof(TableObserver)
+	self._tableManager = tableManager :: typeof(TableManager)
 	self._player = not self._isAnInteractable and game.Players:GetPlayerByUserId(self._id)
 
 	self:_Init()
@@ -91,14 +94,14 @@ function Inventory:_Init()
 	inventories[self._id] = self
 
 	self._hasBackpackEquipped = not self._isAnInteractable
-		and type(self._tableObserver:GetPathValue({ "storage", "objects" })) == "table"
+		and type(self._tableManager:GetPathValue({ "backpack", "objects" })) == "table"
 
 	-- Connections
 	if not self._isAnInteractable then
 		Utils.Connections.Add(
 			self,
 			"backpackEquipped",
-			self._tableObserver:ObserveKey("storage", function(newValue)
+			self._tableManager:ObserveKey("backpack", function(newValue)
 				self._hasBackpackEquipped = type(newValue) == "table" and type(newValue.objects) == "table"
 			end)
 		)
@@ -121,22 +124,20 @@ end
 
 -- UTILITIES ----------------------------------------------------------------------------------------------------
 
-function Inventory:_GetFreeSlotId(location: string?): string?
-	location = location or "inventory"
-
-	if location == "inventory" then
-		local inventory = self._tableObserver:GetKeyValue("inventory") or {}
+function Inventory:_GetFreeSlotId(location: string): string?
+	if self._isAnInteractable and location == "storage" then
+		local storage = self._tableManager:GetKeyValue("storage") or {}
 
 		for i = 1, GameConfigs.INVENTORY_SLOTS do
 			local slotId = "slot" .. tostring(i)
-			if not inventory[slotId] then
+			if not storage[slotId] then
 				return slotId
 			end
 		end
 	elseif not self._isAnInteractable then
 		if location == "hotbar" then
-			local hotbar = self._tableObserver:GetKeyValue("hotbar") or {}
-			local hotbarSlots = self._tableObserver:GetPathValue({ "stats", "hotbarSlots" }) or GameConfigs.HOTBAR_SLOTS
+			local hotbar = self._tableManager:GetKeyValue("hotbar") or {}
+			local hotbarSlots = self._tableManager:GetPathValue({ "stats", "hotbarSlots" }) or GameConfigs.HOTBAR_SLOTS
 
 			for i = 1, hotbarSlots do
 				local slotId = "slot" .. tostring(i)
@@ -145,7 +146,7 @@ function Inventory:_GetFreeSlotId(location: string?): string?
 				end
 			end
 		elseif location == "storage" then
-			local backpack = self._tableObserver:GetKeyValue({ "storage" })
+			local backpack = self._tableManager:GetKeyValue({ "backpack" })
 			if not backpack then
 				return nil
 			end
@@ -168,9 +169,9 @@ end
 
 function Inventory:_GetSlotIdObjectId(location: string, slotId: string): string?
 	if self:_LocationIsInBackpack(location) then
-		return self._tableObserver:GetKeyValue({ location, "inventory", slotId })
+		return self._tableManager:GetKeyValue({ "backpack", location, slotId })
 	else
-		return self._tableObserver:GetKeyValue({ location, slotId })
+		return self._tableManager:GetKeyValue({ location, slotId })
 	end
 
 	return nil
@@ -178,9 +179,41 @@ end
 
 function Inventory:_SetSlotIdObjectId(location: string, slotId: string, objectId: string?): boolean
 	if self:_LocationIsInBackpack(location) then
-		self._tableObserver:SetPathValue({ location, "inventory", slotId }, objectId)
+		self._tableManager:SetPathValue({ "backpack", location, slotId }, objectId)
 	else
-		self._tableObserver:SetPathValue({ location, slotId }, objectId)
+		self._tableManager:SetPathValue({ location, slotId }, objectId)
+	end
+
+	return true
+end
+
+function Inventory:_RemoveObject(object: ObjectTypes.ObjectCopy)
+	local objectInfo = ObjectsInfo.byKey[object.key] :: ObjectTypes.Object
+
+	-- Remove objectId from slotId
+	local location = object.location
+	local slotId = object.slotId
+	if location and slotId then
+		local locationSlotObjectId = self:_GetSlotIdObjectId(location, slotId)
+		if locationSlotObjectId == object.id then
+			self:_SetSlotIdObjectId(location, slotId, nil)
+		end
+	end
+
+	if self:_LocationIsInBackpack(location) then
+		self._tableManager:RemoveAtPathValue({ "backpack", "objectsCategorized", object.key }, object.id)
+		self._tableManager:SetPathValue({ "backpack", "objects", object.id }, nil)
+		self._tableManager:IncrementPathValue(
+			{ "backpack", "capacityUsed" },
+			-1 * (objectInfo.weightPerUnit or 0) * (object.quantity or 1)
+		)
+	else
+		self._tableManager:RemoveAtPathValue({ "objectsCategorized", object.key }, object.id)
+		self._tableManager:SetPathValue({ "objects", object.id }, nil)
+		self._tableManager:IncrementKeyValue(
+			"capacityUsed",
+			-1 * (objectInfo.weightPerUnit or 0) * (object.quantity or 1)
+		)
 	end
 
 	return true
@@ -196,23 +229,29 @@ function Inventory:GetPlayer(): Player?
 	return self._player
 end
 
-function Inventory:GetQuantityCapacityLeft(objectInfo: ObjectTypes.Object, inBackpack: boolean): number
+function Inventory:HasBackpackEquipped(): boolean
+	return self._hasBackpackEquipped
+end
+
+function Inventory:GetQuantityCapacityLeft(objectInfo: ObjectTypes.Object, location: string): number
+	local inBackpack = self:_LocationIsInBackpack(location)
+
 	if inBackpack and self._isAnInteractable then
 		warn("Cannot check backpack capacity on interactable inventories.")
 		return 0
 	end
 
 	if objectInfo.weightPerUnit then
-		if inBackpack and not self._tableObserver:GetPathValue({ "storage" }) then
+		if inBackpack and not self._tableManager:GetPathValue({ "backpack" }) then
 			return 0
 		end
 
-		local storageCapacity = self._tableObserver:GetPathValue({
-			(inBackpack and "storage" or "stats"),
+		local storageCapacity = self._tableManager:GetPathValue({
+			(inBackpack and "backpack" or "stats"),
 			"storageCapacity",
 		}) or 0
-		local capacityUsed = self._tableObserver:GetPathValue(
-			inBackpack and { "storage", "capacityUsed" } or { "capacityUsed" }
+		local capacityUsed = self._tableManager:GetPathValue(
+			inBackpack and { "backpack", "capacityUsed" } or { "capacityUsed" }
 		) or 0
 		local capacityLeft = storageCapacity - capacityUsed
 
@@ -223,19 +262,21 @@ function Inventory:GetQuantityCapacityLeft(objectInfo: ObjectTypes.Object, inBac
 end
 
 function Inventory:GetObjectOfKey(objectKey: string): ObjectTypes.ObjectCopy?
-	local objectsCategorized = self._tableObserver:GetKeyValue("objectsCategorized") or {}
+	-- Check main inventory
+	local objectsCategorized = self._tableManager:GetKeyValue("objectsCategorized") or {}
 	local objectIds = objectsCategorized[objectKey] or {}
 	if #objectIds > 0 then
-		return self._tableObserver:GetPathValue({ "objects", objectIds[1] })
+		return self._tableManager:GetPathValue({ "objects", objectIds[1] })
 	end
 
+	-- Check backpack
 	if not self._isAnInteractable then
-		local backpack = self._tableObserver:GetPathValue({ "storage" })
+		local backpack = self._tableManager:GetPathValue({ "backpack" })
 		if backpack then
 			local backpackObjectsCategorized = backpack.objectsCategorized or {}
 			local backpackObjectIds = backpackObjectsCategorized[objectKey] or {}
 			if #backpackObjectIds > 0 then
-				return self._tableObserver:GetPathValue({ "storage", "objects", backpackObjectIds[1] })
+				return self._tableManager:GetPathValue({ "backpack", "objects", backpackObjectIds[1] })
 			end
 		end
 	end
@@ -244,31 +285,45 @@ function Inventory:GetObjectOfKey(objectKey: string): ObjectTypes.ObjectCopy?
 end
 
 function Inventory:GetObject(objectId: string, inBackpack: boolean?): ObjectTypes.ObjectCopy?
-	if inBackpack then
-		return self._tableObserver:GetPathValue({ "storage", "objects", objectId })
+	if not self._isAnInteractable then
+		if inBackpack then
+			return self._tableManager:GetPathValue({ "backpack", "objects", objectId })
+		else
+			return self._tableManager:GetPathValue({ "objects", objectId })
+				or self._tableManager:GetPathValue({ "backpack", "objects", objectId })
+		end
 	else
-		return self._tableObserver:GetPathValue({ "objects", objectId })
+		return self._tableManager:GetPathValue({ "objects", objectId })
 	end
+end
+
+function Inventory:GetObjectFromLocation(location: string, slotId: string): ObjectTypes.ObjectCopy?
+	local objectId = self:_GetSlotIdObjectId(location, slotId)
+	if objectId then
+		return self:GetObject(objectId, self:_LocationIsInBackpack(location))
+	end
+
+	return nil
 end
 
 function Inventory:GetTotalQuantity(objectKey: string): number
 	local totalQuantity = 0
 
 	-- Check main inventory
-	local objectsCategorized = self._tableObserver:GetKeyValue("objectsCategorized") or {}
+	local objectsCategorized = self._tableManager:GetKeyValue("objectsCategorized") or {}
 	local objectIds = objectsCategorized[objectKey] or {}
-	local objects = self._tableObserver:GetKeyValue("objects") or {}
+	local objects = self._tableManager:GetKeyValue("objects") or {}
 
 	for _, objectId in ipairs(objectIds) do
 		local object: ObjectTypes.ObjectCopy? = objects[objectId]
-		if object and object.quantity then
-			totalQuantity = totalQuantity + object.quantity
+		if object then
+			totalQuantity = totalQuantity + (object.quantity or 1)
 		end
 	end
 
 	-- Check backpack
 	if not self._isAnInteractable then
-		local backpack = self._tableObserver:GetKeyValue({ "storage" })
+		local backpack = self._tableManager:GetKeyValue({ "backpack" })
 		if backpack then
 			local backpackObjectsCategorized = backpack.objectsCategorized or {}
 			local backpackObjectIds = backpackObjectsCategorized[objectKey] or {}
@@ -276,8 +331,8 @@ function Inventory:GetTotalQuantity(objectKey: string): number
 
 			for _, objectId in ipairs(backpackObjectIds) do
 				local object: ObjectTypes.ObjectCopy? = objects[objectId]
-				if object and object.quantity then
-					totalQuantity = totalQuantity + object.quantity
+				if object then
+					totalQuantity = totalQuantity + (object.quantity or 1)
 				end
 			end
 		end
@@ -290,9 +345,9 @@ end
 
 function Inventory:CanPlayerAccess(player: Player): boolean
 	if self._isAnInteractable then
-		return self._tableObserver:IsPlayerAListener(player)
+		return self._tableManager:IsPlayerAListener(player)
 	else
-		return self._tableObserver:GetPlayer() == player
+		return self._tableManager:GetPlayer() == player
 	end
 end
 
@@ -301,9 +356,9 @@ function Inventory:CanObjectGoToLocation(
 	object: ObjectTypes.ObjectCopy,
 	location: string
 ): (boolean, string?)
-	if location == "inventory" then
+	if location == "inventory" or location == "storage" then
 		if type(object.capacityUsed) == "number" and object.capacityUsed > 0 then
-			return false, "Containers cannot be placed in the inventory unless empty"
+			return false, "Storages cannot be placed in the inventory unless empty"
 		end
 	elseif not self._isAnInteractable then
 		if location == "hotbar" and objectInfo.type == "wearable" then
@@ -316,13 +371,9 @@ function Inventory:CanObjectGoToLocation(
 	return true
 end
 
-function Inventory:CanAddAllQuantity(
-	objectInfo: ObjectTypes.Object,
-	object: ObjectTypes.ObjectCopy,
-	inBackpack: boolean?
-): boolean
+function Inventory:CanAddAllQuantity(objectInfo: ObjectTypes.Object, object: ObjectTypes.ObjectCopy): boolean
 	if object.quantity and object.quantity > 0 then
-		local quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, inBackpack)
+		local quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, object.location)
 		if quantityCapacityLeft >= object.quantity then
 			return true
 		else
@@ -333,8 +384,8 @@ function Inventory:CanAddAllQuantity(
 	return true
 end
 
-function Inventory:CanAddSingleUnit(objectInfo: ObjectTypes.Object, inBackpack: boolean?): boolean
-	local quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, inBackpack)
+function Inventory:CanAddSingleUnit(objectInfo: ObjectTypes.Object, object: ObjectTypes.ObjectCopy): boolean
+	local quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, object.location)
 	if quantityCapacityLeft >= 1 then
 		return true
 	else
@@ -344,12 +395,15 @@ end
 
 -- SETTERS ----------------------------------------------------------------------------------------------------
 
--- Adds a new object to the player's inventory, hotbar, or loadout
+-- - Adds a new object to the player's inventory, hotbar, loadout or backpack.
+-- - It auto updates the quantity if the object is stackable to fit within capacity!
+-- - If no slotId is provided, it will find and fit the object fully/partially in the inventory and or backpack if applicable.
+-- - If slotId is provided, it will attempt to add the object to that specific slot and location only.
 function Inventory:AddObject(
 	objectCopy: ObjectTypes.ObjectCopy,
 	location: ("inventory" | "hotbar" | "loadout" | "storage")?,
 	slotId: string?
-): (boolean, string?)
+): (boolean, (string | ObjectTypes.ObjectCopy)?)
 	assert(objectCopy and objectCopy.key, "InventoryHandler.AddObject: Invalid object provided")
 
 	local objectInfo = ObjectsInfo.byKey[objectCopy.key] :: ObjectTypes.Object
@@ -360,7 +414,13 @@ function Inventory:AddObject(
 		return false, "Invalid location provided"
 	end
 
-	local objectQuantity = objectCopy.quantity or 0
+	-- Check if object can go to location
+	local success, errMsg = self:CanObjectGoToLocation(objectInfo, objectCopy, location)
+	if not success then
+		return false, errMsg
+	end
+
+	local objectQuantity = objectCopy.quantity or 1
 	local quantityCapacityLeft = 0
 
 	if slotId then
@@ -381,7 +441,7 @@ function Inventory:AddObject(
 				return false, "Invalid slotId"
 			end
 		elseif location == "hotbar" then
-			local hotbarSlots = self._tableObserver:GetPathValue({ "stats", "hotbarSlots" }) or GameConfigs.HOTBAR_SLOTS
+			local hotbarSlots = self._tableManager:GetPathValue({ "stats", "hotbarSlots" }) or GameConfigs.HOTBAR_SLOTS
 			if slotNumber < 1 or slotNumber > hotbarSlots then
 				return false, "Invalid slotId"
 			end
@@ -392,11 +452,12 @@ function Inventory:AddObject(
 		end
 
 		-- Confirm capacity left
-		quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, self:_LocationIsInBackpack(location))
+		quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, location)
 		if quantityCapacityLeft <= 0 then
 			return false, "No capacity left!"
 		end
 	else
+		-- Will find and fit object partially if needed (if backpack is equipped)
 		-- Find free slotId
 		slotId = self:_GetFreeSlotId(location)
 
@@ -407,12 +468,16 @@ function Inventory:AddObject(
 		end
 
 		-- Confirm capacity left in inventory (hotbar/inventory/loadout all use main inventory capacity)
+		local inventoryQuantityCapacityLeft
+		local inventorySlotId = slotId
 		if slotId then
-			quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo)
-			if quantityCapacityLeft <= 0 then
+			quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, location)
+			inventoryQuantityCapacityLeft = quantityCapacityLeft
+
+			if quantityCapacityLeft <= 0 and not self._hasBackpackEquipped then
 				return false, "No capacity left!"
-			elseif quantityCapacityLeft < objectQuantity then
-				if self._hasBackpackEquipped then
+			elseif quantityCapacityLeft < objectQuantity and self._hasBackpackEquipped then
+				if self:GetQuantityCapacityLeft(objectInfo, "storage") > 0 then
 					slotId = nil -- try backpack next
 				end
 			end
@@ -425,10 +490,32 @@ function Inventory:AddObject(
 
 			-- Confirm capacity left (backpack has a separate inventory capacity)
 			if slotId then
-				quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, self:_LocationIsInBackpack(location))
+				quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, "storage")
 				if quantityCapacityLeft <= 0 then
 					return false, "No capacity left!"
 				end
+
+				-- Add to inventory first and rest to backpack if applicable
+				if inventoryQuantityCapacityLeft and quantityCapacityLeft < objectQuantity then
+					-- Partially fit in inventory, rest in backpack
+					success, errMsg = self:AddObject(
+						mergeDeep(objectCopy, {
+							quantity = inventoryQuantityCapacityLeft,
+						}),
+						"inventory",
+						inventorySlotId
+					)
+					if not success then
+						return false, errMsg
+					end
+
+					-- Update objectCopy quantity for backpack addition
+					objectQuantity -= inventoryQuantityCapacityLeft
+				end
+			elseif inventorySlotId then
+				-- Revert to inventory if no backpack slot found
+				location = "inventory"
+				slotId = inventorySlotId
 			end
 		end
 
@@ -441,6 +528,7 @@ function Inventory:AddObject(
 	local newObject = GiveObjectId(objectCopy)
 	newObject.location = location
 	newObject.slotId = slotId
+	newObject.quantity = objectInfo.stackable and objectQuantity or nil
 
 	-- Update quantity
 	if newObject.quantity then
@@ -450,16 +538,16 @@ function Inventory:AddObject(
 	end
 
 	if self:_LocationIsInBackpack(location) then
-		self._tableObserver:SetPathValue({ "storage", "objects", newObject.id }, newObject)
-		self._tableObserver:InsertAtPathValue({ "storage", "objectsCategorized", newObject.key }, newObject.id)
-		self._tableObserver:IncrementPathValue(
-			{ "storage", "capacityUsed" },
+		self._tableManager:SetPathValue({ "backpack", "objects", newObject.id }, newObject)
+		self._tableManager:InsertAtPathValue({ "backpack", "objectsCategorized", newObject.key }, newObject.id)
+		self._tableManager:IncrementPathValue(
+			{ "backpack", "capacityUsed" },
 			(objectInfo.weightPerUnit or 0) * (newObject.quantity or 1)
 		)
 	else
-		self._tableObserver:SetPathValue({ "objects", newObject.id }, newObject)
-		self._tableObserver:InsertAtPathValue({ "objectsCategorized", newObject.key }, newObject.id)
-		self._tableObserver:IncrementKeyValue(
+		self._tableManager:SetPathValue({ "objects", newObject.id }, newObject)
+		self._tableManager:InsertAtPathValue({ "objectsCategorized", newObject.key }, newObject.id)
+		self._tableManager:IncrementKeyValue(
 			"capacityUsed",
 			(objectInfo.weightPerUnit or 0) * (newObject.quantity or 1)
 		)
@@ -467,55 +555,40 @@ function Inventory:AddObject(
 
 	self:_SetSlotIdObjectId(location, slotId, newObject.id)
 
-	return true
+	return true, newObject
 end
 
-function Inventory:RemoveObject(objectId: string, inBackpack: boolean?): (boolean, string?)
-	local object = self:GetObject(objectId, inBackpack)
+function Inventory:RemoveObjectId(objectId: string): (boolean, string?)
+	local object = self:GetObject(objectId)
 	if not object then
 		return false, "Object not found!"
 	end
 
-	local objectInfo = ObjectsInfo.byKey[object.key] :: ObjectTypes.Object
-
-	-- Remove objectId from slotId
-	local location = inBackpack and "storage" or object.location
-	local slotId = object.slotId
-	if location and slotId then
-		local locationSlotObjectId = self:_GetSlotIdObjectId(location, slotId)
-		if locationSlotObjectId == objectId then
-			self:_SetSlotIdObjectId(location, slotId, nil)
-		end
-	end
-
-	if inBackpack then
-		self._tableObserver:RemoveAtPathValue({ "storage", "objectsCategorized", object.key }, objectId)
-		self._tableObserver:SetPathValue({ "storage", "objects", objectId }, nil)
-		self._tableObserver:IncrementPathValue(
-			{ "storage", "capacityUsed" },
-			-1 * (objectInfo.weightPerUnit or 0) * (object.quantity or 1)
-		)
-	else
-		self._tableObserver:RemoveAtPathValue({ "objectsCategorized", object.key }, objectId)
-		self._tableObserver:SetPathValue({ "objects", objectId }, nil)
-		self._tableObserver:IncrementKeyValue(
-			"capacityUsed",
-			-1 * (objectInfo.weightPerUnit or 0) * (object.quantity or 1)
-		)
-	end
-
-	return true
+	return self:_RemoveObject(object)
 end
 
--- Increments the quantity of a stackable object in the inventory or backpack.
--- Amount must be greater than zero.
--- If the amount exceeds capacity, it will fail.
--- Returns true if successful, false and an error message otherwise.
-function Inventory:IncrementObject(objectId: string, amount: number, inBackpack: boolean?): (boolean, string?)
+function Inventory:RemoveObjectFromLocation(location: string, slotId: string): (boolean, string?)
+	local object = self:GetObjectFromLocation(location, slotId)
+	if not object then
+		return false, "Object not found!"
+	end
+
+	return self:_RemoveObject(object)
+end
+
+-- - Increments the quantity of a stackable object in the inventory or backpack
+-- - Amount must be greater than zero
+-- - If the amount exceeds capacity, it will fail
+-- - Returns true if successful, false and an error message otherwise
+function Inventory:IncrementObject(objectCopy: ObjectTypes.ObjectCopy, amount: number): (boolean, string?)
 	if amount <= 0 then
 		return false, "Amount must be greater than zero!"
 	end
 
+	local objectId = objectCopy.id
+	local inBackpack = self:_LocationIsInBackpack(objectCopy.location or "")
+
+	-- Get object from inventory/backpack
 	local object: ObjectTypes.ObjectCopy? = self:GetObject(objectId, inBackpack)
 	if not object then
 		return false, "Object not found!"
@@ -531,29 +604,88 @@ function Inventory:IncrementObject(objectId: string, amount: number, inBackpack:
 	end
 
 	-- Check capacity
-	local quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, inBackpack)
+	local quantityCapacityLeft = self:GetQuantityCapacityLeft(objectInfo, object.location)
 	if quantityCapacityLeft < amount then
 		return false, "Not enough capacity!"
 	end
 
 	-- Update quantity
-	self._tableObserver:IncrementPathValue(
-		inBackpack and { "storage", "objects", objectId, "quantity" } or { "objects", objectId, "quantity" },
+	self._tableManager:IncrementPathValue(
+		inBackpack and { "backpack", "objects", objectId, "quantity" } or { "objects", objectId, "quantity" },
 		amount
 	)
 
 	-- Update capacity used
 	if inBackpack then
-		self._tableObserver:IncrementPathValue({ "storage", "capacityUsed" }, (objectInfo.weightPerUnit or 0) * amount)
+		self._tableManager:IncrementPathValue({ "backpack", "capacityUsed" }, (objectInfo.weightPerUnit or 0) * amount)
 	else
-		self._tableObserver:IncrementKeyValue("capacityUsed", (objectInfo.weightPerUnit or 0) * amount)
+		self._tableManager:IncrementKeyValue("capacityUsed", (objectInfo.weightPerUnit or 0) * amount)
 	end
 
 	return true
 end
 
--- Decrements the quantity of a stackable object in the inventory.
--- Amount must be greater than zero.
+-- - Decrements the quantity of an object in the inventory or backpack
+-- - Amount must be greater than zero
+-- - If the amount is greater than the current quantity, it will fail
+-- - If the quantity reaches zero, the object is removed
+function Inventory:DecrementObject(objectCopy: ObjectTypes.ObjectCopy, amount: number): (boolean, string?)
+	if amount <= 0 then
+		return false, "Amount must be greater than zero!"
+	end
+
+	local objectId = objectCopy.id
+	local inBackpack = self:_LocationIsInBackpack(objectCopy.location or "")
+
+	-- Get object from inventory/backpack
+	local object: ObjectTypes.ObjectCopy? = self:GetObject(objectId, inBackpack)
+	if not object then
+		return false, "Object not found!"
+	end
+
+	local objectInfo = ObjectsInfo.byKey[object.key] :: ObjectTypes.Object
+
+	-- Confirm object is stackable
+	if not objectInfo then
+		return false, "Object info not found!"
+	elseif not objectInfo.stackable then
+		return false, "Object is not stackable!"
+	end
+
+	-- Check capacity
+	if (object.quantity or 0) < amount then
+		return false, "Not enough quantity to decrement!"
+	end
+
+	-- Update quantity
+	if object.quantity and object.quantity > amount then
+		-- Just decrement quantity
+		self._tableManager:IncrementPathValue(
+			inBackpack and { "backpack", "objects", objectId, "quantity" } or { "objects", objectId, "quantity" },
+			-amount
+		)
+	else
+		-- Remove entire object
+		return self:_RemoveObject(object)
+	end
+
+	-- Update capacity used
+	if inBackpack then
+		self._tableManager:IncrementPathValue(
+			{ "backpack", "capacityUsed" },
+			-1 * (objectInfo.weightPerUnit or 0) * amount
+		)
+	else
+		self._tableManager:IncrementKeyValue("capacityUsed", -1 * (objectInfo.weightPerUnit or 0) * amount)
+	end
+
+	return true
+end
+
+-- - Decrements the quantity of an object in the inventory.
+-- - Amount must be greater than zero.
+-- - It will first decrement from the main inventory, then from the backpack if needed.
+-- - If the quantity reaches zero, the object is removed.
 function Inventory:DecrementObjectTotal(objectKey: string, amount: number): (boolean, string?)
 	if amount <= 0 then
 		return false, "Amount must be greater than zero!"
@@ -562,14 +694,12 @@ function Inventory:DecrementObjectTotal(objectKey: string, amount: number): (boo
 	local objectInfo = ObjectsInfo.byKey[objectKey] :: ObjectTypes.Object
 	if not objectInfo then
 		return false, "Object info not found!"
-	elseif not objectInfo.stackable then
-		return false, "Object is not stackable!"
 	end
 
 	-- Decrement from main inventory first
-	local objectsCategorized = self._tableObserver:GetKeyValue("objectsCategorized") or {}
+	local objectsCategorized = self._tableManager:GetKeyValue("objectsCategorized") or {}
 	local objectIds = objectsCategorized[objectKey] or {}
-	local objects = self._tableObserver:GetKeyValue("objects") or {}
+	local objects = self._tableManager:GetKeyValue("objects") or {}
 
 	for _, objectId in ipairs(objectIds) do
 		if amount <= 0 then
@@ -577,16 +707,16 @@ function Inventory:DecrementObjectTotal(objectKey: string, amount: number): (boo
 		end
 
 		local object: ObjectTypes.ObjectCopy? = objects[objectId]
-		if object and object.quantity then
-			if object.quantity > amount then
+		if object then
+			if object.quantity and object.quantity > amount then
 				-- Just decrement quantity
-				self._tableObserver:IncrementPathValue({ "objects", objectId, "quantity" }, -amount)
-				self._tableObserver:IncrementKeyValue("capacityUsed", -1 * (objectInfo.weightPerUnit or 0) * amount)
+				self._tableManager:IncrementPathValue({ "objects", objectId, "quantity" }, -amount)
+				self._tableManager:IncrementKeyValue("capacityUsed", -1 * (objectInfo.weightPerUnit or 0) * amount)
 				amount = 0
 			else
 				-- Remove entire object
-				local qtyToRemove = object.quantity
-				local success, errMsg = self:RemoveObject(objectId)
+				local qtyToRemove = object.quantity or 1
+				local success, errMsg = self:_RemoveObject(object)
 				if not success then
 					return false, errMsg
 				end
@@ -597,7 +727,7 @@ function Inventory:DecrementObjectTotal(objectKey: string, amount: number): (boo
 
 	-- Decrement from backpack if needed
 	if amount > 0 and not self._isAnInteractable then
-		local backpack = self._tableObserver:GetKeyValue({ "storage" })
+		local backpack = self._tableManager:GetKeyValue({ "backpack" })
 		if backpack then
 			local backpackObjectsCategorized = backpack.objectsCategorized or {}
 			local backpackObjectIds = backpackObjectsCategorized[objectKey] or {}
@@ -609,19 +739,19 @@ function Inventory:DecrementObjectTotal(objectKey: string, amount: number): (boo
 				end
 
 				local object: ObjectTypes.ObjectCopy? = objects[objectId]
-				if object and object.quantity then
-					if object.quantity > amount then
+				if object then
+					if object.quantity and object.quantity > amount then
 						-- Just decrement quantity
-						self._tableObserver:IncrementPathValue({ "storage", "objects", objectId, "quantity" }, -amount)
-						self._tableObserver:IncrementPathValue(
-							{ "storage", "capacityUsed" },
+						self._tableManager:IncrementPathValue({ "backpack", "objects", objectId, "quantity" }, -amount)
+						self._tableManager:IncrementPathValue(
+							{ "backpack", "capacityUsed" },
 							-1 * (objectInfo.weightPerUnit or 0) * amount
 						)
 						amount = 0
 					else
 						-- Remove entire object
-						local qtyToRemove = object.quantity
-						local success, errMsg = self:RemoveObject(objectId, true)
+						local qtyToRemove = object.quantity or 1
+						local success, errMsg = self:_RemoveObject(object)
 						if not success then
 							return false, errMsg
 						end

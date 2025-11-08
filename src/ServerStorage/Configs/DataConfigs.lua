@@ -43,7 +43,7 @@ local DataConfigs = {
 		objects = {} :: { [string]: ObjectTypes.ObjectCopy }, -- objectId = object
 		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
 
-		storage = {} :: ObjectTypes.BackpackCopy, -- currently equipped backpack
+		backpack = {} :: ObjectTypes.BackpackCopy, -- currently equipped backpack
 
 		moderation = {
 			kickedReasons = {} :: { string },

@@ -1,63 +1,40 @@
-local GameStateManager = {}
+local MouseManager = {}
 
 -- Services ------------------------------------------------------------------------
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 -- Folders -------------------------------------------------------------------------
-local Packages = ReplicatedStorage.Packages
-local ReplicatedSource = ReplicatedStorage.Source
-local ServerSource = ServerStorage.Source
-local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
-local PlaywooEngine = ServerSource.PlaywooEngine
-local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
-local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
-local ReplicatedInfo = ReplicatedSource.Info
-local Info = ServerSource.Info
-local ReplicatedTypes = ReplicatedSource.Types
-local Types = ServerSource.Types
-local BaseModules = PlaywooEngine.BaseModules
-local GameModules = ServerSource.GameModules
-local BaseHandlers = PlaywooEngine.BaseHandlers
-local GameHandlers = ServerSource.GameHandlers
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+local ReplicatedSource = ReplicatedStorage:WaitForChild("Source")
+local ReplicatedPlaywooEngine = ReplicatedSource:WaitForChild("PlaywooEngine")
+local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
+local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
+local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
+local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
+local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
+local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
+local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
-local TableManager = require(ReplicatedBaseModules.TableManager)
+local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 
--- Handlers --------------------------------------------------------------------
+-- Handlers ----------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-local SaveTypes = require(ReplicatedTypes.SaveTypes)
 
 -- Instances -----------------------------------------------------------------------
 
 -- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local MapConfigs = require(ReplicatedConfigs.MapConfigs)
-local TimeConfigs = require(ReplicatedConfigs.TimeConfigs)
 
 -- Variables -----------------------------------------------------------------------
+local localPlayer = game.Players.LocalPlayer
 
 -- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
-local gameState = {
-	placeId = MapConfigs.PVE_PLACE_IDS[#MapConfigs.PVE_PLACE_IDS],
-	difficulty = 1,
-	nightsSurvived = 0,
-	zombiesLeft = 0,
-	playtime = 0,
-	createdAt = os.time(),
-	updatedAt = os.time(),
-	creatorId = 0,
-
-	clockTime = TimeConfigs.DAY_START_TIME, -- Day time ratio (0-24)
-} :: SaveTypes.SaveInfo
-
-local tableManager = TableManager.new(gameState)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -67,34 +44,37 @@ local tableManager = TableManager.new(gameState)
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function GameStateManager.Load(saveInfo: SaveTypes.SaveInfo)
-	tableManager:Set(saveInfo)
-end
+function MouseManager.UpdateMouseProperties()
+	local toolEquipped = localPlayer:GetAttribute("equippedObjectId") ~= nil
+	local shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
 
--- GET/SET ----------------------------------------------------------------------------------------------------
+	if not toolEquipped then
+		UserInputService.MouseIconEnabled = true
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		return
+	end
 
-function GameStateManager.Get()
-	return tableManager:Get()
-end
+	UserInputService.MouseIconEnabled = false
 
-function GameStateManager.GetKeyValue(key: string)
-	return tableManager:GetKeyValue(key)
-end
-
-function GameStateManager.SetKeyValue(key: string, value: any)
-	tableManager:SetKeyValue(key, value)
-end
-
-function GameStateManager.ObserveKey(key: string, callback: (newValue: any, oldValue: any) -> ())
-	return tableManager:ObserveKey(key, callback)
+	if shiftLockDisabled and localPlayer:GetAttribute("deviceType") == "pc" then
+		-- Free mouse
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	else
+		-- Lock mouse to center
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+	end
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+localPlayer:GetAttributeChangedSignal("equippedObjectId"):Connect(MouseManager.UpdateMouseProperties)
+localPlayer:GetAttributeChangedSignal("shiftLockDisabled"):Connect(MouseManager.UpdateMouseProperties)
+localPlayer:GetAttributeChangedSignal("deviceType"):Connect(MouseManager.UpdateMouseProperties)
+
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return GameStateManager
+return MouseManager

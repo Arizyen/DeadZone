@@ -22,6 +22,7 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Ports = require(script.Parent:WaitForChild("Ports"))
 local DeviceTypeUpdater = require(ReplicatedBaseModules:WaitForChild("DeviceTypeUpdater"))
 local AnimationManager = require(ReplicatedBaseModules:WaitForChild("AnimationManager"))
+local MouseManager = require(ReplicatedGameModules:WaitForChild("MouseManager"))
 
 -- Handlers --------------------------------------------------------------------
 
@@ -102,8 +103,7 @@ function Tool:Destroy()
 	end
 
 	localPlayer:SetAttribute("equippedObjectId", nil)
-	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-	UserInputService.MouseIconEnabled = true
+	localPlayer:SetAttribute("equippedObjectKey", nil)
 
 	-- Destroy signals
 	self.destroying:Destroy()
@@ -123,7 +123,13 @@ function Tool:_Equip()
 		return
 	end
 
-	local tool = localPlayer.Backpack:FindFirstChild(self._objectInfo.key)
+	local tool: Tool? = nil
+	for _, eachChild in pairs(localPlayer.Backpack:GetChildren()) do
+		if eachChild:IsA("Tool") and eachChild:GetAttribute("id") == self._object.id then
+			tool = eachChild
+			break
+		end
+	end
 
 	if not tool then
 		Utils.Connections.Add(
@@ -137,7 +143,11 @@ function Tool:_Equip()
 			end)
 		)
 
-		Ports.AddToBackpack(self._object.id)
+		Ports.AddToBackpack(self._object.id):andThen(function(success)
+			if not success then
+				self:Destroy()
+			end
+		end)
 
 		return
 	end
@@ -165,12 +175,18 @@ function Tool:_Equip()
 			self:Deactivate()
 		end)
 	)
+	Utils.Connections.Add(
+		self,
+		"ToolDestroying",
+		tool.Destroying:Connect(function()
+			self:Destroy()
+		end)
+	)
 
 	self._humanoid:EquipTool(tool)
 
 	localPlayer:SetAttribute("equippedObjectId", self._object.id)
-	UserInputService.MouseIconEnabled = false
-	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+	localPlayer:SetAttribute("equippedObjectKey", self._objectInfo.key)
 end
 
 function Tool:_RunHoldAnimation() end

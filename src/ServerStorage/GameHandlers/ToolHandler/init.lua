@@ -55,7 +55,7 @@ function ToolHandler.Register(ports: Ports.Ports)
 	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
 
-function ToolHandler.AddToBackpack(player: Player, objectId: string)
+function ToolHandler.AddToBackpack(player: Player, objectId: string): boolean
 	-- Get tool key from object ID
 	local object = PlayerDataHandler.GetPathValue(player.UserId, { "objects", objectId })
 	local toolKey = object and object.key
@@ -65,11 +65,12 @@ function ToolHandler.AddToBackpack(player: Player, objectId: string)
 		return
 	end
 
-	ToolCreator.AddToBackpack(player, toolKey)
+	return ToolCreator.AddToBackpack(player, toolKey, objectId)
 end
 
-function ToolHandler.RemoveFromBackpack(player: Player, toolKey: string)
-	ToolCreator.RemoveFromBackpack(player, toolKey)
+-- Will remove a tool if contained in player's backpack
+function ToolHandler.RemoveFromBackpack(player: Player, objectId: string)
+	ToolCreator.RemoveFromBackpack(player, objectId)
 end
 
 -- EQUIP/UNEQUIP ----------------------------------------------------------------------------------------------------

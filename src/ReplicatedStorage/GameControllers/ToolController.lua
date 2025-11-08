@@ -52,8 +52,8 @@ function ToolController:KnitInit()
 
 	-- Add client functions to Handler
 	ToolHandler.Register({
-		AddToBackpack = function(objectId: string): (boolean, string?)
-			knitServices["Tool"]:AddToBackpack(objectId)
+		AddToBackpack = function(objectId: string): boolean
+			return knitServices["Tool"]:AddToBackpack(objectId)
 		end,
 	})
 end

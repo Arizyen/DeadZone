@@ -20,6 +20,7 @@ local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
+local MouseManager = require(ReplicatedGameModules:WaitForChild("MouseManager"))
 
 -- Handlers --------------------------------------------------------------------
 
@@ -31,6 +32,7 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 
 -- Configs -------------------------------------------------------------------------
 local CAMERA_OFFSET = Vector3.new(2.35, 1, 0)
+local CAMERA_OFFSET_SHIFT_LOCK_DISABLED = Vector3.new(0, 1.5, 0)
 local CAMERA_OFFSET_SPEED = 1 / 4
 local FADE_START = 3
 local FADE_END = 0.5
@@ -78,13 +80,17 @@ function CustomCamera.new()
 	self._active = false
 	self._inFirstPerson = false
 	self._transitioningZoom = false
-	self._toolEquipped = localPlayer:GetAttribute("equippedObjectId") or false
+	self._toolEquipped = localPlayer:GetAttribute("equippedObjectId") ~= nil
 	self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
+	self._shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
 
 	-- Numbers
 	self._origMinZoomDistance = 0
 	self._origMaxZoomDistance = 0
 	self._offsetAlpha = 0
+
+	-- Strings
+	self._deviceType = localPlayer:GetAttribute("deviceType") or "pc"
 
 	-- Instance
 	self._character = localPlayer.Character
@@ -119,7 +125,7 @@ function CustomCamera:_Init()
 		self,
 		"equippedObjectId",
 		localPlayer:GetAttributeChangedSignal("equippedObjectId"):Connect(function()
-			self._toolEquipped = localPlayer:GetAttribute("equippedObjectId") or false
+			self._toolEquipped = localPlayer:GetAttribute("equippedObjectId") ~= nil
 		end)
 	)
 	Utils.Connections.Add(
@@ -127,6 +133,21 @@ function CustomCamera:_Init()
 		"isRagdolled",
 		localPlayer:GetAttributeChangedSignal("isRagdolled"):Connect(function()
 			self._isRagdolled = localPlayer:GetAttribute("isRagdolled") or false
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"shiftLockDisabled",
+		localPlayer:GetAttributeChangedSignal("shiftLockDisabled"):Connect(function()
+			self._shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
+		end)
+	)
+	Utils.Connections.Add(
+		self,
+		"DeviceTypeUpdated",
+		localPlayer:GetAttributeChangedSignal("deviceType"):Connect(function()
+			self._deviceType = localPlayer:GetAttribute("deviceType") or "pc"
 		end)
 	)
 
@@ -158,19 +179,37 @@ function CustomCamera:Update()
 
 	-- Make character face camera direction
 	if not self._inFirstPerson and self._toolEquipped and not self._isRagdolled then
-		-- Raycast for closest hit to camera to determine yaw
-		local startCFrame = camera.CFrame * CFrame.new(0, 0, -zoomDistance)
-		local endCFrame = camera.CFrame * CFrame.new(0, 0, -50)
-		local raycastResult = GetCollidable(startCFrame.Position, endCFrame.Position, { self._character })
+		if self._shiftLockDisabled and self._deviceType == "pc" then
+			-- Face toward mouse hit position
+			local mousePosition = UserInputService:GetMouseLocation()
+			local unitRay = camera:ViewportPointToRay(mousePosition.X, mousePosition.Y)
+			local endPosition = unitRay.Origin + unitRay.Direction * 500
+			local raycastResult = GetCollidable(unitRay.Origin, endPosition, { self._character })
 
-		local yaw = Utils.Math.YawToTarget(
-			root.CFrame,
-			(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position)) or endCFrame
-		)
+			local yaw = Utils.Math.YawToTarget(
+				root.CFrame,
+				(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position))
+					or CFrame.new(endPosition)
+			)
 
-		-- Rotate character to face camera direction or toward raycast hit
-		newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
-		self._character:PivotTo(newRootCFrame)
+			-- Rotate character to face mouse hit direction
+			newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
+			self._character:PivotTo(newRootCFrame)
+		else
+			-- Raycast for closest hit to camera to determine yaw
+			local startCFrame = camera.CFrame * CFrame.new(0, 0, -zoomDistance)
+			local endCFrame = camera.CFrame * CFrame.new(0, 0, -50)
+			local raycastResult = GetCollidable(startCFrame.Position, endCFrame.Position, { self._character })
+
+			local yaw = Utils.Math.YawToTarget(
+				root.CFrame,
+				(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position)) or endCFrame
+			)
+
+			-- Rotate character to face camera direction or toward raycast hit
+			newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
+			self._character:PivotTo(newRootCFrame)
+		end
 	elseif self._inFirstPerson and not self._isRagdolled then
 		-- Ensure character faces forward
 		local lookVector = camera.CFrame.LookVector
@@ -200,8 +239,10 @@ function CustomCamera:Update()
 	end
 
 	-- Calculate offset based on camera orientation (not character orientation, since camera can swivel as CameraSubject is Humanoid)
+	local cameraOffset = (self._shiftLockDisabled and self._deviceType == "pc") and CAMERA_OFFSET_SHIFT_LOCK_DISABLED
+		or CAMERA_OFFSET
 	local f, r = CameraBasisXZ(camera.CFrame)
-	local desiredWorld = r * CAMERA_OFFSET.X + Vector3.new(0, CAMERA_OFFSET.Y, 0) + f * CAMERA_OFFSET.Z
+	local desiredWorld = r * cameraOffset.X + Vector3.new(0, cameraOffset.Y, 0) + f * cameraOffset.Z
 	local localOffset = newRootCFrame:VectorToObjectSpace(desiredWorld)
 
 	self._humanoid.CameraOffset = (localOffset * self._offsetAlpha) * fade
@@ -216,9 +257,8 @@ function CustomCamera:Update()
 			self:_StartTransitionZoom(FADE_START, TWEEN_TIME)
 			self._inFirstPerson = false
 			if self._toolEquipped then
-				-- Make sure mouse is locked to center when exiting first-person with tool equipped
-				UserInputService.MouseIconEnabled = false
-				UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+				-- Make sure mouse properties are ok when exiting first-person with tool equipped
+				MouseManager.UpdateMouseProperties()
 			end
 		end
 	end

@@ -15,6 +15,9 @@ local GameConfigs = {}
 -- Configs
 
 -- Variables
+GameConfigs.CUSTOM_SHIFT_LOCK = true
+GameConfigs.SHIFT_LOCK_DISABLED_DEFAULT_STATE = false
+
 GameConfigs.INVENTORY_SLOTS = 500 -- Maximum inventory slots
 GameConfigs.HOTBAR_SLOTS = 6
 GameConfigs.LOADOUT_SLOTS = 6 -- head, chest, legs, backpack, pants, shirt

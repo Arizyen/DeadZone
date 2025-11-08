@@ -66,20 +66,28 @@ function ToolCreator.AddToInventory(player: Player, toolKey: string, location: "
 	InventoryHandler.AddObject(player.UserId, { key = toolKey, durability = 1 }, location or "inventory")
 end
 
-function ToolCreator.AddToBackpack(player: Player, toolKey: string)
+function ToolCreator.AddToBackpack(player: Player, toolKey: string, objectId: string): boolean
 	if not IsValidToolKey(toolKey) then
 		warn("ToolCreator.AddToBackpack: Invalid tool key:", toolKey)
 		MessageHandler.SendMessageToPlayer(player, "Invalid tool key: " .. toolKey, "Error")
-		return
+		return false
 	end
 
 	if not Tools:FindFirstChild(toolKey) then
 		warn("ToolCreator.AddToBackpack: Tool not found in Tools folder:", toolKey)
-		return
-	elseif player.Backpack:FindFirstChild(toolKey) then
-		return
-	elseif player.Character and player.Character:FindFirstChild(toolKey) then
-		return
+		return false
+	end
+
+	-- Confirm tool is not found in backpack or character
+	for _, tool in pairs(player.Backpack:GetChildren()) do
+		if tool:IsA("Tool") and tool:GetAttribute("id") == objectId then
+			return true
+		end
+	end
+	for _, tool in pairs(player.Character:GetChildren()) do
+		if tool:IsA("Tool") and tool:GetAttribute("id") == objectId then
+			return true
+		end
 	end
 
 	local toolCopy = Tools[toolKey]:Clone()
@@ -94,12 +102,14 @@ function ToolCreator.AddToBackpack(player: Player, toolKey: string)
 		})
 	end
 
+	toolCopy:SetAttribute("id", objectId)
 	toolCopy.Parent = player.Backpack
+	return true
 end
 
-function ToolCreator.RemoveFromBackpack(player: Player, toolKey: string)
+function ToolCreator.RemoveFromBackpack(player: Player, objectId: string)
 	for _, tool in pairs(player.Backpack:GetChildren()) do
-		if tool.Name == toolKey then
+		if tool:GetAttribute("id") == objectId then
 			tool:Destroy()
 		end
 	end

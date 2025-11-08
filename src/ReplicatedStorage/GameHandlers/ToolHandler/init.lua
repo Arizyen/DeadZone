@@ -51,7 +51,17 @@ function ToolHandler.Register(ports: Ports.Ports)
 	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
 
-function ToolHandler.Activate() end
+function ToolHandler.Activate()
+	if currentTool then
+		currentTool:Activate()
+	end
+end
+
+function ToolHandler.Deactivate()
+	if currentTool then
+		currentTool:Deactivate()
+	end
+end
 
 -- CLIENT FUNCTIONS ----------------------------------------------------------------------------------------------------
 

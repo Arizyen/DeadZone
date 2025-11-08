@@ -4,6 +4,7 @@ PlayerAxesAnimator.__index = PlayerAxesAnimator
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -67,9 +68,13 @@ function PlayerAxesAnimator.new(player: Player)
 	self._destroyed = false
 	self._activated = false
 	self._isLocalPlayer = player == localPlayer
-	self._toolEquipped = player:GetAttribute("equippedObjectId") or false
-	self._isRagdolled = player:GetAttribute("isRagdolled") or false
 	self._inRange = self._isLocalPlayer and true or false
+	self._toolEquipped = player:GetAttribute("equippedObjectId") ~= nil
+	self._isRagdolled = player:GetAttribute("isRagdolled") or false
+	self._shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
+
+	-- Strings
+	self._deviceType = localPlayer:GetAttribute("deviceType") or "pc"
 
 	-- Instances
 	self._player = player
@@ -121,7 +126,7 @@ function PlayerAxesAnimator:_Init()
 		self,
 		"equippedObjectId",
 		self._player:GetAttributeChangedSignal("equippedObjectId"):Connect(function()
-			self._toolEquipped = self._player:GetAttribute("equippedObjectId") or false
+			self._toolEquipped = self._player:GetAttribute("equippedObjectId") ~= nil
 		end)
 	)
 
@@ -143,6 +148,21 @@ function PlayerAxesAnimator:_Init()
 		"isInRange",
 		self._player:GetAttributeChangedSignal("isInRange"):Connect(function()
 			self:SetInRange(self._player:GetAttribute("isInRange") or false)
+		end)
+	)
+
+	Utils.Connections.Add(
+		self,
+		"shiftLockDisabled",
+		localPlayer:GetAttributeChangedSignal("shiftLockDisabled"):Connect(function()
+			self._shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
+		end)
+	)
+	Utils.Connections.Add(
+		self,
+		"DeviceTypeUpdated",
+		localPlayer:GetAttributeChangedSignal("deviceType"):Connect(function()
+			self._deviceType = localPlayer:GetAttribute("deviceType") or "pc"
 		end)
 	)
 
@@ -280,11 +300,18 @@ function PlayerAxesAnimator:_LocalAnimate()
 
 	RunService:BindToRenderStep("ApplyAimAxes", Enum.RenderPriority.Last.Value, function()
 		if self._activated then
-			local camLook = camera.CFrame.LookVector
+			local lookVector = camera.CFrame.LookVector
+
+			if self._toolEquipped and self._shiftLockDisabled and self._deviceType == "pc" then
+				-- Get lookVector from mouse position hit
+				local mouseLocation = UserInputService:GetMouseLocation()
+				local unitRay = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
+				lookVector = unitRay.Direction.Unit
+			end
 
 			local charLook = self._character.PrimaryPart.CFrame.LookVector
 			charLook = Vector3.new(charLook.X, 0, charLook.Z).Unit
-			local camFace = Vector3.new(camLook.X, 0, camLook.Z).Unit
+			local camFace = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
 
 			if charLook.Magnitude < 1e-6 or camFace.Magnitude < 1e-6 then
 				return
@@ -293,13 +320,13 @@ function PlayerAxesAnimator:_LocalAnimate()
 			local facingDot = charLook:Dot(camFace)
 			local t = Smoothstep((1 - facingDot) * 0.5)
 
-			local localLook = self._character.PrimaryPart.CFrame:VectorToObjectSpace(camLook).Unit
+			local localLook = self._character.PrimaryPart.CFrame:VectorToObjectSpace(lookVector).Unit
 			local zBlended = Lerp(-localLook.Z, localLook.Z, t)
 
 			local yawTarget = -math.atan2(localLook.X, zBlended)
 			yawTarget = math.clamp(yawTarget, -MAX_YAW, MAX_YAW)
 
-			local pitch = math.asin(camLook.Y)
+			local pitch = math.asin(lookVector.Y)
 
 			self:Update(pitch, yawTarget)
 		end

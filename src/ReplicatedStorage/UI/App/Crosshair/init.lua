@@ -1,5 +1,6 @@
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -48,6 +49,7 @@ type Props = {}
 -- Instances -----------------------------------------------------------------------
 
 -- Info ---------------------------------------------------------------------------
+local ObjectsInfo = require(ReplicatedInfo:WaitForChild("ObjectsInfo"))
 
 -- Configs -------------------------------------------------------------------------
 local HAIR_WIDTH = 8
@@ -76,8 +78,10 @@ local function Crosshair(props: Props)
 	local storeState = ReactRedux.useSelector(selector)
 
 	-- STATES/BINDINGS/REFS/HOOKS ------------------------------------------------------------------------------------------
-	local toolEquipped, setToolEquipped = React.useState(localPlayer:GetAttribute("equippedObjectId") or false)
+	local weaponEquipped, setWeaponEquipped = React.useState(false)
 	local hairLongColor, setHairLongColor = React.useState(Color3.new(1, 1, 1))
+
+	local positionBinding, setPositionBinding = React.useBinding(UDim2.fromScale(0.5, 0.5))
 
 	local longHairMotorRef = React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / 0.1))
 	local hairMotorRef = React.useRef(UIUtils.Motor.BoomerangMotor.new(1 / 0.07))
@@ -100,7 +104,7 @@ local function Crosshair(props: Props)
 				endPosition = UDim2.new(0.5, hairWidth * 1.5, 0.5, 0),
 				Position = UDim2.new(0.5, hairWidth, 0.5, 0),
 				Size = UDim2.new(0, hairWidth, 0, hairHeight),
-				Visible = toolEquipped and not storeState.windowShown,
+				Visible = weaponEquipped and not storeState.windowShown,
 			}),
 
 			-- Bottom hair
@@ -109,7 +113,7 @@ local function Crosshair(props: Props)
 				endPosition = UDim2.new(0.5, 0, 0.5, hairWidth * 1.5),
 				Position = UDim2.new(0.5, 0, 0.5, hairWidth),
 				Size = UDim2.new(0, hairHeight, 0, hairWidth),
-				Visible = toolEquipped and not storeState.windowShown,
+				Visible = weaponEquipped and not storeState.windowShown,
 			}),
 
 			-- Left hair
@@ -118,7 +122,7 @@ local function Crosshair(props: Props)
 				endPosition = UDim2.new(0.5, -hairWidth * 1.5, 0.5, 0),
 				Position = UDim2.new(0.5, -hairWidth, 0.5, 0),
 				Size = UDim2.new(0, hairWidth, 0, hairHeight),
-				Visible = toolEquipped and not storeState.windowShown,
+				Visible = weaponEquipped and not storeState.windowShown,
 			}),
 
 			-- Top hair
@@ -127,10 +131,10 @@ local function Crosshair(props: Props)
 				endPosition = UDim2.new(0.5, 0, 0.5, -hairWidth * 1.5),
 				Position = UDim2.new(0.5, 0, 0.5, -hairWidth),
 				Size = UDim2.new(0, hairHeight, 0, hairWidth),
-				Visible = toolEquipped and not storeState.windowShown,
+				Visible = weaponEquipped and not storeState.windowShown,
 			}),
 		}
-	end, { storeState.windowShown, storeState.isOnSmallScreen, toolEquipped })
+	end, { storeState.windowShown, storeState.isOnSmallScreen, weaponEquipped })
 
 	local hairsLong = React.useMemo(function()
 		local hairWidth = storeState.isOnSmallScreen and HAIR_WIDTH * 1.25 or HAIR_WIDTH
@@ -147,7 +151,7 @@ local function Crosshair(props: Props)
 				Position = UDim2.new(0.5, hairWidth, 0.5, -hairWidth),
 				Rotation = -45,
 				Size = UDim2.new(0, hairLongWidth, 0, hairLongHeight),
-				Visible = toolEquipped and not storeState.windowShown,
+				Visible = weaponEquipped and not storeState.windowShown,
 			}),
 
 			-- Bottom right
@@ -159,7 +163,7 @@ local function Crosshair(props: Props)
 				Position = UDim2.new(0.5, hairWidth, 0.5, hairWidth),
 				Rotation = 45,
 				Size = UDim2.new(0, hairLongWidth, 0, hairLongHeight),
-				Visible = toolEquipped and not storeState.windowShown,
+				Visible = weaponEquipped and not storeState.windowShown,
 			}),
 
 			-- Bottom left
@@ -171,7 +175,7 @@ local function Crosshair(props: Props)
 				Position = UDim2.new(0.5, -hairWidth, 0.5, hairWidth),
 				Rotation = -45,
 				Size = UDim2.new(0, hairLongWidth, 0, hairLongHeight),
-				Visible = toolEquipped and not storeState.windowShown,
+				Visible = weaponEquipped and not storeState.windowShown,
 			}),
 
 			-- Top left
@@ -183,17 +187,22 @@ local function Crosshair(props: Props)
 				Position = UDim2.new(0.5, -hairWidth, 0.5, -hairWidth),
 				Rotation = 45,
 				Size = UDim2.new(0, hairLongWidth, 0, hairLongHeight),
-				Visible = toolEquipped and not storeState.windowShown,
+				Visible = weaponEquipped and not storeState.windowShown,
 			}),
 		}
-	end, { storeState.windowShown, storeState.isOnSmallScreen, toolEquipped, hairLongColor })
+	end, { storeState.windowShown, storeState.isOnSmallScreen, weaponEquipped, hairLongColor })
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 
 	-- Crosshair visibility
 	React.useEffect(function()
-		local connection = localPlayer:GetAttributeChangedSignal("equippedObjectId"):Connect(function()
-			setToolEquipped(localPlayer:GetAttribute("equippedObjectId") or false)
+		local connection = localPlayer:GetAttributeChangedSignal("equippedObjectKey"):Connect(function()
+			local objectInfo = ObjectsInfo.byKey[localPlayer:GetAttribute("equippedObjectKey")]
+			if objectInfo and objectInfo.attackType ~= nil then
+				setWeaponEquipped(true)
+			else
+				setWeaponEquipped(false)
+			end
 		end)
 
 		return function()
@@ -224,8 +233,65 @@ local function Crosshair(props: Props)
 		end
 	end, {})
 
+	-- Mouse position tracking
+	React.useEffect(function()
+		local connectionsManager = Utils.ConnectionsManager.new()
+
+		local function ActivateMouseTracking()
+			connectionsManager:Add(
+				"MouseTracking",
+				UserInputService.InputChanged:Connect(function(input: InputObject)
+					if input.UserInputType == Enum.UserInputType.MouseMovement then
+						local mouseLocation = UserInputService:GetMouseLocation()
+						setPositionBinding(UDim2.fromOffset(mouseLocation.X, mouseLocation.Y))
+
+						-- setPositionBinding(UDim2.fromOffset(input.Position.X, input.Position.Y)) -- Ignores GUI inset
+					end
+				end)
+			)
+
+			-- Initial update
+			local mouseLocation = UserInputService:GetMouseLocation()
+			setPositionBinding(UDim2.fromOffset(mouseLocation.X, mouseLocation.Y))
+		end
+
+		local function DeactivateMouseTracking()
+			connectionsManager:Disconnect("MouseTracking")
+			setPositionBinding(UDim2.fromScale(0.5, 0.5))
+		end
+
+		local function Update()
+			local equippedObjectId = localPlayer:GetAttribute("equippedObjectId")
+			local shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
+
+			if equippedObjectId and shiftLockDisabled then
+				ActivateMouseTracking()
+			else
+				DeactivateMouseTracking()
+			end
+		end
+
+		connectionsManager:Add(
+			"toolEquippedChanged",
+			localPlayer:GetAttributeChangedSignal("equippedObjectId"):Connect(Update)
+		)
+		connectionsManager:Add(
+			"shiftLockDisabledChanged",
+			localPlayer:GetAttributeChangedSignal("shiftLockDisabled"):Connect(Update)
+		)
+
+		return function()
+			connectionsManager:Destroy()
+		end
+	end, {})
+
 	-- COMPONENT -----------------------------------------------------------------------------------------------------------
-	return e(React.Fragment, nil, hairs, hairsLong)
+	return e("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Position = positionBinding,
+		Size = UDim2.fromScale(1, 1),
+	}, e(React.Fragment, nil, hairs, hairsLong))
 end
 
 return Crosshair

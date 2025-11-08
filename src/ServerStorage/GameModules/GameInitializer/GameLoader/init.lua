@@ -79,11 +79,16 @@ local function LoadPlayer(player: Player, playerSave: SaveTypes.PlayerSave?)
 
 	if playerSave then
 		-- Set player's data based on save
+		PlayerDataHandler.SetKeyValue(player.UserId, "capacityUsed", playerSave.capacityUsed or 0)
 		PlayerDataHandler.SetKeyValue(player.UserId, "objects", playerSave.objects or {})
 		PlayerDataHandler.SetKeyValue(player.UserId, "objectsCategorized", playerSave.objectsCategorized or {})
+
 		PlayerDataHandler.SetKeyValue(player.UserId, "hotbar", playerSave.hotbar or {})
-		PlayerDataHandler.SetKeyValue(player.UserId, "inventory", playerSave.inventory or {})
 		PlayerDataHandler.SetKeyValue(player.UserId, "loadout", playerSave.loadout or {})
+		PlayerDataHandler.SetKeyValue(player.UserId, "inventory", playerSave.inventory or {})
+
+		PlayerDataHandler.SetKeyValue(player.UserId, "backpack", playerSave.backpack or {})
+
 		PlayerDataHandler.SetPathValue(player.UserId, { "sessionState", "zombieKills" }, playerSave.zombieKills or 0)
 
 		-- Spawn player at saved position

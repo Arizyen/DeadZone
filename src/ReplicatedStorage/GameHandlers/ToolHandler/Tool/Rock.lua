@@ -68,7 +68,14 @@ function Rock:_Init()
 	self.animationManager:PlayAnimation(self._objectInfo.animations["idle"], { looped = true })
 
 	-- Connections
-	Utils.Connections.Add(self, "Destroying", self.destroying:Connect(function() end))
+	Utils.Connections.Add(
+		self,
+		"Destroying",
+		self.destroying:Connect(function()
+			self:_Deactivate()
+		end)
+	)
+
 	Utils.Connections.Add(
 		self,
 		"Activated",
@@ -76,6 +83,7 @@ function Rock:_Init()
 			self:_Activate()
 		end)
 	)
+
 	Utils.Connections.Add(
 		self,
 		"Deactivated",

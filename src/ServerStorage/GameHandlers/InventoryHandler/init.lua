@@ -49,6 +49,8 @@ local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+local mergeDeep = Utils.Table.Dictionary.mergeDeep
+
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
@@ -56,6 +58,25 @@ local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 function InventoryHandler.Register(ports: Ports.Ports)
 	Utils.Table.Dictionary.mergeMut(Ports, ports)
 end
+
+-- GETTERS ----------------------------------------------------------------------------------------------------
+
+-- Checks if the inventory has enough total quantity of the specified object key
+function InventoryHandler.HasEnoughQuantity(
+	inventoryId: string | number,
+	objectKey: string,
+	requiredQuantity: number
+): boolean
+	local inventory = Inventory.GetInventory(inventoryId)
+	if not inventory then
+		return false
+	end
+
+	local totalQuantity = inventory:GetTotalQuantity(objectKey)
+	return totalQuantity >= requiredQuantity
+end
+
+-- SETTERS ----------------------------------------------------------------------------------------------------
 
 -- Adds a new object to the player's inventory, hotbar, or loadout
 function InventoryHandler.AddObject(
@@ -71,128 +92,8 @@ function InventoryHandler.AddObject(
 	return inventory:AddObject(objectCopy, location)
 end
 
--- Removes an object from the player's inventory, hotbar, or loadout
-function InventoryHandler.RemoveObject(inventoryId: string | number, objectId: string, inBackpack: boolean?): boolean
-	local inventory = Inventory.GetInventory(inventoryId)
-	if not inventory then
-		return false, "Inventory not found"
-	end
-
-	return inventory:RemoveObject(objectId, inBackpack)
-end
-
--- Moves an object to a new location and slot in the player's inventory, hotbar, or loadout
--- function InventoryHandler.MoveObject(
--- 	player: Player,
--- 	objectId: string,
--- 	newLocation: ("inventory" | "hotbar" | "loadout" | "storage")?,
--- 	newSlotId: string?
--- ): (boolean, string?)
--- 	local objects = PlayerDataHandler.GetPathValue(player.UserId, { "objects" })
--- 	local object = objects[objectId]
--- 	if not object then
--- 		return false, "Object not found"
--- 	end
--- 	object = table.clone(object)
-
--- 	-- Get object info
--- 	local objectInfo = ObjectsInfo.byKey[object.key]
--- 	if not objectInfo then
--- 		return false, "Object info not found"
--- 	end
-
--- 	newLocation = newLocation or "inventory"
-
--- 	-- Confirm it can go to the new location
--- 	if not ObjectCanGoToLocation(objectInfo, newLocation) then
--- 		return ObjectCanGoToLocation(objectInfo, newLocation)
--- 	end
-
--- 	if newSlotId then
--- 		-- Confirm slot id is valid
--- 		local slotNumber = tonumber(newSlotId:match("slot(%d+)"))
--- 		if not slotNumber or slotNumber < 1 then
--- 			return false, "Invalid slot ID"
--- 		elseif slotNumber > GameConfigs.INVENTORY_SLOTS then
--- 			return false, "Slot ID exceeds maximum inventory slots"
--- 		end
-
--- 		-- Place the new slot's item in the object's current location
--- 		local newLocationObjectId = PlayerDataHandler.GetPathValue(player.UserId, { newLocation, newSlotId })
--- 		if newLocationObjectId then
--- 			-- Verify if an object exists in the new slot
--- 			local occupyingObjectId = newLocationObjectId
--- 			local occupyingObject = objects[occupyingObjectId]
-
--- 			if occupyingObject then
--- 				local occupyingObjectInfo = ObjectsInfo.byKey[occupyingObject.key]
--- 				if not occupyingObjectInfo then
--- 					warn(
--- 						"InventoryHandler.MoveObject: Occupying object info not found for key: "
--- 							.. tostring(occupyingObject.key)
--- 					)
--- 					return false, "Occupying object info not found"
--- 				end
-
--- 				if occupyingObjectInfo.key == objectInfo.key and occupyingObjectInfo.stackable then
--- 					-- If the occupying object is the same and stackable, increment quantity of object and destroy occupying object
--- 					object.quantity += occupyingObject.quantity or 0
-
--- 					-- Remove occupying object
--- 					InventoryHandler.RemoveObject(player, occupyingObjectId)
--- 				else
--- 					-- Confirm the occupying object can go to the original object's location
--- 					if not ObjectCanGoToLocation(occupyingObjectInfo, object.location) then
--- 						return ObjectCanGoToLocation(occupyingObjectInfo, object.location)
--- 					end
-
--- 					local occupyingObjectCopy = table.clone(occupyingObject)
--- 					-- Place it in the original object's location
--- 					occupyingObjectCopy.location = object.location
--- 					occupyingObjectCopy.slotId = object.slotId
--- 					PlayerDataHandler.SetPathValue(player.UserId, { "objects", occupyingObjectId }, occupyingObjectCopy)
-
--- 					-- Update the location table with the occupying object
--- 					if occupyingObjectCopy.location and occupyingObjectCopy.slotId then
--- 						PlayerDataHandler.SetPathValue(
--- 							player.UserId,
--- 							{ occupyingObjectCopy.location, occupyingObjectCopy.slotId },
--- 							occupyingObjectId
--- 						)
--- 					end
--- 				end
--- 			end
--- 		end
--- 	else
--- 		-- Find free slot based on desired location
--- 		newSlotId = GetFreeSlotId(player, newLocation)
--- 		if not newSlotId then
--- 			return false, "No slots available in " .. newLocation
--- 		end
--- 	end
-
--- 	-- Clear old location if hasn't been occupied by another object
--- 	local oldLocation = object.location
--- 	local oldSlotId = object.slotId
--- 	if oldLocation and oldSlotId then
--- 		local oldLocationSlotObjectId = PlayerDataHandler.GetPathValue(player.UserId, { oldLocation, oldSlotId })
--- 		if oldLocationSlotObjectId == objectId then
--- 			PlayerDataHandler.SetPathValue(player.UserId, { oldLocation, oldSlotId }, nil)
--- 		end
--- 	end
-
--- 	-- Update object data
--- 	object.location = newLocation
--- 	object.slotId = newSlotId
--- 	PlayerDataHandler.SetPathValue(player.UserId, { "objects", objectId }, object)
-
--- 	-- Set new location
--- 	PlayerDataHandler.SetPathValue(player.UserId, { newLocation, newSlotId }, objectId)
-
--- 	return true
--- end
-
--- Adds a new stackable object or increments an existing object's quantity
+-- - Adds a new stackable object or increments an existing object's quantity
+-- - If object is not stackable, it will just add the object normally (prefer using AddObject if not stackable)
 function InventoryHandler.AddOrIncrementObject(
 	inventoryId: string | number,
 	objectCopy: ObjectTypes.ObjectCopy,
@@ -205,20 +106,245 @@ function InventoryHandler.AddOrIncrementObject(
 
 	-- Check for existing object to increment
 	local object = inventory:GetObjectOfKey(objectCopy.key)
-	if object then
-		local success, errMsg =
-			inventory:IncrementObject(object.id, objectCopy.quantity or 1, object.location == "storage")
+	local objectInfo = ObjectsInfo.byKey[objectCopy.key]
+
+	if not objectInfo then
+		return false, "Object info not found"
+	end
+
+	if object and objectInfo.stackable then
+		local success, errMsg = inventory:IncrementObject(object, objectCopy.quantity or 1)
 		if not success then
-			local player = inventory:GetPlayer()
-			if player then
-				MessageHandler.SendMessageToPlayer(player, errMsg, "Error")
-			end
 			return false, errMsg
 		end
+
+		return true
 	end
 
 	-- Add new object
 	return inventory:AddObject(objectCopy, location)
+end
+
+-- Removes an object from the player's inventory, hotbar, or loadout
+function InventoryHandler.RemoveObjectId(inventoryId: string | number, objectId: string): boolean
+	local inventory = Inventory.GetInventory(inventoryId)
+	if not inventory then
+		return false, "Inventory not found"
+	end
+
+	return inventory:RemoveObjectId(objectId)
+end
+
+-- - Decrements the quantity of all stackable objects of key objectKey by a specified amount or removes it if quantity reaches zero
+-- - Does not check for enough quantity, caller must ensure that enough quantity exists
+function InventoryHandler.DecrementObjectTotal(
+	inventoryId: string | number,
+	objectKey: string,
+	decrementBy: number
+): (boolean, string?)
+	local inventory = Inventory.GetInventory(inventoryId)
+	if not inventory then
+		return false, "Inventory not found"
+	end
+
+	return inventory:DecrementObjectTotal(objectKey, decrementBy)
+end
+
+-- UTILITIES ----------------------------------------------------------------------------------------------------
+
+-- Moves an object to a new location and slotId
+function InventoryHandler.MoveObject(
+	player: Player,
+	from: {
+		inventoryId: string | number,
+		location: "inventory" | "hotbar" | "loadout" | "storage",
+		slotId: string,
+	},
+	to: {
+		inventoryId: string | number,
+		location: "inventory" | "hotbar" | "loadout" | "storage",
+		slotId: string,
+	}
+): (boolean, string?)
+	-- Get inventories
+	local fromInventory = Inventory.GetInventory(from.inventoryId)
+	if not fromInventory then
+		return false, "Source inventory not found"
+	end
+
+	local toInventory = Inventory.GetInventory(to.inventoryId)
+	if not toInventory then
+		return false, "Destination inventory not found"
+	end
+
+	-- Confirm player can access both inventories
+	local fromInventoryPlayer = fromInventory:GetPlayer()
+	local toInventoryPlayer = toInventory:GetPlayer()
+
+	if fromInventoryPlayer and fromInventoryPlayer ~= player then
+		return false, "Cannot access source inventory"
+	elseif toInventoryPlayer and toInventoryPlayer ~= player then
+		return false, "Cannot access destination inventory"
+	end
+
+	-- Get objects from inventories
+	local fromObject = fromInventory:GetObjectFromLocation(from.location, from.slotId)
+	if not fromObject then
+		return false, "Source object not found"
+	end
+
+	local toObject = toInventory:GetObjectFromLocation(to.location, to.slotId)
+
+	-- Get object info
+	local objectInfo = ObjectsInfo.byKey[fromObject.key]
+	if not objectInfo then
+		return false, "Object info not found"
+	end
+
+	if toObject then
+		if fromObject.key == toObject.key and objectInfo.stackable then
+			-- Same object key, attempt to stack
+			-- Check quantity capacity left in destination
+			local quantityCapacityLeft = toInventory:GetQuantityCapacityLeft(objectInfo, toObject.location)
+			if quantityCapacityLeft < (fromObject.quantity or 1) then
+				return false, "No capacity left!"
+			end
+
+			if quantityCapacityLeft < (fromObject.quantity or 1) then
+				-- Move only what can fit
+				local success, errMsg = toInventory:IncrementObject(toObject, quantityCapacityLeft)
+				if success then
+					-- Successfully stacked, decrement from source
+					success, errMsg = fromInventory:DecrementObject(fromObject, quantityCapacityLeft)
+					if not success then
+						-- Rollback increment
+						toInventory:DecrementObject(toObject, quantityCapacityLeft)
+						return false, errMsg
+					end
+				else
+					return false, errMsg
+				end
+			else
+				-- Move all
+				local success, errMsg = toInventory:IncrementObject(toObject, fromObject.quantity or 1)
+				if success then
+					-- Successfully stacked, remove from source
+					success, errMsg = fromInventory:RemoveObjectId(fromObject.id)
+					if not success then
+						-- Rollback increment
+						toInventory:DecrementObject(toObject, fromObject.quantity or 1)
+						return false, errMsg
+					end
+				else
+					return false, errMsg
+				end
+			end
+		else
+			-- Different object keys, swap objects
+			-- Remove objects from both inventories
+			local success, errMsg = fromInventory:RemoveObjectId(fromObject.id)
+			if not success then
+				return false, errMsg
+			end
+
+			success, errMsg = toInventory:RemoveObjectId(toObject.id)
+			if not success then
+				-- Rollback removal
+				fromInventory:AddObject(fromObject, from.location, from.slotId)
+				return false, errMsg
+			end
+
+			-- Add objects to new locations
+			success, errMsg = toInventory:AddObject(fromObject, to.location, to.slotId)
+			if not success then
+				-- Rollback removals
+				fromInventory:AddObject(fromObject, from.location, from.slotId)
+				toInventory:AddObject(toObject, to.location, to.slotId)
+				return false, errMsg
+			end
+
+			success, errMsg = fromInventory:AddObject(toObject, from.location, from.slotId)
+			if not success then
+				-- Rollback additions
+				toInventory:RemoveObjectFromLocation(to.location, to.slotId)
+				fromInventory:AddObject(fromObject, from.location, from.slotId)
+				return false, errMsg
+			end
+		end
+	else
+		-- Check quantity capacity left in destination
+		local quantityCapacityLeft = toInventory:GetQuantityCapacityLeft(objectInfo, to.location)
+		if quantityCapacityLeft < (fromObject.quantity or 1) then
+			return false, "No capacity left!"
+		end
+
+		if objectInfo.stackable and quantityCapacityLeft < (fromObject.quantity or 1) then
+			-- Move only what can fit
+			local success, errMsg = toInventory:AddObject(
+				mergeDeep(fromObject, { quantity = quantityCapacityLeft }),
+				to.location,
+				to.slotId
+			)
+
+			if success then
+				-- Successfully added, decrement from source
+				success, errMsg = fromInventory:DecrementObject(fromObject, quantityCapacityLeft)
+				if not success then
+					-- Rollback addition
+					toInventory:RemoveObjectFromLocation(to.location, to.slotId)
+					return false, errMsg
+				end
+			else
+				return false, errMsg
+			end
+		else
+			-- Add object to new location
+			local success, errMsg = toInventory:AddObject(fromObject, to.location, to.slotId)
+			if not success then
+				return false, errMsg
+			end
+
+			-- Remove object from old location
+			success, errMsg = fromInventory:RemoveObjectId(fromObject.id)
+			if not success then
+				-- Rollback addition
+				toInventory:RemoveObjectFromLocation(to.location, to.slotId)
+				return false, errMsg
+			end
+		end
+	end
+
+	return true
+end
+
+function InventoryHandler.Spend(inventoryId: string, objectKeyQuantityMap: { [string]: number }): (boolean, string?)
+	local inventory = Inventory.GetInventory(inventoryId)
+	if not inventory then
+		return false, "Inventory not found"
+	end
+
+	-- Confirm enough quantity for all objects
+	for objectKey, quantity in pairs(objectKeyQuantityMap) do
+		local totalQuantity = inventory:GetTotalQuantity(objectKey)
+		if totalQuantity < quantity then
+			local errorMessage = ("Not enough %s%s! You need %s."):format(
+				objectKey,
+				totalQuantity > 1 and "s" or "",
+				quantity
+			)
+			return false, errorMessage
+		end
+	end
+
+	-- Decrement all objects
+	for objectKey, quantity in pairs(objectKeyQuantityMap) do
+		local success, errMsg = inventory:DecrementObjectTotal(objectKey, quantity)
+		if not success then
+			return false, errMsg
+		end
+	end
+
+	return true
 end
 
 ------------------------------------------------------------------------------------------------------------------------

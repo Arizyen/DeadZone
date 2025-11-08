@@ -58,6 +58,9 @@ function Tool.new(player: Player, tool: Tool)
 	self._player = player
 	self._tool = tool
 
+	-- Connections
+	self.destroying = Utils.Signals.Create()
+
 	self:_Init()
 
 	return self
@@ -72,8 +75,12 @@ function Tool:Destroy()
 		return
 	end
 	self._destroyed = true
+	self.destroying:Fire()
 
 	Utils.Connections.DisconnectKeyConnections(self)
+
+	-- Destroy instances
+	self.destroying:Destroy()
 end
 
 function Tool:Update() end

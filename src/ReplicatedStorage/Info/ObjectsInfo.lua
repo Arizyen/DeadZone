@@ -12,10 +12,12 @@ return {
 			name = "Rock",
 			description = "A simple rock that can be used as a weapon or harvesting tool.",
 			stackable = false,
-			image = nil,
+			image = "rbxassetid://103411188810140",
 			weightPerUnit = 0.5,
 			type = "tool",
 			category = "hybrid",
+			attackType = "melee",
+			durabilityLossPerUse = 0.002, -- 500 uses
 			useDelay = 1,
 			damage = 5,
 			animations = {

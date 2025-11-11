@@ -27,6 +27,7 @@ local ResourceSpawns = game.Workspace.ResourceSpawns
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local Tree = require(script.Tree)
+local Resources = require(script.Parent.Resources)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -47,7 +48,6 @@ local rng = Random.new()
 -- Events --------------------------------------------------------------------------
 
 -- Tables --------------------------------------------------------------------------
-local trees = {} :: { [string]: typeof(Tree) }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ function TreeManager.Init(treesData: ResourceTypes.Resources?)
 					nil,
 					rng:NextInteger(1, 3)
 				)
-				trees[tree:GetId()] = tree
+				Resources[tree:GetId()] = tree
 			end
 		end
 	else
@@ -86,7 +86,7 @@ function TreeManager.Init(treesData: ResourceTypes.Resources?)
 				treeData.stageProgress,
 				treeData.planted
 			)
-			trees[tree:GetId()] = tree
+			Resources[tree:GetId()] = tree
 		end
 	end
 end

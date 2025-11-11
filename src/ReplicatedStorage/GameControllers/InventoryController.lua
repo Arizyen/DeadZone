@@ -57,7 +57,15 @@ function InventoryController:KnitInit()
 end
 
 -- KnitStart() fires after all KnitInit() have been completed.
-function InventoryController:KnitStart() end
+function InventoryController:KnitStart()
+	-- Register server events
+	knitServices["Inventory"].ObjectAdded:Connect(function(key: string, quantity: number)
+		InventoryHandler.ObjectAdded(key, quantity)
+	end)
+	knitServices["Inventory"].ObjectRemoved:Connect(function(key: string, quantity: number)
+		InventoryHandler.ObjectRemoved(key, quantity)
+	end)
+end
 
 -------------------------------------------------------------------------------------------------------------------------
 -- CLIENT FUNCTIONS -----------------------------------------------------------------------------------------------------

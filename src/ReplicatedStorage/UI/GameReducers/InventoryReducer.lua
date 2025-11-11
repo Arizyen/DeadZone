@@ -1,5 +1,3 @@
-local InventoryHandler = {}
-
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,13 +9,11 @@ local ReplicatedConfigs = ReplicatedSource:WaitForChild("Configs")
 local ReplicatedInfo = ReplicatedSource:WaitForChild("Info")
 local ReplicatedTypes = ReplicatedSource:WaitForChild("Types")
 local ReplicatedBaseModules = ReplicatedPlaywooEngine:WaitForChild("BaseModules")
-local ReplicatedGameModules = ReplicatedSource:WaitForChild("GameModules")
 local ReplicatedBaseHandlers = ReplicatedPlaywooEngine:WaitForChild("BaseHandlers")
-local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 
 -- Modules -------------------------------------------------------------------
+local Rodux = require(Packages:WaitForChild("Rodux"))
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
-local Ports = require(script:WaitForChild("Ports"))
 
 -- Handlers ----------------------------------------------------------------
 
@@ -41,36 +37,49 @@ local Ports = require(script:WaitForChild("Ports"))
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-function InventoryHandler.Register(ports: Ports.Ports)
-	Utils.Table.Dictionary.mergeMut(Ports, ports)
-end
+local InventoryReducer = Rodux.createReducer({
+	added = {} :: { [string]: number }, -- [key: string]: number }
+	removed = {} :: { [string]: number }, -- [key: string]: number }
+}, {
+	ObjectAdded = function(state, action: { key: string, quantity: number })
+		local newState = table.clone(state)
 
-function InventoryHandler.Activate() end
+		newState.added = table.clone(newState.added) or {}
+		newState.added[action.key] = (newState.added[action.key] or 0) + action.quantity
 
-function InventoryHandler.ObjectAdded(key: string, quantity: number)
-	Utils.Signals.Fire("DispatchAction", {
-		type = "ObjectAdded",
-		key = key,
-		quantity = quantity,
-	})
-end
+		return newState
+	end,
 
-function InventoryHandler.ObjectRemoved(key: string, quantity: number)
-	Utils.Signals.Fire("DispatchAction", {
-		type = "ObjectRemoved",
-		key = key,
-		quantity = quantity,
-	})
-end
+	ObjectRemoved = function(state, action: { key: string, quantity: number })
+		local newState = table.clone(state)
 
--- CLIENT FUNCTIONS ----------------------------------------------------------------------------------------------------
+		newState.removed = table.clone(newState.removed) or {}
+		newState.removed[action.key] = (newState.removed[action.key] or 0) + action.quantity
 
-------------------------------------------------------------------------------------------------------------------------
--- CONNECTIONS ---------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
+		return newState
+	end,
 
-------------------------------------------------------------------------------------------------------------------------
--- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
+	ClearObjectAddedLog = function(state, action: { key: string })
+		local newState = table.clone(state)
 
-return InventoryHandler
+		if newState.added[action.key] then
+			newState.added = table.clone(newState.added) or {}
+			newState.added[action.key] = nil
+		end
+
+		return newState
+	end,
+
+	ClearObjectRemovedLog = function(state, action: { key: string })
+		local newState = table.clone(state)
+
+		if newState.removed[action.key] then
+			newState.removed = table.clone(newState.removed) or {}
+			newState.removed[action.key] = nil
+		end
+
+		return newState
+	end,
+})
+
+return InventoryReducer

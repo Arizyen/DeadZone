@@ -38,5 +38,41 @@ return {
 			type = "item",
 			category = "material",
 		},
+
+		MapleSapling = {
+			key = "MapleSapling",
+			name = "Maple Sapling",
+			description = "A young maple tree sapling. Can be planted to grow a maple tree.",
+			stackable = true,
+			image = nil,
+			weightPerUnit = 0.2,
+			quantity = 1,
+			type = "item",
+			category = "other",
+		},
+
+		PineSapling = {
+			key = "PineSapling",
+			name = "Pine Sapling",
+			description = "A young pine tree sapling. Can be planted to grow a pine tree.",
+			stackable = true,
+			image = nil,
+			weightPerUnit = 0.2,
+			quantity = 1,
+			type = "item",
+			category = "other",
+		},
+
+		PalmSapling = {
+			key = "PalmSapling",
+			name = "Palm Sapling",
+			description = "A young palm tree sapling. Can be planted to grow a palm tree.",
+			stackable = true,
+			image = nil,
+			weightPerUnit = 0.2,
+			quantity = 1,
+			type = "item",
+			category = "other",
+		},
 	},
 }

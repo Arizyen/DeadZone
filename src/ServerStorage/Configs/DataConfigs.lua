@@ -42,6 +42,7 @@ local DataConfigs = {
 		capacityUsed = 0, -- current weight in the inventory
 		objects = {} :: { [string]: ObjectTypes.ObjectCopy }, -- objectId = object
 		objectsCategorized = {} :: { [string]: { string } }, -- key = { objectId }
+		objectCounts = {} :: { [string]: number }, -- key = quantity
 
 		backpack = {} :: ObjectTypes.BackpackCopy, -- currently equipped backpack
 

@@ -39,7 +39,6 @@ local ObjectTypes = require(ReplicatedTypes.ObjectTypes)
 local ObjectsInfo = require(ReplicatedInfo.ObjectsInfo)
 
 -- Configs -------------------------------------------------------------------------
-local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 
 -- Variables -----------------------------------------------------------------------
 
@@ -50,6 +49,14 @@ local GameConfigs = require(ReplicatedConfigs.GameConfigs)
 ------------------------------------------------------------------------------------------------------------------------
 
 local mergeDeep = Utils.Table.Dictionary.mergeDeep
+
+local function SendErrorMessageToPlayer(player: Player, message: string)
+	if not player or not message then
+		return
+	end
+
+	MessageHandler.SendMessageToPlayer(player, message, "Error")
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
@@ -89,7 +96,12 @@ function InventoryHandler.AddObject(
 		return false, "Inventory not found"
 	end
 
-	return inventory:AddObject(objectCopy, location)
+	local success, errMsg = inventory:AddObject(objectCopy, location)
+	if success then
+		inventory:ObjectAdded(objectCopy.key, objectCopy.quantity or 1)
+	end
+
+	return success, errMsg
 end
 
 -- - Adds a new stackable object or increments an existing object's quantity
@@ -97,7 +109,9 @@ end
 function InventoryHandler.AddOrIncrementObject(
 	inventoryId: string | number,
 	objectCopy: ObjectTypes.ObjectCopy,
-	location: ("inventory" | "hotbar" | "loadout" | "storage")?
+	location: ("inventory" | "hotbar" | "loadout" | "storage")?,
+	sendErrorMessageToPlayer: boolean?,
+	fitQuantity: boolean?
 ): (boolean, string?)
 	local inventory = Inventory.GetInventory(inventoryId)
 	if not inventory then
@@ -112,17 +126,48 @@ function InventoryHandler.AddOrIncrementObject(
 		return false, "Object info not found"
 	end
 
+	local player = inventory:GetPlayer()
+
 	if object and objectInfo.stackable then
-		local success, errMsg = inventory:IncrementObject(object, objectCopy.quantity or 1)
-		if not success then
-			return false, errMsg
+		if fitQuantity then
+			-- Check quantity capacity left
+			local quantityCapacityLeft = inventory:GetQuantityCapacityLeft(objectInfo, object.location)
+			if quantityCapacityLeft <= 0 then
+				SendErrorMessageToPlayer(sendErrorMessageToPlayer and player or nil, "No capacity left!")
+				return false, "No capacity left!"
+			end
+
+			local quantityToAdd = math.min(objectCopy.quantity or 1, quantityCapacityLeft)
+			local success, errMsg = inventory:IncrementObject(object, quantityToAdd)
+			if not success then
+				SendErrorMessageToPlayer(sendErrorMessageToPlayer and player or nil, errMsg)
+				return false, errMsg
+			else
+				inventory:ObjectAdded(objectCopy.key, quantityToAdd)
+			end
+		else
+			-- Just add the full quantity
+			local success, errMsg = inventory:IncrementObject(object, objectCopy.quantity or 1)
+			if not success then
+				SendErrorMessageToPlayer(sendErrorMessageToPlayer and player or nil, errMsg)
+				return false, errMsg
+			else
+				inventory:ObjectAdded(objectCopy.key, objectCopy.quantity or 1)
+			end
 		end
 
 		return true
 	end
 
 	-- Add new object
-	return inventory:AddObject(objectCopy, location)
+	local success, errMsg = inventory:AddObject(objectCopy, location)
+	if not success then
+		SendErrorMessageToPlayer(sendErrorMessageToPlayer and player or nil, errMsg)
+		return false, errMsg
+	else
+		inventory:ObjectAdded(objectCopy.key, objectCopy.quantity or 1)
+	end
+	return true
 end
 
 -- Removes an object from the player's inventory, hotbar, or loadout
@@ -132,7 +177,17 @@ function InventoryHandler.RemoveObjectId(inventoryId: string | number, objectId:
 		return false, "Inventory not found"
 	end
 
-	return inventory:RemoveObjectId(objectId)
+	local object = inventory:GetObject(objectId)
+	if not object then
+		return false, "Object not found"
+	end
+
+	local success, errMsg = inventory:RemoveObject(object)
+	if success then
+		inventory:ObjectRemoved(object.key, object.quantity or 1)
+	end
+
+	return success, errMsg
 end
 
 -- - Decrements the quantity of all stackable objects of key objectKey by a specified amount or removes it if quantity reaches zero
@@ -141,13 +196,18 @@ function InventoryHandler.DecrementObjectTotal(
 	inventoryId: string | number,
 	objectKey: string,
 	decrementBy: number
-): (boolean, string?)
+): (boolean, (string | number)?)
 	local inventory = Inventory.GetInventory(inventoryId)
 	if not inventory then
 		return false, "Inventory not found"
 	end
 
-	return inventory:DecrementObjectTotal(objectKey, decrementBy)
+	local success, result = inventory:DecrementObjectTotal(objectKey, decrementBy)
+	if success then
+		inventory:ObjectRemoved(objectKey, result)
+	end
+
+	return success, result
 end
 
 -- UTILITIES ----------------------------------------------------------------------------------------------------
@@ -338,9 +398,11 @@ function InventoryHandler.Spend(inventoryId: string, objectKeyQuantityMap: { [st
 
 	-- Decrement all objects
 	for objectKey, quantity in pairs(objectKeyQuantityMap) do
-		local success, errMsg = inventory:DecrementObjectTotal(objectKey, quantity)
+		local success, result = inventory:DecrementObjectTotal(objectKey, quantity)
 		if not success then
-			return false, errMsg
+			return false, result
+		else
+			inventory:ObjectRemoved(objectKey, result)
 		end
 	end
 

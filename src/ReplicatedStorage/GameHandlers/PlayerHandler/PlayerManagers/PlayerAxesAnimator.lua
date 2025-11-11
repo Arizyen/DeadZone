@@ -50,6 +50,7 @@ local localPlayer = game.Players.LocalPlayer
 local Lerp = Utils.Math.Lerp
 local Smoothstep = Utils.Math.Smoothstep
 local Round = Utils.Math.Round
+local GetCollidable = Utils.Raycaster.GetCollidable
 
 local function AngleDiff(a, b)
 	-- returns (b - a) wrapped to [-π, π]
@@ -301,12 +302,25 @@ function PlayerAxesAnimator:_LocalAnimate()
 	RunService:BindToRenderStep("ApplyAimAxes", Enum.RenderPriority.Last.Value, function()
 		if self._activated then
 			local lookVector = camera.CFrame.LookVector
+			local primaryPart = self._character and self._character.PrimaryPart
 
-			if self._toolEquipped and self._shiftLockDisabled and self._deviceType == "pc" then
+			if self._toolEquipped and self._shiftLockDisabled and self._deviceType == "pc" and primaryPart then
 				-- Get lookVector from mouse position hit
 				local mouseLocation = UserInputService:GetMouseLocation()
 				local unitRay = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
-				lookVector = unitRay.Direction.Unit
+
+				local raycastResult =
+					GetCollidable(unitRay.Origin, unitRay.Origin + unitRay.Direction * 500, { self._character })
+
+				if raycastResult and raycastResult.Position then
+					lookVector = (raycastResult.Position - (primaryPart.Position + Vector3.new(
+						0,
+						primaryPart.Size.Y / 2 + 1.5,
+						0
+					))).Unit
+				else
+					lookVector = unitRay.Direction.Unit
+				end
 			end
 
 			local charLook = self._character.PrimaryPart.CFrame.LookVector

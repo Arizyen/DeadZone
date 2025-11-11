@@ -25,6 +25,7 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 local Ports = require(script.Ports)
 local GameSaveData = require(GameModules.GameSaveData)
 local TreeManager = require(script.TreeManager)
+local Resources = require(script.Resources)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -59,6 +60,15 @@ function ResourceHandler.Init()
 
 	-- Clear cached resources from save data to free up memory
 	GameSaveData.ClearResources()
+end
+
+function ResourceHandler.GiveDamage(player: Player, id: string, damage: number)
+	local resource = Resources[id]
+	if not resource then
+		return false, "Resource not found"
+	end
+
+	return resource:GiveDamage(player, damage)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

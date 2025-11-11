@@ -32,6 +32,8 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 local ZoneManager = require(GameModules.ZoneManager)
 
 -- Handlers --------------------------------------------------------------------
+local InventoryHandler = require(GameHandlers.InventoryHandler)
+local MessageHandler = require(BaseHandlers.MessageHandler)
 
 -- Types ---------------------------------------------------------------------------
 local ResourceTypes = require(ReplicatedTypes.ResourceTypes)
@@ -163,8 +165,19 @@ function Tree:Destroy()
 
 	-- Cleanup
 	if self._instance then
-		self._instance:Destroy()
+		local treeInstance = self._instance
 		self._instance = nil
+
+		-- Parent instance to workspace debris for local cleanup
+		self._instance.Parent = game.Workspace.Debris
+
+		-- Destroy after 10 seconds to allow enough time for local animations to complete
+		Utils.Model.SetDescendantPartProperty(treeInstance, "CanQuery", false)
+		task.delay(10, function()
+			if treeInstance and treeInstance.Parent then
+				treeInstance:Destroy()
+			end
+		end)
 	end
 
 	self.destroyed:Destroy()
@@ -255,6 +268,13 @@ function Tree:TakeDamage(player: Player, damage: number)
 
 	self._lastDamageReceivedTime = os.time()
 	self:_UpdateHP(self._hp - damage)
+
+	InventoryHandler.AddOrIncrementObject(player.UserId, { key = "Log", quantity = damage }, nil, true, true)
+
+	if self._hp <= 0 then
+		-- Give player sapling based on tree type
+		InventoryHandler.AddOrIncrementObject(player.UserId, { key = self._key .. "Sapling", quantity = 1 }, nil, true)
+	end
 end
 
 ------------------------------------------------------------------------------------------------------------------------

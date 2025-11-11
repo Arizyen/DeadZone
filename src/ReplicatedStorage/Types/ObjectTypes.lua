@@ -19,7 +19,7 @@ type ObjectBase = {
 }
 type ItemFields = {
 	type: "item",
-	category: "material" | "other",
+	category: "material" | "ammo" | "other",
 	quantity: number,
 }
 type ToolFields = {
@@ -45,6 +45,7 @@ type InventoryFields = {
 	storage: { [string]: string }, -- slotId = objectId
 	objects: { [string]: ObjectCopy }, -- objectId = object
 	objectsCategorized: { [string]: { string } }, -- key = { objectId }
+	objectCounts: { [string]: number }, -- key = quantity
 }
 
 -- A copy of the object with only key and editable fields -------------------------------------------------------------

@@ -28,7 +28,10 @@ local MessageHandler = require(BaseHandlers.MessageHandler)
 -- Knit Services --------------------------------------------------------------------
 local InventoryService = Knit.CreateService({
 	Name = "Inventory",
-	Client = {},
+	Client = {
+		ObjectAdded = Knit.CreateSignal(),
+		ObjectRemoved = Knit.CreateSignal(), -- Does not replicate for objects of type "ammo"
+	},
 })
 
 -- Types ---------------------------------------------------------------------------
@@ -53,7 +56,16 @@ local InventoryService = Knit.CreateService({
 -- KNIT FUNCTIONS ------------------------------------------------------------------------------------------------------
 
 -- Require Knit Services in KnitInit(). KnitStart() is called after all KnitInit() have been completed.
-function InventoryService:KnitInit() end
+function InventoryService:KnitInit()
+	InventoryHandler.Register({
+		ObjectAdded = function(player: Player, key: string, quantity: number)
+			self.Client.ObjectAdded:Fire(player, key, quantity)
+		end,
+		ObjectRemoved = function(player: Player, key: string, quantity: number)
+			self.Client.ObjectRemoved:Fire(player, key, quantity)
+		end,
+	})
+end
 
 -- KnitStart() fires after all KnitInit() have been completed.
 function InventoryService:KnitStart() end

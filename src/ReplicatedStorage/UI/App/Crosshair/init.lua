@@ -66,7 +66,7 @@ local localPlayer = game.Players.LocalPlayer
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
 	window = { "windowShown" },
-	theme = { "isOnSmallScreen" },
+	app = { "isOnSmallScreen" },
 })
 
 ------------------------------------------------------------------------------------------------------------------------

@@ -1,33 +1,14 @@
-local ZoneManager = {}
+local ResourceDebrisManager = {}
 
 -- Services ------------------------------------------------------------------------
-local ServerStorage = game:GetService("ServerStorage")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Folders -------------------------------------------------------------------------
-local Packages = ReplicatedStorage.Packages
-local ReplicatedSource = ReplicatedStorage.Source
-local ServerSource = ServerStorage.Source
-local ReplicatedPlaywooEngine = ReplicatedSource.PlaywooEngine
-local PlaywooEngine = ServerSource.PlaywooEngine
-local ReplicatedBaseModules = ReplicatedPlaywooEngine.BaseModules
-local ReplicatedConfigs = ReplicatedSource.Configs
-local Configs = ServerSource.Configs
-local ReplicatedInfo = ReplicatedSource.Info
-local Info = ServerSource.Info
-local ReplicatedTypes = ReplicatedSource.Types
-local Types = ServerSource.Types
-local BaseModules = PlaywooEngine.BaseModules
-local GameModules = ServerSource.GameModules
-local BaseHandlers = PlaywooEngine.BaseHandlers
-local GameHandlers = ServerSource.GameHandlers
-
-local Zones = game.Workspace.Zones
+local ResourceDebris = game.Workspace:WaitForChild("Debris"):WaitForChild("Resources")
 
 -- Modules -------------------------------------------------------------------
-local Utils = require(ReplicatedPlaywooEngine.Utils)
+local Resources = require(script.Parent:WaitForChild("Resources"))
 
--- Handlers --------------------------------------------------------------------
+-- Handlers ----------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
 
@@ -36,7 +17,6 @@ local Utils = require(ReplicatedPlaywooEngine.Utils)
 -- Info ----------------------------------------------------------------------------
 
 -- Configs -------------------------------------------------------------------------
-local ZoneConfigs = require(ReplicatedConfigs:WaitForChild("ZoneConfigs"))
 
 -- Variables -----------------------------------------------------------------------
 
@@ -48,36 +28,29 @@ local ZoneConfigs = require(ReplicatedConfigs:WaitForChild("ZoneConfigs"))
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------
--- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-
-function ZoneManager.ParentResource(model: Model, folderName: string)
-	if not model then
+local function DebrisAdded(child: Instance)
+	if Resources[child.Name] then
 		return
 	end
 
-	local modelPosition = model:GetPivot().Position
-	local zoneKey = ZoneConfigs.GetZoneKey(modelPosition)
-
-	local zoneFolder = Utils.Instantiator.Create("Folder", {
-		Name = zoneKey,
-		Parent = Zones,
-	})
-	local resourceTypeFolder = Utils.Instantiator.Create("Folder", {
-		Name = folderName,
-		Parent = zoneFolder,
-	})
-
-	model.Parent = resourceTypeFolder
+	-- If the resource is not in use, destroy it
+	if child.Parent then
+		child:Destroy()
+	end
 end
+
+------------------------------------------------------------------------------------------------------------------------
+-- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
+ResourceDebris.ChildAdded:Connect(DebrisAdded)
+
 ------------------------------------------------------------------------------------------------------------------------
 -- RUNNING FUNCTIONS ---------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-return ZoneManager
+return ResourceDebrisManager

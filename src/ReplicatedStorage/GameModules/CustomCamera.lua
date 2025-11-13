@@ -50,6 +50,7 @@ local camera = game.Workspace.CurrentCamera
 ------------------------------------------------------------------------------------------------------------------------
 
 local GetCollidable = Utils.Raycaster.GetCollidable
+local MouseRaycast = Utils.Raycaster.MouseRaycast
 
 local function GetZoomDistance()
 	return (camera.CFrame.Position - camera.Focus.Position).Magnitude
@@ -181,15 +182,12 @@ function CustomCamera:Update()
 	if not self._inFirstPerson and self._toolEquipped and not self._isRagdolled then
 		if self._shiftLockDisabled and self._deviceType == "pc" then
 			-- Face toward mouse hit position
-			local mousePosition = UserInputService:GetMouseLocation()
-			local unitRay = camera:ViewportPointToRay(mousePosition.X, mousePosition.Y)
-			local endPosition = unitRay.Origin + unitRay.Direction * 500
-			local raycastResult = GetCollidable(unitRay.Origin, endPosition, { self._character })
+			local raycastResult, unitRay = MouseRaycast(500, { self._character })
 
 			local yaw = Utils.Math.YawToTarget(
 				root.CFrame,
 				(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position))
-					or CFrame.new(endPosition)
+					or CFrame.new(unitRay.Origin + unitRay.Direction * 500)
 			)
 
 			-- Rotate character to face mouse hit direction

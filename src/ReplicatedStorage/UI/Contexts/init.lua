@@ -1,6 +1,11 @@
 local Contexts = {}
 
 local privateStorage = {}
+for _, eachContext in ipairs(script:GetChildren()) do
+	if eachContext:IsA("ModuleScript") then
+		privateStorage[eachContext.Name] = require(eachContext)
+	end
+end
 
 local function resolveContext(key)
 	local module = privateStorage[key]

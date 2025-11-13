@@ -247,7 +247,7 @@ end
 -- Fires the player the ObjectAdded event
 function Inventory:ObjectAdded(key: string, quantity: number)
 	if self._player then
-		Ports.ObjectAdded(key, quantity)
+		Ports.ObjectAdded(self._player, key, quantity)
 	end
 end
 
@@ -260,7 +260,7 @@ function Inventory:ObjectRemoved(key: string, quantity: number)
 			return
 		end
 
-		Ports.ObjectRemoved(key, quantity)
+		Ports.ObjectRemoved(self._player, key, quantity)
 	end
 end
 

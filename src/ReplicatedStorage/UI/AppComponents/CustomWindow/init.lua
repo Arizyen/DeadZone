@@ -72,15 +72,13 @@ local e = React.createElement
 -- Tables --------------------------------------------------------------------------
 
 -- Selectors --------------------------------------------------------------------------
-local selector = UIUtils.Selector.Create({
-	theme = { "maxWindowSizeX", "maxWindowSizeY" },
-})
+
 ------------------------------------------------------------------------------------------------------------------------
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 local function CustomWindow(props: Props)
 	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
-	local storeState = ReactRedux.useSelector(selector)
+	local themeContext = React.useContext(BaseContexts.Theme)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
 
@@ -92,16 +90,16 @@ local function CustomWindow(props: Props)
 			props.exactSize
 			or (
 				props.Size
-				and props.Size.X.Scale <= storeState.maxWindowSizeX
-				and props.Size.Y.Scale <= storeState.maxWindowSizeY
+				and props.Size.X.Scale <= themeContext.maxWindowSizeX
+				and props.Size.Y.Scale <= themeContext.maxWindowSizeY
 				and props.Size
 			)
 		)
 			or (
-				props.Size ~= nil and UDim2.fromScale(storeState.maxWindowSizeX, storeState.maxWindowSizeY)
+				props.Size ~= nil and UDim2.fromScale(themeContext.maxWindowSizeX, themeContext.maxWindowSizeY)
 				or UDim2.fromScale(0.5, 0.5)
 			)
-	end, { props.Size, props.exactSize, storeState.maxWindowSizeX, storeState.maxWindowSizeY })
+	end, { props.Size, props.exactSize, themeContext.maxWindowSizeX, themeContext.maxWindowSizeY })
 
 	-- EFFECTS -------------------------------------------------------------------------------------------------------------
 

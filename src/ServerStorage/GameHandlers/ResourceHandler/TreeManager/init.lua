@@ -27,7 +27,6 @@ local ResourceSpawns = game.Workspace.ResourceSpawns
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local Tree = require(script.Tree)
-local Resources = require(script.Parent.Resources)
 
 -- Handlers --------------------------------------------------------------------
 
@@ -63,7 +62,7 @@ function TreeManager.Init(treesData: ResourceTypes.Resources?)
 		for _, treeKeys in pairs(ResourceSpawns.Trees:GetChildren()) do
 			local treeKey = treeKeys.Name
 			for _, spawn in pairs(treeKeys:GetChildren()) do
-				local tree = Tree.new(
+				Tree.new(
 					treeKey,
 					spawn.CFrame
 						* CFrame.new(0, -spawn.Size.Y / 1.95, 0)
@@ -72,12 +71,11 @@ function TreeManager.Init(treesData: ResourceTypes.Resources?)
 					nil,
 					rng:NextInteger(1, 3)
 				)
-				Resources[tree:GetId()] = tree
 			end
 		end
 	else
 		for _, treeData in pairs(treesData) do
-			local tree = Tree.new(
+			Tree.new(
 				treeData.key,
 				CFrame.new(table.unpack(string.split(treeData.cframe, ","))),
 				treeData.scaleFactor,
@@ -86,7 +84,6 @@ function TreeManager.Init(treesData: ResourceTypes.Resources?)
 				treeData.stageProgress,
 				treeData.planted
 			)
-			Resources[tree:GetId()] = tree
 		end
 	end
 end

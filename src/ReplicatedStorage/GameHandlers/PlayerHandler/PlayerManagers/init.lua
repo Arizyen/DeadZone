@@ -38,9 +38,9 @@ local MapConfigs = require(ReplicatedConfigs:WaitForChild("MapConfigs"))
 
 -- Tables --------------------------------------------------------------------------
 local playersAdded = {} :: { [number]: boolean }
-local playersZoneTracker = {}
-local playersAxesAnimator = {}
-local playersManagerList = {
+local playersZoneTracker = {} :: { [number]: typeof(PlayerZoneTracker) }
+local playersAxesAnimator = {} :: { [number]: typeof(PlayerAxesAnimator) }
+local playersManagerMap = {
 	PlayerZoneTracker = playersZoneTracker,
 	PlayerAxesAnimator = playersAxesAnimator,
 }
@@ -70,10 +70,10 @@ local function RemovePlayer(player: Player)
 	end
 	playersAdded[player.UserId] = nil
 
-	for _, managerList in pairs(playersManagerList) do
-		if managerList[player.UserId] then
-			managerList[player.UserId]:Destroy()
-			managerList[player.UserId] = nil
+	for _, managerMap in pairs(playersManagerMap) do
+		if managerMap[player.UserId] then
+			managerMap[player.UserId]:Destroy()
+			managerMap[player.UserId] = nil
 		end
 	end
 end

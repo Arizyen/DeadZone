@@ -68,8 +68,7 @@ local mobileActivationIcons = {
 
 -- Selectors --------------------------------------------------------------------------
 local selector = UIUtils.Selector.Create({
-	app = { "deviceType" },
-	theme = { "totalScreenSize" },
+	app = { "deviceType", "totalScreenSize" },
 	playerAttributes = { "isAlive" },
 })
 

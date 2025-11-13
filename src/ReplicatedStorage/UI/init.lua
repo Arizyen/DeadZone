@@ -62,7 +62,7 @@ local function CreateCameraViewportSizeConnection()
 
 		if lastSize == viewportSize then
 			Utils.Signals.Fire("DispatchAction", {
-				type = "UpdateThemeState",
+				type = "SetAppState",
 				value = {
 					guiInset = GUIService:GetGuiInset(),
 					cameraViewportSize = viewportSize,
@@ -75,7 +75,7 @@ local function CreateCameraViewportSizeConnection()
 
 	viewportSize = game.Workspace.CurrentCamera and game.Workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
 	Utils.Signals.Fire("DispatchAction", {
-		type = "UpdateThemeState",
+		type = "SetAppState",
 		value = {
 			guiInset = GUIService:GetGuiInset(),
 			cameraViewportSize = viewportSize,

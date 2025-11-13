@@ -37,7 +37,7 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 -- GLOBAL FUNCTIONS ----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-local InventoryReducer = Rodux.createReducer({
+local InventoryLogReducer = Rodux.createReducer({
 	added = {} :: { [string]: number }, -- [key: string]: number }
 	removed = {} :: { [string]: number }, -- [key: string]: number }
 }, {
@@ -82,4 +82,4 @@ local InventoryReducer = Rodux.createReducer({
 	end,
 })
 
-return InventoryReducer
+return InventoryLogReducer

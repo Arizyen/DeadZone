@@ -103,9 +103,7 @@ local screenSizeButtonOffset = {
 ------------------------------------------------------------------------------------------------------------------------
 local function CustomButton(props: Props)
 	-- SELECTORS/CONTEXTS -----------------------------------------------------------------------------------------------------------
-	local isOnSmallScreen = ReactRedux.useSelector(function(state)
-		return state.theme.isOnSmallScreen
-	end)
+	local screen = React.useContext(BaseContexts.Screen)
 
 	-- STATES/REFS/BINDINGS ---------------------------------------------------------------------------------------
 	local isHoveringBinding, setIsHovering = React.useBinding(false)
@@ -113,7 +111,7 @@ local function CustomButton(props: Props)
 		props.shineAnimation and UIUtils.Motor.OscillatingMotor.new(props.shineAnimationVelocity or 0.8) or nil
 	)
 
-	local screenSize = isOnSmallScreen and "small" or "large"
+	local screenSize = screen.isOnSmallScreen and "small" or "large"
 
 	-- CALLBACKS ----------------------------------------------------------------------------------------------------
 

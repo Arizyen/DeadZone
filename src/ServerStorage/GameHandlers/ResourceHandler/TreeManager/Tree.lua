@@ -30,6 +30,7 @@ local TreeModels = Models.Trees
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local ZoneManager = require(GameModules.ZoneManager)
+local Resources = require(GameHandlers.ResourceHandler.Resources)
 
 -- Handlers --------------------------------------------------------------------
 local InventoryHandler = require(GameHandlers.InventoryHandler)
@@ -142,13 +143,13 @@ function Tree:_Init()
 		return
 	end
 
+	Resources[self._id] = self
+
 	-- Add tree to growing trees if applicable
 	if self._stageIndex < 3 and self._planted then
 		treesGrowing[self] = true
 		StartGrowthTimer()
 	end
-
-	self:_UpdateHP(self._hp)
 end
 
 function Tree:Destroy()
@@ -158,6 +159,7 @@ function Tree:Destroy()
 	self._destroyed = true
 
 	treesGrowing[self] = nil
+	Resources[self._id] = nil
 
 	Utils.Connections.DisconnectKeyConnections(self)
 
@@ -169,11 +171,11 @@ function Tree:Destroy()
 		self._instance = nil
 
 		-- Parent instance to workspace debris for local cleanup
-		self._instance.Parent = game.Workspace.Debris
+		self._instance.Parent = game.Workspace.Debris.Resources
 
 		-- Destroy after 10 seconds to allow enough time for local animations to complete
 		Utils.Model.SetDescendantPartProperty(treeInstance, "CanQuery", false)
-		task.delay(10, function()
+		Utils.Scheduler.Add(10, function()
 			if treeInstance and treeInstance.Parent then
 				treeInstance:Destroy()
 			end
@@ -207,7 +209,9 @@ function Tree:_UpdateInstance(): boolean
 	end
 
 	self._instance = stageModel:Clone()
+	self._instance.Name = self._id
 	self._instance:PivotTo(self._cframe)
+	self:_UpdateHP(self._hp)
 	ZoneManager.ParentResource(self._instance, "Trees")
 
 	return true

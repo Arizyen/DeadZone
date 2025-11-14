@@ -50,13 +50,11 @@ function Rock.new(object: ObjectTypes.Tool, objectInfo: ObjectTypes.Tool, humano
 	local self = setmetatable(Tool.new(object, objectInfo, humanoid), Rock)
 
 	-- Booleans
-	self._destroyed = false
-
-	-- Numbers
-	self._lastHitTime = 0
 
 	-- Tables
-	self._objectInfo = objectInfo
+
+	-- Instances
+	self._animationTrack = nil :: AnimationTrack?
 
 	self:_Init()
 
@@ -98,36 +96,46 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 
 function Rock:_Activate()
-	self:_Hit()
-
-	Utils.Connections.Add(
-		self,
-		"HeartbeatHit",
-		RunService.Heartbeat:Connect(function()
-			self:_Hit()
-		end)
-	)
-end
-
-function Rock:_Deactivate()
-	Utils.Connections.DisconnectKeyConnection(self, "HeartbeatHit")
-end
-
-function Rock:_Hit()
-	if os.clock() - self._lastHitTime < (self._objectInfo.useDelay or 0) then
-		return
-	end
-	self._lastHitTime = os.clock()
-
-	Utils.Signals.Fire("ToolActivated")
-
-	local animationTrack = self.animationManager:PlayAnimation(
+	Utils.Connections.DisconnectKeyConnection(self, "AnimationTrackStopped")
+	self._animationTrack = self.animationManager:PlayAnimation(
 		self._objectInfo.animations["attack"],
 		{ priority = Enum.AnimationPriority.Action2 }
 	)
 
 	-- Adjust speed based on useDelay and animation length (to sync length with useDelay)
-	animationTrack:AdjustSpeed(1 / (self._objectInfo.useDelay / animationTrack.Length))
+	self._animationTrack:AdjustSpeed(1 / (self._objectInfo.useDelay / self._animationTrack.Length))
+
+	local resource = self:_GetClosestResource(true)
+	if resource then
+		local resourceModel = resource:GetInstance()
+		if not resourceModel or not resourceModel.PrimaryPart then
+			return
+		end
+
+		self:_FocusOnModel(
+			resourceModel,
+			Vector3.new(
+				0,
+				self._humanoid.HipHeight + (resource:GetType() == "tree" and self._character.PrimaryPart.Size.Y or 0),
+				0
+			)
+		)
+	end
+end
+
+function Rock:_Deactivate()
+	if not self._animationTrack or not self._animationTrack.IsPlaying then
+		self:_StopFocusOnModel()
+	else
+		Utils.Connections.Add(
+			self,
+			"AnimationTrackStopped",
+			self._animationTrack.Stopped:Connect(function()
+				Utils.Connections.DisconnectKeyConnection(self, "AnimationTrackStopped")
+				self:_StopFocusOnModel()
+			end)
+		)
+	end
 end
 
 ------------------------------------------------------------------------------------------------------------------------

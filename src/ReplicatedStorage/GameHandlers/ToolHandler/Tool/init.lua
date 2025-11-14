@@ -3,7 +3,7 @@ Tool.__index = Tool
 
 -- Services ------------------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- Folders -------------------------------------------------------------------------
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -22,9 +22,11 @@ local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local Ports = require(script.Parent:WaitForChild("Ports"))
 local DeviceTypeUpdater = require(ReplicatedBaseModules:WaitForChild("DeviceTypeUpdater"))
 local AnimationManager = require(ReplicatedBaseModules:WaitForChild("AnimationManager"))
-local MouseManager = require(ReplicatedGameModules:WaitForChild("MouseManager"))
+local ResourceManager = require(ReplicatedGameModules:WaitForChild("ResourceManager"))
+local CustomCamera = require(ReplicatedGameModules:WaitForChild("CustomCamera"))
 
 -- Handlers --------------------------------------------------------------------
+local PlayerHandler = require(ReplicatedGameHandlers:WaitForChild("PlayerHandler"))
 
 -- Types ---------------------------------------------------------------------------
 local ObjectTypes = require(ReplicatedTypes:WaitForChild("ObjectTypes"))
@@ -37,6 +39,7 @@ local ObjectTypes = require(ReplicatedTypes:WaitForChild("ObjectTypes"))
 
 -- Variables -----------------------------------------------------------------------
 local localPlayer = game.Players.LocalPlayer
+local localAxesAnimator = PlayerHandler.GetPlayerAxesAnimator(localPlayer.UserId)
 
 -- Tables --------------------------------------------------------------------------
 
@@ -44,8 +47,12 @@ local localPlayer = game.Players.LocalPlayer
 -- LOCAL FUNCTIONS -----------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------
+local MouseRaycast = Utils.Raycaster.MouseRaycast
+local GetMouseRay = Utils.Raycaster.GetMouseRay
+local IsWithinDistance = Utils.Math.IsWithinDistance
+
 -- CORE METHODS --------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
 function Tool.new(object: ObjectTypes.ToolCopy, objectInfo: ObjectTypes.Tool, humanoid: Humanoid)
@@ -58,6 +65,10 @@ function Tool.new(object: ObjectTypes.ToolCopy, objectInfo: ObjectTypes.Tool, hu
 	self._object = object
 	self._objectInfo = objectInfo
 	self._humanoid = humanoid
+	self._character = humanoid.Parent
+
+	-- Numbers
+	self._lastHitTime = 0
 
 	-- Signals
 	self.destroying = Utils.Signals.Create()
@@ -84,6 +95,15 @@ function Tool:_Init()
 			self:Destroy()
 		end)
 	)
+	Utils.Connections.Add(
+		self,
+		"CharacterAncestryChanged",
+		self._character.AncestryChanged:Connect(function(_, parent)
+			if not parent then
+				self:Destroy()
+			end
+		end)
+	)
 
 	-- Equip tool
 	self:_Equip()
@@ -97,6 +117,8 @@ function Tool:Destroy()
 
 	self.destroying:Fire()
 	Utils.Connections.DisconnectKeyConnections(self)
+
+	self:_StopFocusOnModel()
 
 	if self._humanoid then
 		self._humanoid:UnequipTools()
@@ -191,16 +213,116 @@ end
 
 function Tool:_RunHoldAnimation() end
 
+-- FOCUS ----------------------------------------------------------------------------------------------------
+
+function Tool:_FocusOnModel(model: Model, offset: Vector3)
+	localPlayer:SetAttribute("focusingCharacter", true)
+	Utils.Connections.DisconnectKeyConnection(self, "FocusOnModel")
+	CustomCamera:FocusOnModel(model)
+	localAxesAnimator:FocusOnModel(model, offset)
+
+	Utils.Connections.Add(
+		self,
+		"FocusOnModel",
+		RunService.Heartbeat:Connect(function()
+			if self._destroyed then
+				return
+			end
+
+			local characterPrimaryPart = self._character and self._character.PrimaryPart
+			if not characterPrimaryPart or not model or not model.PrimaryPart then
+				self:_StopFocusOnModel()
+				return
+			end
+
+			-- Confirm model is still within range
+			if
+				not IsWithinDistance(
+					characterPrimaryPart.Position,
+					model.PrimaryPart.Position + (offset or Vector3.new(0, 0, 0)),
+					(self._objectInfo.useRange or 0) + model.PrimaryPart.Size.Z / 2
+				)
+			then
+				self:_StopFocusOnModel()
+				return
+			end
+		end)
+	)
+end
+
+function Tool:_StopFocusOnModel()
+	localPlayer:SetAttribute("focusingCharacter", false)
+	Utils.Connections.DisconnectKeyConnection(self, "FocusOnModel")
+	CustomCamera:FocusOnModel(nil)
+	localAxesAnimator:FocusOnModel(nil)
+end
+
+-- RESOURCE ----------------------------------------------------------------------------------------------------
+
+function Tool:_GetClosestResource(applyHipHeightOffset: boolean?): table?
+	local position = self._character and self._character.PrimaryPart and self._character.PrimaryPart.Position
+	if not position then
+		return nil
+	end
+
+	position = position - Vector3.new(0, applyHipHeightOffset and self._humanoid.HipHeight or 0, 0)
+	local mouseLookVector = GetMouseRay().Direction.Unit
+
+	local resource
+	if self._objectInfo.resourceType == "any" then
+		resource = ResourceManager.GetClosestResourceInLookVector(
+			"trees",
+			position,
+			mouseLookVector,
+			self._objectInfo.useRange or 0
+		) or ResourceManager.GetClosestResourceInLookVector(
+			"ores",
+			position,
+			mouseLookVector,
+			self._objectInfo.useRange or 0
+		)
+	else
+		resource = ResourceManager.GetClosestResourceInLookVector(
+			self._objectInfo.resourceType,
+			position,
+			mouseLookVector,
+			self._objectInfo.useRange or 0
+		)
+	end
+
+	return resource
+end
+
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
 
 function Tool:Activate()
+	if self._destroyed then
+		return
+	end
+
+	Utils.Connections.Add(
+		self,
+		"HeartbeatActivate",
+		RunService.Heartbeat:Connect(function()
+			self:Activate()
+		end)
+	)
+
+	if os.clock() - self._lastHitTime < (self._objectInfo.useDelay or 0) then
+		return
+	end
+	self._lastHitTime = os.clock()
+
 	self.activated:Fire()
+	Utils.Signals.Fire("ToolActivated")
 end
 
 function Tool:Deactivate()
 	self.deactivated:Fire()
+
+	Utils.Connections.DisconnectKeyConnection(self, "HeartbeatActivate")
 end
 
 ------------------------------------------------------------------------------------------------------------------------

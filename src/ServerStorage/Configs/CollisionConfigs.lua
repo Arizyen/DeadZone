@@ -7,9 +7,8 @@ return {
 		"NPCNoCollide",
 		"CollideOnlyWithPlayers",
 		"ObjectsNoCollideWithAll",
-		"Tower",
-		"TowerRaycast",
-		"Lava",
+		"Resource",
+		"Zombie",
 	}, -- Must place these in order (loops through all collision groups and sets collision to false if not included in the list)
 	COLLISION_GROUP_COLLIDABLE = {
 		PlayersCollide = { "Default", "PlayersCollide" },
@@ -18,9 +17,8 @@ return {
 		NPCNoCollide = { "Default" },
 		CollideOnlyWithPlayers = { "PlayersCollide", "PlayersNoCollide" },
 		ObjectsNoCollideWithAll = {},
-		Tower = { "Default", "PlayersNoCollide", "PlayersCollide" },
-		TowerRaycast = { "Tower" },
-		PlayersDead = { "Default", "PlayersNoCollide", "PlayersCollide" },
-		Lava = { "PlayersDead" },
+		PlayersDead = { "Default", "PlayersDead", "PlayersCollide", "PlayersNoCollide" },
+		Resource = { "Default", "Resource", "PlayersCollide", "PlayersNoCollide" },
+		Zombie = { "Default", "Zombie", "Resource", "PlayersCollide", "PlayersNoCollide" },
 	},
 }

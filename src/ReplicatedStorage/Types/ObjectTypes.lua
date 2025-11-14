@@ -26,9 +26,10 @@ type ToolFields = {
 	type: "tool",
 	category: "weapon" | "harvesting" | "hybrid" | "utility" | "consumable", -- hybrid = both weapon and harvesting
 	attackType: ("melee" | "ranged")?, -- required if weapon or hybrid
-	resourceType: string?, -- required if harvesting
+	resourceType: string?, -- required if harvesting ("trees", "ores", "any")
 	durabilityLossPerUse: number?, -- a value between 0 and 1 representing percentage of durability lost per use
 	useDelay: number?, -- delay between uses in seconds
+	useRange: number?, -- maximum range of use in studs
 	reloadTime: number?, -- time taken to reload in seconds
 	damage: number?, -- required if weapon or hybrid
 	maxAmmo: number?,

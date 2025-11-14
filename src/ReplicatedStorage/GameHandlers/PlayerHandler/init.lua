@@ -85,6 +85,8 @@ function PlayerHandler.ReplicatePlayerAxes(player: Player, pitchRad: number, yaw
 	PlayerManagers.UpdatePlayerAxes(player.UserId, pitchRad, yawRad)
 end
 
+PlayerHandler.GetPlayerAxesAnimator = PlayerManagers.GetPlayerAxesAnimator
+
 -- TELEPORTATION -------------------------------------------------------------------------------------------------------
 
 function PlayerHandler.Teleport(cframe)

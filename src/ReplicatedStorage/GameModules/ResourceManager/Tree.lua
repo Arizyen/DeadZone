@@ -61,6 +61,7 @@ function Tree.new(treeInstance: Instance)
 
 	-- Strings
 	self._id = treeInstance.Name
+	self._type = "tree"
 
 	-- Numbers
 	self._hp = treeInstance:GetAttribute("hp")
@@ -131,7 +132,7 @@ function Tree:_AnimateDestroy()
 	local topPosition = startCFrame.Position + Vector3.new(0, treeTopPrimaryPart.Size.Y, 0)
 	local randomAngleRad = math.rad(rng:NextNumber(0, 360))
 	local direction = Vector3.new(math.cos(randomAngleRad), 0, math.sin(randomAngleRad))
-	local positionAroundBase = treePrimaryPart.Position + direction * (treeTopPrimaryPart.Size.Y * 2)
+	local positionAroundBase = treePrimaryPart.Position + direction * (treeTopPrimaryPart.Size.Y * 4)
 
 	local raycastResult = Utils.Raycaster.Raycast(
 		topPosition,
@@ -165,8 +166,8 @@ function Tree:_AnimateDestroy()
 	-- Compute the maximum allowed fall angle so the top doesn't go below target height
 	local H = treeTopPrimaryPart.Size.Y
 	local h = hitPosition.Y - startCFrame.Position.Y
-	local clamped = math.clamp(h / H, 0, 1)
-	local fallAngle = math.acos(clamped) -- radians, in [0, pi/2]
+	local clamped = math.clamp(h / H, -0.5, 1)
+	local fallAngle = math.acos(clamped) -- Angle in radians
 
 	-- Apply tilt around the rotation axis while preserving the tree's original orientation
 	local finalCFrame = startCFrame * CFrame.fromAxisAngle(rotationAxis, fallAngle)
@@ -178,6 +179,13 @@ function Tree:_AnimateDestroy()
 		self,
 		"HeartbeatDestroyAnimation",
 		RunService.Heartbeat:Connect(function()
+			if not self._instance or not self._instance.Parent then
+				-- Tree instance destroyed during animation
+				Utils.Connections.DisconnectKeyConnection(self, "HeartbeatDestroyAnimation")
+				self:Destroy()
+				return
+			end
+
 			local elapsedTime = os.clock() - animationStartTime
 			alpha = math.clamp(elapsedTime / FALL_ANIMATION_DURATION, 0, 1)
 
@@ -193,35 +201,37 @@ function Tree:_AnimateDestroy()
 
 				-- Tween transparency of tree parts to 1 over 0.5 seconds
 				local descendants = self._instance:GetDescendants()
-				for idx, descendant in ipairs(descendants) do
-					if descendant:IsA("BasePart") then
-						if idx == #descendants then
-							-- Last part, destroy after tween
-							Utils.Tween(
-								descendant,
-								0.5,
-								Enum.EasingStyle.Linear,
-								Enum.EasingDirection.Out,
-								{ Transparency = 1 }
-							).Completed
-								:Connect(function(state)
-									if state == Enum.PlaybackState.Completed then
-										if self._instance and self._instance.Parent then
-											self._instance:Destroy()
-										end
-										self:Destroy()
+				local baseParts = Utils.Table.Array.filter(descendants, function(descendant)
+					return descendant:IsA("BasePart")
+				end)
+
+				for idx, basePart in ipairs(baseParts) do
+					if idx == #baseParts then
+						-- Last part, destroy after tween
+						Utils.Tween(
+							basePart,
+							0.5,
+							Enum.EasingStyle.Linear,
+							Enum.EasingDirection.Out,
+							{ Transparency = 1 }
+						).Completed
+							:Connect(function(state)
+								if state == Enum.PlaybackState.Completed then
+									if self._instance and self._instance.Parent then
+										self._instance:Destroy()
 									end
-								end)
-						else
-							-- Just tween transparency
-							Utils.Tween(
-								descendant,
-								0.5,
-								Enum.EasingStyle.Linear,
-								Enum.EasingDirection.Out,
-								{ Transparency = 1 }
-							)
-						end
+									self:Destroy()
+								end
+							end)
+					else
+						-- Just tween transparency
+						Utils.Tween(
+							basePart,
+							0.5,
+							Enum.EasingStyle.Linear,
+							Enum.EasingDirection.Out,
+							{ Transparency = 1 }
+						)
 					end
 				end
 			end
@@ -260,11 +270,15 @@ end
 
 -- GETTERS ----------------------------------------------------------------------------------------------------
 
-function Tree:GetId()
+function Tree:GetId(): string
 	return self._id
 end
 
-function Tree:GetInstance()
+function Tree:GetType(): string
+	return self._type
+end
+
+function Tree:GetInstance(): Instance?
 	return not self._destroyed and self._hp > 0 and self._instance
 end
 

@@ -17,8 +17,10 @@ return {
 			type = "tool",
 			category = "hybrid",
 			attackType = "melee",
+			resourceType = "any",
 			durabilityLossPerUse = 0.002, -- 500 uses
 			useDelay = 1,
+			useRange = 3,
 			damage = 5,
 			animations = {
 				idle = "rbxassetid://107469312851840",

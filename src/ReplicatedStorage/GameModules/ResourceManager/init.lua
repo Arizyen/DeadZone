@@ -26,7 +26,7 @@ local Tree = require(script:WaitForChild("Tree"))
 -- Handlers ----------------------------------------------------------------
 
 -- Types ---------------------------------------------------------------------------
-type ResourcesType = "trees" | "ores"
+export type ResourcesType = "trees" | "ores"
 
 -- Instances -----------------------------------------------------------------------
 
@@ -161,15 +161,14 @@ function ResourceManager.GetClosestResource(
 	return closestResource
 end
 
-function ResourceManager.GetResourceWithinLookVector(
+function ResourceManager.GetClosestResourceInLookVector(
 	resourceType: ResourcesType,
 	position: Vector3,
 	lookVector: Vector3,
-	maxDistance: number,
+	toolUseRange: number,
 	angleThreshold: number
 ): typeof(Tree)?
 	local closestResource = nil
-	local maxDistanceSq = maxDistance * maxDistance -- Using squared distance for performance
 	local cosAngleThreshold = math.cos(math.rad(angleThreshold or 180))
 	local closestCosAngle = nil
 
@@ -180,11 +179,13 @@ function ResourceManager.GetResourceWithinLookVector(
 
 	for _, resource in pairs(resourcesOfType) do
 		local resourceInstance = resource:GetInstance()
-		if resourceInstance and resourceInstance.Parent then
+		if resourceInstance and resourceInstance.Parent and resourceInstance.PrimaryPart then
+			local maxDistance = toolUseRange + resourceInstance.PrimaryPart.Size.Z / 2
+			maxDistance = maxDistance * maxDistance -- Squared
 			local offset = resourceInstance:GetPivot().Position - position
 			local distanceSq = offset.X * offset.X + offset.Y * offset.Y + offset.Z * offset.Z
 
-			if distanceSq <= maxDistanceSq then
+			if distanceSq <= maxDistance then
 				local direction = offset.Unit
 				local dotProduct = lookVector:Dot(direction)
 

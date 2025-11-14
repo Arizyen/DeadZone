@@ -21,6 +21,7 @@ local ReplicatedGameHandlers = ReplicatedSource:WaitForChild("GameHandlers")
 -- Modules -------------------------------------------------------------------
 local Utils = require(ReplicatedPlaywooEngine:WaitForChild("Utils"))
 local MouseManager = require(ReplicatedGameModules:WaitForChild("MouseManager"))
+local ZoomTracker = require(script:WaitForChild("ZoomTracker"))
 
 -- Handlers --------------------------------------------------------------------
 
@@ -34,6 +35,7 @@ local MouseManager = require(ReplicatedGameModules:WaitForChild("MouseManager"))
 local CAMERA_OFFSET = Vector3.new(2.35, 1, 0)
 local CAMERA_OFFSET_SHIFT_LOCK_DISABLED = Vector3.new(0, 1.5, 0)
 local CAMERA_OFFSET_SPEED = 1 / 4
+local THIRD_PERSON_ZOOM = 6.5
 local FADE_START = 3
 local FADE_END = 0.5
 local EPS = 0.1
@@ -51,10 +53,7 @@ local camera = game.Workspace.CurrentCamera
 
 local GetCollidable = Utils.Raycaster.GetCollidable
 local MouseRaycast = Utils.Raycaster.MouseRaycast
-
-local function GetZoomDistance()
-	return (camera.CFrame.Position - camera.Focus.Position).Magnitude
-end
+local MouseRaycastCollidable = Utils.Raycaster.MouseRaycastCollidable
 
 local function CameraBasisXZ(camCF: CFrame)
 	local f = camCF.LookVector
@@ -96,6 +95,10 @@ function CustomCamera.new()
 	-- Instance
 	self._character = localPlayer.Character
 	self._humanoid = self._character and self._character:FindFirstChildOfClass("Humanoid")
+	self._focusModel = nil :: BasePart?
+
+	-- Metatables
+	self._zoomTracker = ZoomTracker.new()
 
 	self:_Init()
 
@@ -174,39 +177,58 @@ function CustomCamera:Update()
 		return
 	end
 
-	local zoomDistance = GetZoomDistance()
+	local zoomDistance = self._zoomTracker:GetCurrentZoom()
+	local desiredZoom, zoomedIn = self._zoomTracker:GetDesiredZoom()
 	local root = self._character.PrimaryPart
 	local newRootCFrame = root.CFrame
 
 	-- Make character face camera direction
 	if not self._inFirstPerson and self._toolEquipped and not self._isRagdolled then
-		if self._shiftLockDisabled and self._deviceType == "pc" then
-			-- Face toward mouse hit position
-			local raycastResult, unitRay = MouseRaycast(500, { self._character })
+		if self._focusModel and self._focusModel.PrimaryPart then
+			-- Character look at part
+			local lookVector
+			local raycastResult = MouseRaycast(100, { self._focusModel }, "Resource", Enum.RaycastFilterType.Include)
 
-			local yaw = Utils.Math.YawToTarget(
-				root.CFrame,
-				(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position))
-					or CFrame.new(unitRay.Origin + unitRay.Direction * 500)
-			)
+			if raycastResult then
+				-- If mouse ray hits target, rotate character to hit position
+				lookVector = (raycastResult.Position - root.Position).Unit
+			else
+				-- Otherwise, rotate character to target part
+				lookVector = (self._focusModel.PrimaryPart.Position - root.Position).Unit
+			end
 
-			-- Rotate character to face mouse hit direction
-			newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
+			local lookVectorXZ = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
+			newRootCFrame = CFrame.new(root.Position, root.Position + lookVectorXZ)
 			self._character:PivotTo(newRootCFrame)
 		else
-			-- Raycast for closest hit to camera to determine yaw
-			local startCFrame = camera.CFrame * CFrame.new(0, 0, -zoomDistance)
-			local endCFrame = camera.CFrame * CFrame.new(0, 0, -50)
-			local raycastResult = GetCollidable(startCFrame.Position, endCFrame.Position, { self._character })
+			if self._shiftLockDisabled and self._deviceType == "pc" then
+				-- Face toward mouse hit position
+				local raycastResult, unitRay = MouseRaycastCollidable(500, { self._character })
 
-			local yaw = Utils.Math.YawToTarget(
-				root.CFrame,
-				(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position)) or endCFrame
-			)
+				local yaw = Utils.Math.YawToTarget(
+					root.CFrame,
+					(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position))
+						or CFrame.new(unitRay.Origin + unitRay.Direction * 500)
+				)
 
-			-- Rotate character to face camera direction or toward raycast hit
-			newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
-			self._character:PivotTo(newRootCFrame)
+				-- Rotate character to face mouse hit direction
+				newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
+				self._character:PivotTo(newRootCFrame)
+			else
+				-- Raycast for closest hit to camera to determine yaw
+				local startCFrame = camera.CFrame * CFrame.new(0, 0, -zoomDistance)
+				local endCFrame = camera.CFrame * CFrame.new(0, 0, -50)
+				local raycastResult = GetCollidable(startCFrame.Position, endCFrame.Position, { self._character })
+
+				local yaw = Utils.Math.YawToTarget(
+					root.CFrame,
+					(raycastResult and raycastResult.Position and CFrame.new(raycastResult.Position)) or endCFrame
+				)
+
+				-- Rotate character to face camera direction or toward raycast hit
+				newRootCFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, 0)
+				self._character:PivotTo(newRootCFrame)
+			end
 		end
 	elseif self._inFirstPerson and not self._isRagdolled then
 		-- Ensure character faces forward
@@ -248,11 +270,19 @@ function CustomCamera:Update()
 
 	-- Auto transition first-person / third-person
 	if not self._transitioningZoom then
-		if not self._inFirstPerson and zoomDistance <= FADE_START - EPS and zoomDistance > FADE_END + EPS then
+		if
+			not self._inFirstPerson
+			and desiredZoom <= FADE_START
+			and zoomedIn
+			and zoomDistance <= FADE_START - EPS
+			and zoomDistance > FADE_END + EPS
+		then
+			-- Zoom in to first-person
 			self:_StartTransitionZoom(FADE_END, TWEEN_TIME)
 			self._inFirstPerson = true
-		elseif self._inFirstPerson and zoomDistance > FADE_END + EPS then
-			self:_StartTransitionZoom(FADE_START, TWEEN_TIME)
+		elseif self._inFirstPerson and desiredZoom > FADE_END and not zoomedIn and zoomDistance > FADE_END + EPS then
+			-- Zoom out to third-person
+			self:_StartTransitionZoom(THIRD_PERSON_ZOOM, TWEEN_TIME)
 			self._inFirstPerson = false
 			if self._toolEquipped then
 				-- Make sure mouse properties are ok when exiting first-person with tool equipped
@@ -306,7 +336,7 @@ function CustomCamera:_StartTransitionZoom(distance: number, duration: number)
 	self._origMinZoomDistance = localPlayer.CameraMinZoomDistance
 	self._origMaxZoomDistance = localPlayer.CameraMaxZoomDistance
 
-	local zoomFrom = GetZoomDistance()
+	local zoomFrom = self._zoomTracker:GetCurrentZoom()
 	local zoomTo = distance
 	local startTime = os.clock()
 
@@ -343,6 +373,10 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- PUBLIC CLASS METHODS ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
+
+function CustomCamera:FocusOnModel(model: Model?)
+	self._focusModel = model
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- CONNECTIONS ---------------------------------------------------------------------------------------------------------

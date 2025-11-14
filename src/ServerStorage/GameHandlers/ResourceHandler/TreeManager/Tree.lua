@@ -31,6 +31,7 @@ local TreeModels = Models.Trees
 local Utils = require(ReplicatedPlaywooEngine.Utils)
 local ZoneManager = require(GameModules.ZoneManager)
 local Resources = require(GameHandlers.ResourceHandler.Resources)
+local Collisions = require(BaseModules.Collisions)
 
 -- Handlers --------------------------------------------------------------------
 local InventoryHandler = require(GameHandlers.InventoryHandler)
@@ -210,8 +211,12 @@ function Tree:_UpdateInstance(): boolean
 
 	self._instance = stageModel:Clone()
 	self._instance.Name = self._id
+	Collisions.SetCollisionGroup(self._instance, "Resource", function(part)
+		return part.CanCollide
+	end)
 	self._instance:PivotTo(self._cframe)
 	self:_UpdateHP(self._hp)
+
 	ZoneManager.ParentResource(self._instance, "Trees")
 
 	return true

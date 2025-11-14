@@ -51,6 +51,7 @@ local Lerp = Utils.Math.Lerp
 local Smoothstep = Utils.Math.Smoothstep
 local Round = Utils.Math.Round
 local MouseRaycast = Utils.Raycaster.MouseRaycast
+local MouseRaycastCollidable = Utils.Raycaster.MouseRaycastCollidable
 
 local function AngleDiff(a, b)
 	-- returns (b - a) wrapped to [-π, π]
@@ -72,10 +73,10 @@ function PlayerAxesAnimator.new(player: Player)
 	self._inRange = self._isLocalPlayer and true or false
 	self._toolEquipped = player:GetAttribute("equippedObjectId") ~= nil
 	self._isRagdolled = player:GetAttribute("isRagdolled") or false
-	self._shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
+	self._shiftLockDisabled = self._isLocalPlayer and localPlayer:GetAttribute("shiftLockDisabled") or false
 
 	-- Strings
-	self._deviceType = localPlayer:GetAttribute("deviceType") or "pc"
+	self._deviceType = self._isLocalPlayer and localPlayer:GetAttribute("deviceType") or "pc"
 
 	-- Instances
 	self._player = player
@@ -83,6 +84,10 @@ function PlayerAxesAnimator.new(player: Player)
 	self._upperTorso = nil
 	self._waistMotor6D = nil
 	self._neckMotor6D = nil
+	self._focusModel = nil :: Model?
+
+	-- Vector3
+	self._focusModelOffset = Vector3.new(0, 0, 0) :: Vector3
 
 	-- CFrame
 	self._waistC0Base = nil
@@ -152,20 +157,23 @@ function PlayerAxesAnimator:_Init()
 		end)
 	)
 
-	Utils.Connections.Add(
-		self,
-		"shiftLockDisabled",
-		localPlayer:GetAttributeChangedSignal("shiftLockDisabled"):Connect(function()
-			self._shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
-		end)
-	)
-	Utils.Connections.Add(
-		self,
-		"DeviceTypeUpdated",
-		localPlayer:GetAttributeChangedSignal("deviceType"):Connect(function()
-			self._deviceType = localPlayer:GetAttribute("deviceType") or "pc"
-		end)
-	)
+	-- Local player only connections
+	if self._isLocalPlayer then
+		Utils.Connections.Add(
+			self,
+			"shiftLockDisabled",
+			localPlayer:GetAttributeChangedSignal("shiftLockDisabled"):Connect(function()
+				self._shiftLockDisabled = localPlayer:GetAttribute("shiftLockDisabled") or false
+			end)
+		)
+		Utils.Connections.Add(
+			self,
+			"DeviceTypeUpdated",
+			localPlayer:GetAttributeChangedSignal("deviceType"):Connect(function()
+				self._deviceType = localPlayer:GetAttribute("deviceType") or "pc"
+			end)
+		)
+	end
 
 	if self._isLocalPlayer then
 		self:_Activate()
@@ -300,26 +308,46 @@ function PlayerAxesAnimator:_LocalAnimate()
 	local camera = game.Workspace.CurrentCamera
 
 	RunService:BindToRenderStep("ApplyAimAxes", Enum.RenderPriority.Last.Value, function()
-		if self._activated then
+		if self._activated and self._character and self._character.PrimaryPart then
 			local lookVector = camera.CFrame.LookVector
-			local primaryPart = self._character and self._character.PrimaryPart
+			local primaryPart = self._character.PrimaryPart
 
-			if self._toolEquipped and self._shiftLockDisabled and self._deviceType == "pc" and primaryPart then
-				-- Get lookVector from mouse position hit
-				local raycastResult, unitRay = MouseRaycast(500, { self._character })
+			if self._toolEquipped then
+				if self._focusModel then
+					-- Get lookVector from model
+					local raycastResult =
+						MouseRaycast(100, { self._focusModel }, "Resource", Enum.RaycastFilterType.Include)
 
-				if raycastResult and raycastResult.Position then
-					lookVector = (raycastResult.Position - (primaryPart.Position + Vector3.new(
-						0,
-						primaryPart.Size.Y / 2 + 1.5,
-						0
-					))).Unit
-				else
-					lookVector = unitRay.Direction.Unit
+					if raycastResult then
+						lookVector = (raycastResult.Position - (primaryPart.Position + Vector3.new(
+							0,
+							primaryPart.Size.Y / 2 + 1.5,
+							0
+						))).Unit
+					else
+						lookVector = (
+							self._focusModel.PrimaryPart.Position
+							+ self._focusModelOffset
+							- (primaryPart.Position + Vector3.new(0, primaryPart.Size.Y / 2 + 1.5, 0))
+						).Unit
+					end
+				elseif self._shiftLockDisabled and self._deviceType == "pc" then
+					-- Get lookVector from mouse position hit
+					local raycastResult, unitRay = MouseRaycastCollidable(500, { self._character })
+
+					if raycastResult then
+						lookVector = (raycastResult.Position - (primaryPart.Position + Vector3.new(
+							0,
+							primaryPart.Size.Y / 2 + 1.5,
+							0
+						))).Unit
+					else
+						lookVector = unitRay.Direction.Unit
+					end
 				end
 			end
 
-			local charLook = self._character.PrimaryPart.CFrame.LookVector
+			local charLook = primaryPart.CFrame.LookVector
 			charLook = Vector3.new(charLook.X, 0, charLook.Z).Unit
 			local camFace = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
 
@@ -330,7 +358,7 @@ function PlayerAxesAnimator:_LocalAnimate()
 			local facingDot = charLook:Dot(camFace)
 			local t = Smoothstep((1 - facingDot) * 0.5)
 
-			local localLook = self._character.PrimaryPart.CFrame:VectorToObjectSpace(lookVector).Unit
+			local localLook = primaryPart.CFrame:VectorToObjectSpace(lookVector).Unit
 			local zBlended = Lerp(-localLook.Z, localLook.Z, t)
 
 			local yawTarget = -math.atan2(localLook.X, zBlended)
@@ -386,6 +414,32 @@ function PlayerAxesAnimator:SetInRange(inRange: boolean)
 	else
 		self:_Deactivate()
 	end
+end
+
+function PlayerAxesAnimator:FocusOnModel(model: Model?, offset: Vector3?)
+	if not self._isLocalPlayer then
+		return
+	end
+	assert(model == nil or model:IsA("Model"), "FocusOnModel: model must be a Model or nil")
+
+	Utils.Connections.DisconnectKeyConnection(self, "FocusOnModelDestroying")
+
+	if not model or not model.PrimaryPart then
+		self._focusModel = nil
+		return
+	end
+
+	-- Connection to clear focus when model is destroyed
+	Utils.Connections.Add(
+		self,
+		"FocusOnModelDestroying",
+		model.Destroying:Connect(function()
+			self._focusModel = nil
+		end)
+	)
+
+	self._focusModel = model
+	self._focusModelOffset = offset or Vector3.new(0, 0, 0)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

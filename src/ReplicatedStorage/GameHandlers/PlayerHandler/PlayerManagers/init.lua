@@ -106,6 +106,13 @@ function PlayerManagers.GetPlayerZoneKey(userId: number): string?
 	return zoneTracker:GetZoneKey()
 end
 
+function PlayerManagers.GetPlayerAxesAnimator(userId: number): typeof(PlayerAxesAnimator)?
+	if not userId then
+		return nil
+	end
+	return playersAxesAnimator[userId]
+end
+
 function PlayerManagers.UpdatePlayerAxes(userId: number, pitchRad: number, yawRad: number)
 	if not userId then
 		return
